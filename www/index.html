@@ -120,6 +120,7 @@ nav button.on{color:var(--acc)}nav button.on svg{transform:translateY(-2px) scal
 <div id="sheetbg" onclick="closeSheet()"></div><div id="sheet"></div>
 <nav id="nav"></nav>
 <script src="icons.js"></script>
+<script src="storage.js"></script>
 <script>
 const V={};
 // ================= DATA =================
@@ -205,10 +206,10 @@ const dayIdx=()=>Math.floor(Date.now()/864e5);
 const PASTEL=['#ffe4e6','#e0f2fe','#dcfce7','#fef3c7','#ede9fe','#fce7f3','#e0e7ff','#ccfbf1'];
 
 // ================= STATE =================
-let S=JSON.parse(localStorage.getItem('gq')||'null')||{};
+const __load=RWStore.load();let S=__load.state;window.__loadStatus=__load.status;
 S.profile??=null;S.food??={};S.workouts??=[];S.xp??={};S.active??=null;S.quests??={};S.custom??=[];S.water??={};S.steps??={};S.weights??=[];S.runs??=[];
 MUSCLES.forEach(m=>S.xp[m]??=0);S.customEx??={};S.ext??={};Object.assign(EX,S.customEx);
-const save=()=>{try{checkGoals()}catch(e){}localStorage.setItem('gq',JSON.stringify(S))};
+const save=()=>{try{checkGoals()}catch(e){}try{localStorage.setItem('gq',JSON.stringify(S))}catch(e){console.error('save failed',e);try{toast('⚠️ Storage is full — export a backup in Settings')}catch(_){}}RWStore.snapshot(S).catch(()=>{})};
 const iso=d=>{const x=new Date(d);return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0')};
 const today=()=>iso(Date.now());
 const $=s=>document.querySelector(s);
@@ -626,5 +627,6 @@ window.addEventListener('popstate',()=>{});
 <script src="progress.js"></script>
 <script src="suggest.js"></script>
 <script src="more.js"></script>
+<script src="qa.js"></script>
 </body>
 </html>

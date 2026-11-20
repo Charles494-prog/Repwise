@@ -1,0 +1,68 @@
+// RepWise storage: safe load (corruption recovery), schema versioning + migrations, daily snapshots.
+// UMD so the migrations can be unit-tested in Node.
+(function (root) {
+  'use strict';
+  const KEY = 'gq', LAST = 'gq_last', CURRENT = 2;
+  const isObj = v => v && typeof v === 'object' && !Array.isArray(v);
+  const num = v => (typeof v === 'number' && isFinite(v) ? v : +v || 0);
+
+  // Each migration takes a state at version n and returns it at n+1. Never throws on odd data.
+  const MIGRATIONS = {
+    // v1 → v2: normalise shapes written by older builds.
+    1: s => {
+      if (!isObj(s.food)) s.food = {};
+      for (const d of Object.keys(s.food)) {
+        if (!Array.isArray(s.food[d]) || !/^\d{4}-\d{2}-\d{2}$/.test(d)) { delete s.food[d]; continue; }
+        s.food[d] = s.food[d].filter(Array.isArray).map(x => { const o = [String(x[0] ?? 'Food'), num(x[1]), num(x[2])]; for (let i = 3; i < 6; i++) if (x[i] != null) o[i] = num(x[i]); if (isObj(x[6])) o[6] = x[6]; return o; });
+      }
+      if (!Array.isArray(s.weights)) s.weights = [];
+      s.weights = s.weights.filter(w => Array.isArray(w) && num(w[1]) > 0).map(w => [num(w[0]), num(w[1])]).sort((a, b) => a[0] - b[0]);
+      if (Array.isArray(s.myMeals)) s.myMeals.forEach((m, i) => { if (!m.id) m.id = 'm' + i + '_' + Date.now().toString(36); if (!Array.isArray(m.items)) m.items = []; });
+      for (const k of ['workouts', 'runs', 'bfLog', 'measLog', 'bp', 'glu', 'favs', 'dontAsk', 'myMeals']) if (s[k] != null && !Array.isArray(s[k])) s[k] = [];
+      for (const k of ['water', 'steps', 'sleep', 'sleepQ', 'burn', 'goals', 'quests']) if (s[k] != null && !isObj(s[k])) s[k] = {};
+      return s;
+    },
+  };
+  function migrate(s) {
+    if (!isObj(s)) return { schemaVersion: CURRENT };
+    let v = num(s.schemaVersion) || 1;
+    while (v < CURRENT) { s = MIGRATIONS[v](s) || s; v++; }
+    s.schemaVersion = CURRENT; return s;
+  }
+
+  // Load: parse → migrate. On corrupt JSON keep the raw copy and fall back to the last good daily copy.
+  function load(ls) {
+    ls = ls || root.localStorage; const raw = ls.getItem(KEY); let s = null, status = 'ok';
+    try { s = JSON.parse(raw || 'null'); if (s !== null && !isObj(s)) throw new Error('not an object'); }
+    catch (e) {
+      try { ls.setItem('gq_corrupt_' + Date.now(), String(raw)); } catch (_) {}
+      status = 'corrupt'; s = null;
+      try { const last = JSON.parse(ls.getItem(LAST) || 'null'); if (last && isObj(last.data)) { s = last.data; status = 'recovered:' + last.day; } } catch (_) {}
+    }
+    return { state: migrate(s || {}), status, fresh: !s };
+  }
+
+  // Once per day: keep a last-good copy in localStorage and (native) a dated file, pruned to 7.
+  async function snapshot(s, ls, P) {
+    ls = ls || root.localStorage; P = P || root.Capacitor?.Plugins;
+    const d = new Date(), day = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    let last = null; try { last = JSON.parse(ls.getItem(LAST) || 'null'); } catch (_) {}
+    if (last && last.day === day) return false;
+    const json = JSON.stringify(s);
+    try { ls.setItem(LAST, JSON.stringify({ day, ts: Date.now(), data: s })); } catch (_) {}
+    s.lastBackup = Date.now();
+    const FS = P?.Filesystem; if (!FS) return true;
+    try {
+      await FS.writeFile({ path: `backups/repwise-${day}.json`, data: json, directory: 'DATA', encoding: 'utf8', recursive: true });
+      const list = (await FS.readdir({ path: 'backups', directory: 'DATA' })).files.map(f => f.name || f).filter(n => /^repwise-\d{4}-\d{2}-\d{2}\.json$/.test(n)).sort();
+      for (const old of list.slice(0, Math.max(0, list.length - 7))) await FS.deleteFile({ path: `backups/${old}`, directory: 'DATA' });
+    } catch (e) { console.warn('backup', e); }
+    return true;
+  }
+  async function listBackups(P) { const FS = (P || root.Capacitor?.Plugins)?.Filesystem; if (!FS) return []; try { return (await FS.readdir({ path: 'backups', directory: 'DATA' })).files.map(f => f.name || f).filter(n => n.endsWith('.json')).sort().reverse(); } catch (e) { return []; } }
+  async function readBackup(name, P) { const FS = (P || root.Capacitor?.Plugins).Filesystem; const r = await FS.readFile({ path: `backups/${name}`, directory: 'DATA', encoding: 'utf8' }); return JSON.parse(r.data); }
+
+  const API = { KEY, CURRENT, MIGRATIONS, migrate, load, snapshot, listBackups, readBackup };
+  root.RWStore = API;
+  if (typeof module !== 'undefined' && module.exports) module.exports = API;
+})(typeof window !== 'undefined' ? window : globalThis);
