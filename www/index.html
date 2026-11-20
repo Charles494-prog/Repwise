@@ -133,6 +133,7 @@ const EX={
  'Hanging Leg Raise':[['Core'],[],'🧘'],'Crunch':[['Core'],[],'🔥'],'Plank Hold (sec)':[['Core'],['Shoulders'],'⏱️'],
  'Incline Push-up':[['Chest'],['Triceps'],'🤸'],'Knee Push-up':[['Chest'],['Triceps'],'🤸'],'Dead Hang (sec)':[['Back'],['Biceps'],'🐒'],'Scapular Pull-up':[['Back'],[],'🧗'],
  'Australian Row':[['Back'],['Biceps'],'🚣'],'Negative Pull-up':[['Back'],['Biceps'],'🧗'],'Chin-up':[['Back','Biceps'],[],'🧗'],'Explosive Pull-up':[['Back'],['Biceps','Core'],'🚀'],
+ 'Pistol Squat':[['Quads','Glutes'],['Core'],'🦵'],'Pike Push-up':[['Shoulders'],['Triceps'],'🔺'],'Wall Handstand (sec)':[['Shoulders'],['Core','Triceps'],'🤸'],'Handstand (sec)':[['Shoulders'],['Core'],'🤸'],'L-sit (sec)':[['Core'],['Triceps'],'🪑'],'Run (km)':[['Quads','Calves'],['Hamstrings','Glutes'],'🏃'],
  'Straight Bar Dip':[['Triceps','Chest'],['Shoulders'],'⬇️'],'Muscle-up':[['Back','Triceps'],['Chest','Core','Biceps'],'🦅'],
 };
 const PROGS={
@@ -161,6 +162,26 @@ const TREES={
   ['Explosive Pull-up',5,'Pull so the bar reaches your lower chest. HIGH and fast.'],['Pull-up',12,'More strength = easier transition. 3× max sets.'],
   ['Muscle-up',1,'Explosive pull + lean over the bar + dip. Practice with a band. 🏆'],['Muscle-up',5,'Legend tier: 5 clean muscle-ups! 👑']]},
 };
+const BWQ=(ex,arr,tip)=>arr.map(([n,bw])=>[ex,n,tip,bw]);
+Object.assign(TREES,{
+ dips:{cat:'Bodyweight',name:'20 Dips',icon:'⬇️',steps:[['Straight Bar Dip',3,'Learn the support position on a bar.'],['Dips',1,'Slow negatives: lower over 4–5 sec.'],['Dips',5,'Sets of 2–3 reps often.'],['Dips',10,'3× max sets, 2 min rest.'],['Dips',15,'Pyramids 1→5→1.'],['Dips',20,'Full depth, 20 strict reps! 🏆']]},
+ pistol:{cat:'Bodyweight',name:'Pistol Squat',icon:'🦵',steps:[['Squat',20,'Bodyweight squats, full depth, heels down. (weight 0)'],['Lunge',12,'Per leg, slow and controlled.'],['Pistol Squat',1,'Hold a door frame or sit down to a box at first.'],['Pistol Squat',3,'Per leg. Reach arms forward for balance.'],['Pistol Squat',5,'Per leg, no support.'],['Pistol Squat',10,'10 per leg — elite balance & strength! 🏆']]},
+ handstand:{cat:'Bodyweight',name:'Handstand',icon:'🤸',steps:[['Plank Hold (sec)',60,'Solid straight-body plank.'],['Pike Push-up',10,'Hips high, head to the floor between hands.'],['Wall Handstand (sec)',15,'Chest facing the wall, walk your feet up.'],['Wall Handstand (sec)',30,'Push tall through the shoulders.'],['Wall Handstand (sec)',60,'Squeeze glutes, straight line.'],['Handstand (sec)',5,'Kick up away from the wall, use your fingers to balance.'],['Handstand (sec)',15,'Practice a little every day.'],['Handstand (sec)',30,'30-second freestanding handstand! 🏆']]},
+ lsit:{cat:'Bodyweight',name:'L-sit',icon:'🪑',steps:[['Hanging Leg Raise',10,'Straight legs to hip height.'],['L-sit (sec)',5,'On parallettes, chairs or the floor; tuck first if needed.'],['L-sit (sec)',10,'Push down hard, shoulders away from ears.'],['L-sit (sec)',20,'Point toes, lock knees.'],['L-sit (sec)',30,'30-second L-sit! 🏆']]},
+ plank:{cat:'Bodyweight',name:'3-Minute Plank',icon:'⏱️',steps:[['Plank Hold (sec)',30,'Squeeze glutes, ribs down.'],['Plank Hold (sec)',60,'3× max holds.'],['Plank Hold (sec)',90,'Breathe steadily.'],['Plank Hold (sec)',120,'Add 10 sec per week.'],['Plank Hold (sec)',180,'3 minutes of iron core! 🏆']]},
+ bench:{cat:'Strength',name:'Bench Your Bodyweight',icon:'🏋️',steps:BWQ('Bench Press',[[8,.5],[5,.65],[5,.8],[3,.9],[1,1],[5,1]],'3–4 sets of 5–8, add 2.5 kg when you hit the top reps.')},
+ squat:{cat:'Strength',name:'Squat 1.5× Bodyweight',icon:'🦵',steps:BWQ('Squat',[[8,.6],[5,.8],[5,1],[3,1.2],[1,1.35],[1,1.5]],'Squat 2×/week, 3–5 sets. Depth: hip crease below knee.')},
+ deadlift:{cat:'Strength',name:'Deadlift 2× Bodyweight',icon:'🏋️',steps:BWQ('Deadlift',[[5,.8],[5,1],[5,1.25],[3,1.5],[1,1.75],[1,2]],'1–2× per week, 3 sets of 3–5. Neutral back, bar close.')},
+ ohp:{cat:'Strength',name:'Overhead Press ¾ Bodyweight',icon:'🙌',steps:BWQ('Overhead Press',[[8,.35],[5,.45],[5,.55],[3,.65],[1,.75]],'Glutes tight, press in a straight line, head through at the top.')},
+ wpull:{cat:'Strength',name:'Weighted Pull-up +25% BW',icon:'🧗',steps:[['Pull-up',10,'Get 10 strict bodyweight reps first.'],['Pull-up',15,'Volume builds the base.']].concat(BWQ('Weighted Pull-up',[[5,.1],[3,.15],[3,.2],[1,.25]],'Add weight with a belt or backpack. Log the ADDED weight.'))},
+ run5k:{cat:'Endurance',name:'Run a 5K',icon:'🏃',steps:[['Run (km)',1,'Run/walk intervals: 1 min run, 1 min walk.'],['Run (km)',2,'3 runs per week, easy pace (you can talk).'],['Run (km)',3,'Add ~10% distance per week.'],['Run (km)',4,'One longer run per week.'],['Run (km)',5,'5K finished! 🏆']]},
+ run10k:{cat:'Endurance',name:'Run a 10K',icon:'🏅',steps:[['Run (km)',5,'Start from a comfortable 5K.'],['Run (km)',6,'Keep most runs easy.'],['Run (km)',8,'Long run once a week.'],['Run (km)',10,'10K done — endurance beast! 🏆']]},
+});
+TREES.pushup.cat='Bodyweight';TREES.muscleup.cat='Bodyweight';
+EX['Weighted Pull-up']=[['Back','Biceps'],[],'🧗'];
+const isSec=e=>/\(sec\)/.test(e),isKm=e=>/\(km\)/.test(e);
+const bwKg=bw=>Math.round(bw*(S.profile?.weight||70)/2.5)*2.5;
+function stepLbl(st){const [e,n,,bw]=st,nm=e.replace(/ \((sec|km)\)/,'');return isSec(e)?`${n}s ${nm}`:isKm(e)?`${n} km run`:`${n}× ${nm}${bw?` @ ${bwKg(bw)} kg`:''}`}
 const SCIENCE=[
  ['🥩','Protein','Eating about 1.6–2.2 g of protein per kg of bodyweight a day maximizes muscle gain from training.','Morton et al., 2018 meta-analysis, Br J Sports Med'],
  ['📅','Frequency','Training each muscle at least 2× per week builds more muscle than once a week, at the same total volume.','Schoenfeld et al., 2016 meta-analysis, Sports Med'],
@@ -185,7 +206,7 @@ const PASTEL=['#ffe4e6','#e0f2fe','#dcfce7','#fef3c7','#ede9fe','#fce7f3','#e0e7
 // ================= STATE =================
 let S=JSON.parse(localStorage.getItem('gq')||'null')||{};
 S.profile??=null;S.food??={};S.workouts??=[];S.xp??={};S.active??=null;S.quests??={};S.custom??=[];S.water??={};S.steps??={};S.weights??=[];S.runs??=[];
-MUSCLES.forEach(m=>S.xp[m]??=0);S.customEx??={};Object.assign(EX,S.customEx);
+MUSCLES.forEach(m=>S.xp[m]??=0);S.customEx??={};S.ext??={};Object.assign(EX,S.customEx);
 const save=()=>localStorage.setItem('gq',JSON.stringify(S));
 const iso=d=>{const x=new Date(d);return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0')};
 const today=()=>iso(Date.now());
@@ -231,10 +252,10 @@ function todaysProg(){const score=k=>PROGS[k].m.reduce((s,m)=>s+(daysSince(m)??9
 function grantXP(ex,xp){const [pri,sec]=EX[ex],ups=[];[...pri,...sec].forEach(m=>{const b=rankOf(S.xp[m]).name;S.xp[m]+=pri.includes(m)?xp:Math.round(xp/2);const a=rankOf(S.xp[m]).name;if(a!==b)ups.push(`${m} → ${a}`)});return ups}
 
 // ================= QUESTS =================
-function questList(){const q=[];for(const id in S.quests){const t=TREES[id];q.push({id,name:t.name,icon:t.icon,steps:t.steps,i:S.quests[id]})}
- S.custom.forEach((c,k)=>q.push({id:'c'+k,name:`${c.target}× ${c.ex}`,icon:'🎯',i:c.i,steps:[.25,.5,.75,1].map(f=>[c.ex,Math.max(1,Math.round(c.start+(c.target-c.start)*f)),`Train ${c.ex} 2–3×/week. Beat your last set by +1 rep each session.`])}));return q}
-function checkQuests(ex,reps){const msgs=[];for(const q of questList()){if(q.i>=q.steps.length)continue;const [e,n]=q.steps[q.i];
- if(e===ex&&reps>=n){const reward=100+q.i*50;grantXP(e,reward);if(q.id[0]==='c')S.custom[+q.id.slice(1)].i++;else S.quests[q.id]++;
+function questList(){const q=[];for(const id in S.quests){const t=TREES[id];if(!t)continue;const ext=S.ext[id]||[];q.push({id,name:ext.length?`${t.name} → ${stepLbl(ext.at(-1))}`:t.name,icon:t.icon,steps:t.steps.concat(ext),i:S.quests[id]})}
+ S.custom.forEach((c,k)=>q.push({id:'c'+k,name:`${c.target}× ${c.ex}`,icon:'🎯',i:c.i,steps:[.25,.5,.75,1].map(f=>[c.ex,Math.max(1,Math.round(c.start+(c.target-c.start)*f)),`Train ${c.ex} 2–3×/week. Beat your last set by +1 rep each session.`]).concat(S.ext['c'+k]||[])}));return q}
+function checkQuests(ex,reps,w=0){const msgs=[];for(const q of questList()){if(q.i>=q.steps.length)continue;const [e,n,,bw]=q.steps[q.i];
+ if(e===ex&&reps>=n&&(!bw||w>=bwKg(bw)-0.01)){const reward=100+q.i*50;grantXP(e,reward);if(q.id[0]==='c')S.custom[+q.id.slice(1)].i++;else S.quests[q.id]++;
   msgs.push(q.i+1>=q.steps.length?`🏆 QUEST COMPLETE: ${q.name}! +${reward} XP`:`✅ Checkpoint ${q.i+1}/${q.steps.length} cleared! +${reward} XP`)}}
  if(msgs.length)setTimeout(()=>confetti(),300);return msgs}
 
@@ -266,19 +287,26 @@ const OBSTEPS=[
  {k:'weight',q:"What's your current weight?",n:[70,'kg',30,250,.5]},
  {k:'build',q:'Which looks most like you?',s:'This helps estimate your body fat.',o:[['lean','🦴','Very lean','Visible abs & veins'],['athletic','🏃','Athletic','Some definition'],['average','🙂','Average','A little soft'],['soft','🍩','Soft','Some belly fat'],['heavy','🐻','Heavy','Carrying a lot of fat']]},
  {k:'activity',q:'How active are you?',o:[[1.2,'🛋️','Not active','Desk job, little exercise'],[1.375,'🚶','Lightly active','1–3 workouts a week'],[1.55,'🏃','Active','3–5 workouts a week'],[1.725,'⚡','Very active','6–7 workouts a week']]},
- {k:'focus',q:'Pick a skill to unlock',s:'You will get checkpoint quests for it.',o:[['pushup','💥','20 push-ups','From zero to 20 strict reps'],['muscleup','🦅','Pull-up → Muscle-up','Lift yourself over the bar'],['none','🏋️','Just get stronger','Ranks & PRs only']]},
+ {k:'focus',q:'Pick your quests',s:'Choose as many as you like — you can add, change or raise them anytime.',multi:1},
 ];
-function startOB(){OB.active=true;OB.step=0;OB.d={...(S.profile||{})};render('up')}
+const SLIDES=[['🔒','Your data stays yours','No accounts, no servers, no tracking. Everything lives only on your phone.'],['💸','100% free','No subscriptions, no paywalls, no ads. Every feature is unlocked.'],['🧑‍💻','Open source','The code is open for anyone to read and improve. Nothing hidden.'],['🔬','Backed by science','Your calories, protein and tips come from peer-reviewed research.'],['🎮','Training is a game','Every set earns XP. Rank up each muscle from Iron to Legend.'],['📈','Built for progress','Beat last session by +1 rep or +2.5 kg and get 2× XP.'],['📴','Works offline','Log workouts in the gym with no signal. Move devices with a backup file.']];
+const SLSTAT=['Calculating your calories…','Estimating body fat…','Building your quests…','Picking your first workout…','Almost ready…','Done! ✨','Done! ✨'];
+let slT=null;function startSlides(){if(slT)return;let i=0;const show=()=>{const el=$('#slide');if(!el||!OB.active){clearInterval(slT);slT=null;return}
+ if(i>=SLIDES.length){clearInterval(slT);slT=null;finishOB();return}const [e,t,s]=SLIDES[i];el.innerHTML=`<div class="anim-push"><div style="font-size:52px">${e}</div><h3 style="font-size:20px;margin:8px 0 6px">${t}</h3><p class="muted">${s}</p></div>`;
+ document.querySelectorAll('#sldots i').forEach((d,k)=>d.classList.toggle('on',k<=i));const ss=$('#slstat');if(ss)ss.textContent=SLSTAT[i];i++};setTimeout(show,0);slT=setInterval(show,1900)}
+function startOB(){OB.active=true;OB.step=0;OB.d={...(S.profile||{}),focus:Object.keys(S.quests)};render('up')}
 V.onboard=()=>{const st=OB.step;
- if(st===OBSTEPS.length){setTimeout(finishOB,2200);return`<div class="ob" style="text-align:center"><div class="loader"></div><h2>Creating your plan…</h2><p class="muted">Calculating calories, body fat & quests</p></div>`}
+ if(st===OBSTEPS.length){startSlides();return`<div class="ob" style="text-align:center"><div class="loader" style="margin:30px auto 20px"></div><h2>Creating your plan…</h2><p class="muted" id="slstat">Calculating your calories…</p>
+ <div class="card" id="slide" style="margin-top:26px;min-height:190px;display:grid;place-content:center"></div><div class="segs" id="sldots" style="margin:14px 40px">${SLIDES.map(()=>'<i></i>').join('')}</div></div>`}
  const s=OBSTEPS[st],v=OB.d[s.k];
  return`<div class="ob"><div class="flex" style="flex:none">${st?`<button class="iconbtn" style="flex:none" onclick="OB.step--;render('pop')">‹</button>`:'<span style="flex:none;width:40px"></span>'}<div class="obbar" style="margin:0"><i style="width:${(st+1)/OBSTEPS.length*100}%"></i></div><span class="muted" style="flex:none">${st+1}/${OBSTEPS.length}</span></div>
  <div style="margin-top:26px"><h2>${s.q}</h2>${s.s?`<p class="muted">${s.s}</p>`:''}</div>
- ${s.txt?`<input id="obt" style="margin-top:30px;font-size:22px;font-weight:800" maxlength="30" placeholder="Your name" value="${esc(v||'')}"><div style="flex:1"></div><button class="btn" onclick="const n=$('#obt').value.trim();if(!n)return toast('Enter a name');OB.d.name=n;OB.step++;render('push')">Continue</button>${!S.profile?`<button class="btn sec2" style="margin-top:10px" onclick="importSheet()">I have a backup — restore</button>`:''}`:s.o?`<div class="stagger" style="margin-top:14px">${s.o.map(([val,e,t,sub])=>`<div class="opt ${v==val?'on':''}" onclick="OB.d['${s.k}']=${typeof val==='number'?val:`'${val}'`};setTimeout(()=>{OB.step++;render('push')},180);this.classList.add('on')"><span class="e">${e}</span><div><b>${t}</b>${sub?`<small>${sub}</small>`:''}</div></div>`).join('')}</div>`
+ ${s.multi?`<div class="stagger" style="margin-top:10px">${Object.keys(TREES).map(id=>`<div class="opt ${(OB.d.focus||[]).includes(id)?'on':''}" style="padding:12px;margin:8px 0" onclick="togFocus('${id}',this)"><span class="e" style="font-size:26px">${TREES[id].icon}</span><div><b>${TREES[id].name}</b><small>${TREES[id].cat} · ${TREES[id].steps.length} checkpoints</small></div></div>`).join('')}</div><div class="sticky" style="bottom:16px"><button class="btn" onclick="OB.step++;render('push')">${(OB.d.focus||[]).length?`Continue with ${(OB.d.focus||[]).length} quest${(OB.d.focus||[]).length>1?'s':''}`:'Skip for now'}</button></div>`:s.txt?`<input id="obt" style="margin-top:30px;font-size:22px;font-weight:800" maxlength="30" placeholder="Your name" value="${esc(v||'')}"><div style="flex:1"></div><button class="btn" onclick="const n=$('#obt').value.trim();if(!n)return toast('Enter a name');OB.d.name=n;OB.step++;render('push')">Continue</button>${!S.profile?`<button class="btn sec2" style="margin-top:10px" onclick="importSheet()">I have a backup — restore</button>`:''}`:s.o?`<div class="stagger" style="margin-top:14px">${s.o.map(([val,e,t,sub])=>`<div class="opt ${v==val?'on':''}" onclick="OB.d['${s.k}']=${typeof val==='number'?val:`'${val}'`};setTimeout(()=>{OB.step++;render('push')},180);this.classList.add('on')"><span class="e">${e}</span><div><b>${t}</b>${sub?`<small>${sub}</small>`:''}</div></div>`).join('')}</div>`
  :`<div class="bignum"><button onclick="nb(-1)">−</button><input id="obn" type="number" inputmode="decimal" value="${v??s.n[0]}"><button onclick="nb(1)">+</button></div><div class="unit">${s.n[1]}</div><div style="flex:1"></div><button class="btn" onclick="obNum()">Continue</button>`}</div>`};
+function togFocus(id,el){let f=Array.isArray(OB.d.focus)?OB.d.focus:[];f=f.includes(id)?f.filter(x=>x!==id):[...f,id];OB.d.focus=f;el.classList.toggle('on');const b=document.querySelector('.ob .sticky .btn');if(b)b.textContent=f.length?`Continue with ${f.length} quest${f.length>1?'s':''}`:'Skip for now';vib(8)}
 function nb(d){const s=OBSTEPS[OB.step],i=$('#obn');i.value=+(Math.min(s.n[3],Math.max(s.n[2],(+i.value||s.n[0])+d*s.n[4]))).toFixed(1);vib(8)}
 function obNum(){const s=OBSTEPS[OB.step],v=+$('#obn').value;if(!v||v<s.n[2]||v>s.n[3])return toast(`Enter ${s.n[2]}–${s.n[3]} ${s.n[1]}`);OB.d[s.k]=v;OB.step++;render('push')}
-function finishOB(){if(!OB.active)return;const first=!S.profile;const d=OB.d;S.profile={...S.profile,...d};if(d.focus&&d.focus!=='none'&&!(d.focus in S.quests))S.quests[d.focus]=0;
+function finishOB(){if(!OB.active)return;const first=!S.profile;const d=OB.d;S.profile={...S.profile,...d};(Array.isArray(d.focus)?d.focus:[]).forEach(id=>{if(!(id in S.quests))S.quests[id]=0});delete S.profile.focus;
  if(first)S.weights.push([Date.now(),d.weight]);OB.active=false;save();stack=[];tab='plan';if(first)push('result');else{render('fade');toast('Plan updated ✅')}}
 V.result=()=>{const t=targets(),b=bodyFat(),p=S.profile;setTimeout(()=>confetti(40),400);
  return`<div class="top"><h1>Your plan is ready 🎉</h1></div>
@@ -301,7 +329,7 @@ V.plan=()=>{const t=targets(),d=viewDate,isT=d===today(),f=dayFood(d),k=sum(f,1)
  <div class="list stagger">
  ${row({done:k>=t.kcal*.85,e:'🥗',bg:'#dcfce7',t:'Add Food',s:`${k.toLocaleString()} of ${t.kcal.toLocaleString()} cal`,p:k/t.kcal,on:"go('meals')"})}
  ${row({done:wk.length>0,e:P.e,bg:P.bg,t:wk.length?'Workout done 💪':'Do Your Workout',s:wk.length?`+${wk.reduce((s,w)=>s+w.xp,0)} XP earned`:`${P.name} · ~45 mins`,on:wk.length?"go('workouts')":`push('prog','${pk}')`})}
- ${qs.map(q=>row({done:false,e:q.icon,bg:'#fef3c7',t:'Quest Checkpoint',s:`${q.steps[q.i][1]}× ${q.steps[q.i][0]} · ${q.i}/${q.steps.length}`,p:q.i/q.steps.length,on:`push('quest','${q.id}')`})).join('')}
+ ${qs.map(q=>row({done:false,e:q.icon,bg:'#fef3c7',t:'Quest Checkpoint',s:`${stepLbl(q.steps[q.i])} · ${q.i}/${q.steps.length}`,p:q.i/q.steps.length,on:`push('quest','${q.id}')`})).join('')}
  ${row({done:water>=t.water,e:'💧',bg:'#e0f2fe',t:'Water Tracker',s:`${water.toLocaleString()} of ${t.water.toLocaleString()} ml`,p:water/t.water,on:'addWater(250)',right:`<button class="btn sm" onclick="event.stopPropagation();addWater(250)">+250</button>`})}
  ${row({done:steps>=t.steps,e:'👟',bg:'#fce7f3',t:'Walk',s:`${steps.toLocaleString()} of ${t.steps.toLocaleString()} steps`,p:steps/t.steps,on:"go('run')"})}
  ${row({done:wIn,e:'⚖️',bg:'#ede9fe',t:'Weigh-in',s:wIn?`${S.weights.filter(w=>iso(w[0])===d).at(-1)[1]} kg logged`:'Track your progress',on:'weighIn()'})}
@@ -344,7 +372,7 @@ V.player=()=>{const a=S.active;if(!a)return V.workouts();const ex=a.list[a.idx],
  return`<div class="top"><button class="iconbtn" onclick="stack=[];go('workouts')">✕</button><span class="chip">⚡ +${a.xp} XP</span><button class="btn sm" onclick="finishW()">Finish</button></div>
  <div class="segs">${a.list.map((_,i)=>`<i class="${i<=a.idx?'on':''}"></i>`).join('')}</div>
  <div class="player-ex"><div class="tile" style="background:${PASTEL[a.idx%8]}">${EX[ex][2]}</div><p class="muted">Exercise ${a.idx+1} of ${a.list.length}</p><h1 style="font-size:24px">${ex}</h1><p class="muted">${EX[ex][0].join(', ')}</p><button class="btn sm sec2" style="margin-top:8px" onclick="pickEx(1)">🔁 Swap / variation</button></div>
- <div class="tip">${s.text}</div>${qh.map(q=>`<div class="tip" style="background:#fef3c7">⚔️ Hit <b>${q.steps[q.i][1]} reps</b> to clear a checkpoint in ${esc(q.name)}</div>`).join('')}
+ <div class="tip">${s.text}</div>${qh.map(q=>`<div class="tip" style="background:#fef3c7">⚔️ Hit <b>${stepLbl(q.steps[q.i])}</b> to clear a checkpoint in ${esc(q.name)}</div>`).join('')}
  <div class="grid2" style="margin:12px 0"><div><div class="lbl">Weight (kg)</div><div class="stepper"><button onclick="stp('pw',-2.5)">−</button><input id="pw" type="number" inputmode="decimal" value="${w}"><button onclick="stp('pw',2.5)">+</button></div></div>
  <div><div class="lbl">Reps</div><div class="stepper"><button onclick="stp('pr',-1)">−</button><input id="pr" type="number" inputmode="numeric" value="${r}"><button onclick="stp('pr',1)">+</button></div></div></div>
  <button class="btn" onclick="addSet()">✓ Log Set ${mine.length+1}</button>
@@ -367,7 +395,7 @@ function saveCustomEx(){const n=$('#cxn').value.trim();if(!n)return toast('Enter
  if(S.active)useEx(n);else{closeSheet();render()}}
 function addSet(){const a=S.active,ex=a.list[a.idx],w=+$('#pw').value||0,r=parseInt($('#pr').value);if(!r||r<1)return toast('Enter reps');
  const {xp,pr}=setXP({ex,w,r},a.sets);a.sets.push({ex,w,r,xp,pr});a.xp+=xp;if(pr)a.prs++;
- const ups=grantXP(ex,xp);a.ups.push(...ups);const qm=checkQuests(ex,r);a.qs.push(...qm);save();render();
+ const ups=grantXP(ex,xp);a.ups.push(...ups);const qm=checkQuests(ex,r,w);a.qs.push(...qm);save();render();
  xpFly(`+${xp} XP`);if(pr){setTimeout(()=>toast(`🏅 NEW PR! ${w}kg × ${r} — 2× XP!`),200);confetti(30)}
  if(ups.length)setTimeout(()=>{toast('⬆️ RANK UP! '+ups.join(', '));confetti()},900);if(qm.length)setTimeout(()=>toast(qm.join('<br>')),1600)}
 function finishW(){const a=S.active;if(!a.sets.length){if(confirm('No sets logged. Exit workout?')){S.active=null;save();go('workouts')}return}
@@ -420,7 +448,7 @@ V.runlive=()=>{const R=RUN;if(!R)return V.run();return`<div class="top"><span cl
 function stopRun(){const R=RUN;navigator.geolocation.clearWatch(R.watch);clearInterval(R.timer);RUN=null;
  if(R.dist<20&&!confirm('Very short activity. Save anyway?')){go('run');return}
  const r={type:R.type,ts:R.ts,pts:R.pts,dist:Math.round(R.dist),time:Math.round(R.el),steps:R.steps};S.runs.push(r);
- const xp=Math.round(r.dist/1000*(R.type==='run'?60:30));['Quads','Hamstrings','Calves','Glutes'].forEach(m=>S.xp[m]+=Math.round(xp/2));save();
+ const xp=Math.round(r.dist/1000*(R.type==='run'?60:30));['Quads','Hamstrings','Calves','Glutes'].forEach(m=>S.xp[m]+=Math.round(xp/2));const rq=checkQuests('Run (km)',r.dist/1000);save();if(rq.length)setTimeout(()=>toast(rq.join('<br>')),3000);
  stack=[];tab='run';render('up');confetti();toast(`${(r.dist/1000).toFixed(2)} km done! +${xp} leg XP 🔥`)}
 
 // ================= MEALS =================
@@ -456,22 +484,32 @@ function deficitSeries(days=30){const t=targets();let c=0;const v=[],l=[];for(le
 // ================= CHALLENGES =================
 V.challenges=()=>{const qs=questList();
  return`<div class="top"><h1>Challenges</h1></div>
- <div class="list stagger">${qs.map(q=>{const done=q.i>=q.steps.length;return`<div class="row" onclick="push('quest','${q.id}')"><div class="tile" style="background:#fef3c7">${q.icon}</div><div class="rbody"><b>${esc(q.name)} ${done?'🏆':''}</b><small>${done?'Completed!':`Next: ${q.steps[q.i][1]}× ${q.steps[q.i][0]}`}</small><div class="prog"><i style="width:${q.i/q.steps.length*100}%"></i></div></div><span class="chev">›</span></div>`}).join('')}
+ <div class="list stagger">${qs.map(q=>{const done=q.i>=q.steps.length;return`<div class="row" onclick="push('quest','${q.id}')"><div class="tile" style="background:#fef3c7">${q.icon}</div><div class="rbody"><b>${esc(q.name)} ${done?'🏆':''}</b><small>${done?'Completed!':`Next: ${stepLbl(q.steps[q.i])}`}</small><div class="prog"><i style="width:${q.i/q.steps.length*100}%"></i></div></div><span class="chev">›</span></div>`}).join('')}
  <div class="row" onclick="newQuest()"><div class="tile" style="background:#fce7f3">➕</div><div class="rbody"><b>New challenge</b><small>Skill paths & custom goals</small></div><span class="chev">›</span></div></div>
  <div class="sec">🏆 Muscle Ranks</div><div class="grid2 stagger">${MUSCLES.map(m=>{const r=rankOf(S.xp[m]),d=daysSince(m);return`<div class="stat"><small>${m}</small><b style="font-size:16px;color:${r.color}">${r.name}</b><div class="prog"><i style="width:${r.cur/r.need*100}%;background:${r.color}"></i></div><small style="text-transform:none;font-weight:600">${r.cur}/${r.need} XP${d!=null?` · ${d}d ago`:''}</small></div>`}).join('')}</div>
  <p class="muted" style="margin-top:10px;text-align:center">Iron → Bronze → Silver → Gold → Platinum → Diamond → Master → Grandmaster → Legend</p>
  <div class="sec">🏅 Personal Records</div><div class="list">${Object.keys(EX).map(e=>[e,bestSet(e)]).filter(x=>x[1]).map(([e,b])=>`<div class="row" style="cursor:default"><span style="font-size:22px">${EX[e][2]}</span><div class="rbody"><b>${e}</b><small>e1RM ${Math.round(e1rm(b.w,b.r))} kg</small></div><b>${b.w}kg × ${b.r}</b></div>`).join('')||'<div class="row muted" style="cursor:default">Log sets to set PRs.</div>'}</div>`};
-function newQuest(){openSheet(`<h3 style="font-size:20px">New challenge</h3>${Object.keys(TREES).filter(id=>!(id in S.quests)).map(id=>`<div class="opt" onclick="S.quests['${id}']=0;save();closeSheet();push('quest','${id}')"><span class="e">${TREES[id].icon}</span><div><b>${TREES[id].name}</b><small>${TREES[id].steps.length} checkpoints</small></div></div>`).join('')}
+function newQuest(){const avail=Object.keys(TREES).filter(id=>!(id in S.quests));openSheet(`<h3 style="font-size:20px">Pick challenges</h3><p class="muted">Run as many as you want at once.</p>${['Bodyweight','Strength','Endurance'].map(c=>{const ids=avail.filter(id=>TREES[id].cat===c);return ids.length?`<div class="sec" style="margin-top:14px">${({Bodyweight:'🤸',Strength:'🏋️',Endurance:'🏃'})[c]} ${c}</div>`+ids.map(id=>`<div class="opt" onclick="S.quests['${id}']=0;save();this.remove();render();toast('${TREES[id].icon} ${TREES[id].name} started!')"><span class="e">${TREES[id].icon}</span><div><b>${TREES[id].name}</b><small>${TREES[id].steps.length} checkpoints · from ${esc(stepLbl(TREES[id].steps[0]))}</small></div></div>`).join(''):''}).join('')}
  <h3 style="margin-top:14px">🎯 Custom goal</h3><select id="cqe">${Object.keys(EX).map(e=>`<option>${e}</option>`).join('')}</select><div class="flex"><input id="cqs" type="number" placeholder="Current max reps"><input id="cqt" type="number" placeholder="Goal reps"></div><button class="btn" style="margin-top:8px" onclick="addCustom()">Create</button>`)}
 function addCustom(){const ex=$('#cqe').value,start=+$('#cqs').value||0,target=+$('#cqt').value;if(!target||target<=start)return toast('Goal must be above your current max');S.custom.push({ex,start,target,i:0});save();closeSheet();render()}
 V.quest=id=>{const q=questList().find(x=>x.id===id);if(!q)return V.challenges();const done=q.i>=q.steps.length;
  return`<div class="top">${backBtn()}<span class="chip">${q.i}/${q.steps.length}</span></div>
  <div style="text-align:center;margin-bottom:18px"><div style="font-size:64px;animation:bounce .5s">${q.icon}</div><h1 style="font-size:24px">${esc(q.name)}</h1><div class="prog" style="height:8px;margin:10px 30px"><i style="width:${q.i/q.steps.length*100}%"></i></div></div>
- <div class="card stagger">${q.steps.map(([e,n,t],k)=>`<div class="node ${k<q.i?'done':k===q.i?'cur':''}"><div class="dot">${k<q.i?'✓':k===q.i?'⚔️':'🔒'}</div><div style="flex:1;opacity:${k>q.i?.5:1}"><b>${n}× ${esc(e)}</b>${k===q.i?`<p class="muted" style="margin:4px 0 8px">${t}</p><button class="btn sm" onclick="testCP('${q.id}')">I did it — test</button>`:''}${k<q.i?'<br><small class="muted">Cleared</small>':''}</div></div>`).join('')}</div>
- ${done?'<div class="card" style="text-align:center"><div class="big">🏆</div><b>Quest complete — legend!</b></div>':''}
- <button class="btn sec2" onclick="if(confirm('Abandon this challenge?')){${id[0]==='c'?`S.custom.splice(${id.slice(1)},1)`:`delete S.quests['${id}']`};save();back()}">Abandon</button><div style="height:20px"></div>`};
-function testCP(id){const q=questList().find(x=>x.id===id),[e,n]=q.steps[q.i];openSheet(`<h3 style="font-size:20px">Checkpoint test</h3><p class="muted">How many <b>${esc(e)}</b> did you do in one set? Goal: ${n}</p><input id="tc" type="number" inputmode="numeric"><button class="btn" style="margin-top:10px" onclick="doTest('${id}')">Submit</button>`)}
-function doTest(id){const q=questList().find(x=>x.id===id),[e,n]=q.steps[q.i],r=parseInt($('#tc').value);if(!r)return;closeSheet();const m=checkQuests(e,r);save();render();toast(m.length?m.join('<br>'):`${r}/${n} — so close! Keep training 💪`)}
+ <div class="card stagger">${q.steps.map((st,k)=>{const t=st[2];return`<div class="node ${k<q.i?'done':k===q.i?'cur':''}"><div class="dot">${k<q.i?'✓':k===q.i?'⚔️':'🔒'}</div><div style="flex:1;opacity:${k>q.i?.5:1}"><b>${esc(stepLbl(st))}</b>${k===q.i?`<p class="muted" style="margin:4px 0 8px">${t}</p><button class="btn sm" onclick="testCP('${q.id}')">I did it — test</button>`:''}${k<q.i?'<br><small class="muted">Cleared</small>':''}</div></div>`}).join('')}</div>
+ ${done?'<div class="card" style="text-align:center"><div class="big">🏆</div><b>Quest complete — legend!</b><p class="muted">Ready for more? Raise the goal 👇</p></div>':''}
+ <button class="btn" style="margin-bottom:10px" onclick="raiseSheet('${id}')">🎯 ${done?'Raise the goal':'Change / raise the goal'}</button>
+ <button class="btn sec2" onclick="if(confirm('Abandon this challenge?')){${id[0]==='c'?`S.custom.splice(${id.slice(1)},1)`:`delete S.quests['${id}']`};delete S.ext['${id}'];save();back()}">Abandon</button><div style="height:20px"></div>`};
+function raiseSheet(id){const q=questList().find(x=>x.id===id),last=q.steps.at(-1),[e,n,,bw]=last;
+ openSheet(`<h3 style="font-size:20px">🎯 Raise the goal</h3><p class="muted">Current final goal: <b>${esc(stepLbl(last))}</b>. Set a new one and we'll add checkpoints to get there.</p>
+ <select id="rge">${[...new Set([e,...Object.keys(EX)])].map(x=>`<option ${x===e?'selected':''}>${esc(x)}</option>`).join('')}</select>
+ <div class="flex"><div><div class="lbl">New target ${isSec(e)?'(sec)':isKm(e)?'(km)':'(reps)'}</div><input id="rgn" type="number" value="${n*2}"></div>${bw?`<div><div class="lbl">× bodyweight</div><input id="rgb" type="number" step="0.05" value="${bw}"></div>`:''}</div>
+ <button class="btn" style="margin-top:10px" onclick="raiseGoal('${id}')">Add checkpoints</button>`)}
+function raiseGoal(id){const q=questList().find(x=>x.id===id),last=q.steps.at(-1),ne=$('#rge').value,nn=+$('#rgn').value,nb=$('#rgb')?+$('#rgb').value:0;if(!nn)return toast('Enter a target');
+ const same=ne===last[0],start=same?last[1]:0,sbw=last[3]||0;if(same&&nn<=start&&(!nb||nb<=sbw))return toast('New goal must be higher');
+ const steps=[];for(let i=1;i<=3;i++){const f=i/3;let r=same&&nn>start?start+(nn-start)*f:nn*f;r=isKm(ne)?+r.toFixed(1):Math.max(1,Math.round(r));const b=nb?+(sbw+(nb-sbw)*f).toFixed(2):0;steps.push([ne,r,i===3?`New final goal: ${stepLbl([ne,nn,'',nb])} 🏆`:'Keep progressing: beat your last set by +1 rep each session.',b||undefined])}
+ const uniq=steps.filter((s,i)=>i===steps.length-1||stepLbl(s)!==stepLbl(steps[i+1]));(S.ext[id]??=[]).push(...uniq);save();closeSheet();render();confetti(30);toast('🎯 New checkpoints unlocked!')}
+function testCP(id){const q=questList().find(x=>x.id===id),[e,n]=q.steps[q.i];openSheet(`<h3 style="font-size:20px">Checkpoint test</h3><p class="muted">Your best single set of <b>${esc(e)}</b>? Goal: <b>${esc(stepLbl(q.steps[q.i]))}</b></p><input id="tc" type="number" inputmode="decimal" placeholder="${isSec(e)?'Seconds':isKm(e)?'Kilometers':'Reps'}">${q.steps[q.i][3]?`<input id="tcw" type="number" step="0.5" placeholder="Weight used (kg) — need ${bwKg(q.steps[q.i][3])}">`:''}<button class="btn" style="margin-top:10px" onclick="doTest('${id}')">Submit</button>`)}
+function doTest(id){const q=questList().find(x=>x.id===id),[e,n]=q.steps[q.i],r=parseFloat($('#tc').value);if(!r)return;const w=+($('#tcw')?.value||0);closeSheet();const m=checkQuests(e,r,w);save();render();toast(m.length?m.join('<br>'):`${r}/${n} — so close! Keep training 💪`)}
 
 // ================= MORE =================
 function chart(vals,labels,{type='bar',color='#ff4f6d',emoji=''}={}){if(!vals.length||vals.every(v=>!v))return'<p class="muted" style="text-align:center;padding:20px 0">Not enough data yet — keep going! 🌱</p>';
