@@ -1,1 +1,16 @@
-{"name":"gymquest","version":"1.0.0","private":true,"dependencies":{"@capacitor/android":"^8.6.2","@capacitor/cli":"^8.6.2","@capacitor/core":"^8.6.2","@capacitor/filesystem":"^8.1.5","@capacitor/share":"^8.0.3"}}
+{
+  "name": "gymquest",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@capacitor/android": "^8.6.2",
+    "@capacitor/cli": "^8.6.2",
+    "@capacitor/core": "^8.6.2",
+    "@capacitor/filesystem": "^8.1.5",
+    "@capacitor/local-notifications": "^8.3.1",
+    "@capacitor/share": "^8.0.3"
+  },
+  "scripts": {
+    "test": "node --test test/"
+  }
+}

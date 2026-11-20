@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="theme-color" content="#ffffff">
-<title>RepWise — Be Wise in Every Rep</title>
+<link rel="icon" href="icon.png"><link rel="apple-touch-icon" href="icon.png"><title>RepWise — Be Wise in Every Rep</title>
 <style>
-:root{--bg:#f5f5f8;--card:#fff;--txt:#1c1c28;--muted:#8d8da0;--line:#eeeef3;--acc:#ff4f6d;--acc2:#ff8a5c;--good:#22c55e;--warn:#f59e0b;--r:18px}
+:root{--bg:#f3f3f5;--card:#fff;--txt:#15151f;--muted:#878794;--line:#eeeef3;--acc:#e3262f;--acc2:#a50f17;--good:#22c55e;--warn:#f59e0b;--r:18px}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;font-family:"Nunito","Poppins",system-ui,sans-serif}
 html,body{background:var(--bg);color:var(--txt);overscroll-behavior:none}
 body{padding:env(safe-area-inset-top) 0 calc(76px + env(safe-area-inset-bottom))}
@@ -50,7 +50,7 @@ body.full nav{display:none}
 .card h3{font-size:17px;margin-bottom:10px}
 .sec{font-size:18px;font-weight:800;margin:20px 0 10px}
 .muted{color:var(--muted);font-size:14px}
-.btn{display:block;width:100%;padding:16px;border:none;border-radius:16px;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:17px;font-weight:800;cursor:pointer;box-shadow:0 8px 20px #ff4f6d40;transition:transform .12s}
+.btn{display:block;width:100%;padding:16px;border:none;border-radius:16px;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:17px;font-weight:800;cursor:pointer;box-shadow:0 8px 20px #e3262f40;transition:transform .12s}
 .btn:active{transform:scale(.97)}
 .btn.sec2{background:#fff;color:var(--txt);box-shadow:0 2px 10px #0000000f}
 .btn.sm{display:inline-block;width:auto;padding:8px 14px;font-size:14px;border-radius:12px}
@@ -67,7 +67,7 @@ nav button.on{color:var(--acc)}nav button.on svg{transform:translateY(-2px) scal
 .feat{transform:scale(1.03);box-shadow:0 12px 30px #0000001a;border-radius:var(--r);background:#fff;position:relative;z-index:1;margin:6px 0 12px}
 #toast{position:fixed;top:calc(16px + env(safe-area-inset-top));left:16px;right:16px;background:#1c1c28;color:#fff;padding:14px 18px;border-radius:16px;font-weight:700;z-index:30;transform:translateY(-150%);transition:transform .35s cubic-bezier(.2,.8,.2,1);text-align:center;font-size:15px}
 #toast.show{transform:none}
-.xpfly{position:fixed;left:50%;top:45%;font-size:34px;font-weight:900;color:var(--acc);z-index:40;pointer-events:none;animation:floatUp 1.3s ease-out forwards;text-shadow:0 4px 14px #ff4f6d55}
+.xpfly{position:fixed;left:50%;top:45%;font-size:34px;font-weight:900;color:var(--acc);z-index:40;pointer-events:none;animation:floatUp 1.3s ease-out forwards;text-shadow:0 4px 14px #e3262f55}
 .confetti{position:fixed;top:-20px;width:10px;height:14px;z-index:50;pointer-events:none;animation:fall linear forwards;border-radius:2px}
 #sheetbg{position:fixed;inset:0;background:#0006;z-index:20;opacity:0;pointer-events:none;transition:opacity .3s}
 #sheetbg.show{opacity:1;pointer-events:auto}
@@ -218,7 +218,7 @@ let viewDate=today();
 // ================= FX =================
 function toast(t){const e=$('#toast');e.innerHTML=t;e.classList.add('show');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('show'),2800)}
 function xpFly(t){const d=document.createElement('div');d.className='xpfly';d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),1400);vib(30)}
-function confetti(n=60){const c=['#ff4f6d','#ff8a5c','#22c55e','#3b82f6','#eab308','#a855f7'];for(let i=0;i<n;i++){const d=document.createElement('div');d.className='confetti';d.style.left=Math.random()*100+'vw';d.style.background=c[i%c.length];d.style.animationDuration=1.5+Math.random()*1.5+'s';d.style.animationDelay=Math.random()*.4+'s';document.body.appendChild(d);setTimeout(()=>d.remove(),3500)}vib([40,40,80])}
+function confetti(n=60){const c=['#e3262f','#a50f17','#22c55e','#3b82f6','#eab308','#a855f7'];for(let i=0;i<n;i++){const d=document.createElement('div');d.className='confetti';d.style.left=Math.random()*100+'vw';d.style.background=c[i%c.length];d.style.animationDuration=1.5+Math.random()*1.5+'s';d.style.animationDelay=Math.random()*.4+'s';document.body.appendChild(d);setTimeout(()=>d.remove(),3500)}vib([40,40,80])}
 function vib(p){try{navigator.vibrate&&navigator.vibrate(p)}catch(e){}}
 function openSheet(h){$('#sheet').innerHTML='<div class="grab"></div>'+h;$('#sheet').classList.add('show');$('#sheetbg').classList.add('show')}
 function closeSheet(){$('#sheet').classList.remove('show');$('#sheetbg').classList.remove('show')}
@@ -275,7 +275,7 @@ function checkQuests(ex,reps,w=0){const msgs=[];for(const q of questList()){if(q
 
 // ================= NAV / ROUTER =================
 const ICONS={plan:'<path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1z"/><rect x="5" y="5" width="14" height="16" rx="2"/><path d="M9 11h6M9 15h4"/>',workouts:'<path d="M6 8v8M3 10v4M18 8v8M21 10v4M6 12h12"/>',run:'<circle cx="14" cy="4" r="2"/><path d="M8 21l3-6 3 2v4M6 12l3-3 4 1 2 4 3 1"/>',meals:'<path d="M7 3v8a2 2 0 0 0 2 2v8M5 3v5M9 3v5M17 3c-2 2-2 6 0 8v10"/>',challenges:'<path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8 21h8"/>',more:'<path d="M4 6h16M4 12h16M4 18h16"/>'};
-const TABS=[['plan','Plan'],['workouts','Workouts'],['run','Activity'],['meals','Meals'],['challenges','Challenges'],['more','More']];
+const TABS=[['plan','Plan'],['workouts','Workouts'],['run','Activity'],['meals','Meals'],['body','Body'],['challenges','Quests'],['more','More']];
 let tab='plan',stack=[];
 function drawNav(){$('#nav').innerHTML=TABS.map(([k,l])=>`<button class="${tab===k&&!stack.length?'on':''}" onclick="go('${k}')"><svg viewBox="0 0 24 24">${ICONS[k]}</svg>${l}</button>`).join('')}
 function go(t){tab=t;stack=[];render('fade');scrollTo(0,0)}
@@ -287,7 +287,7 @@ function render(anim){const app=$('#app');let html,full=false;
  else html=V[tab]();
  document.body.classList.toggle('full',full);app.innerHTML=html;
  if(anim){app.className='';void app.offsetWidth;app.className='anim-'+anim}
- drawNav();countUp()}
+ drawNav();countUp();window.afterRender&&afterRender()}
 const backBtn=()=>`<button class="iconbtn" onclick="back()">‹</button>`;
 
 // ================= ONBOARDING =================
@@ -300,20 +300,22 @@ const OBSTEPS=[
  {k:'height',q:'How tall are you?',n:[170,'cm',120,230,1]},
  {k:'weight',q:"What's your current weight?",n:[70,'kg',30,250,.5]},
  {k:'build',q:'Which looks most like you?',s:'This helps estimate your body fat.',o:[['lean','🦴','Very lean','Visible abs & veins'],['athletic','🏃','Athletic','Some definition'],['average','🙂','Average','A little soft'],['soft','🍩','Soft','Some belly fat'],['heavy','🐻','Heavy','Carrying a lot of fat']]},
+ {k:'dreamWeight',q:"What's your dream weight?",s:'Your long-term target. It stays locked until you reach it.',n:[65,'kg',30,250,.5]},
+ {k:'dreamBF',q:'And your dream body fat?',s:'Men: ~10–15% looks athletic. Women: ~18–24%. Pick what motivates you.',n:[15,'%',3,60,.5]},
  {k:'activity',q:'How active are you?',o:[[1.2,'🛋️','Not active','Desk job, little exercise'],[1.375,'🚶','Lightly active','1–3 workouts a week'],[1.55,'🏃','Active','3–5 workouts a week'],[1.725,'⚡','Very active','6–7 workouts a week']]},
  {k:'focus',q:'Pick your quests',s:'Choose as many as you like — you can add, change or raise them anytime.',multi:1},
 ];
-const SLIDES=[['🔒','Your data stays yours','No accounts, no servers, no tracking. Everything lives only on your phone.'],['💸','100% free','No subscriptions, no paywalls, no ads. Every feature is unlocked.'],['🧑‍💻','Open source','The code is open for anyone to read and improve. Nothing hidden.'],['🔬','Backed by science','Your calories, protein and tips come from peer-reviewed research.'],['🎮','Training is a game','Every set earns XP. Rank up each muscle from Iron to Legend.'],['📈','Built for progress','Beat last session by +1 rep or +2.5 kg and get 2× XP.'],['📴','Works offline','Log workouts in the gym with no signal. Move devices with a backup file.']];
+const SLIDES=[['🔒','Your data stays yours','No accounts, no servers, no tracking. Everything lives only on your phone.'],['💸','100% free','No subscriptions, no paywalls, no ads. Every feature is unlocked.'],['🧑‍💻','Source available','Anyone can read and improve the code. Free to use — never for profit.'],['🔬','Backed by science','Your calories, protein and tips come from peer-reviewed research.'],['🎮','Training is a game','Every set earns XP. Rank up each muscle from Iron to Legend.'],['📈','Built for progress','Beat last session by +1 rep or +2.5 kg and get 2× XP.'],['📴','Works offline','Log workouts in the gym with no signal. Move devices with a backup file.']];
 const SLSTAT=['Calculating your calories…','Estimating body fat…','Building your quests…','Picking your first workout…','Almost ready…','Done! ✨','Done! ✨'];
 let slT=null;function startSlides(){if(slT)return;let i=0;const show=()=>{if(!OB.active){clearInterval(slT);slT=null;return}const el=$('#slide');if(!el)return;
  if(i>=SLIDES.length){clearInterval(slT);slT=null;finishOB();return}const [e,t,s]=SLIDES[i];el.innerHTML=`<div class="anim-push"><div style="font-size:52px">${e}</div><h3 style="font-size:20px;margin:8px 0 6px">${t}</h3><p class="muted">${s}</p></div>`;
  document.querySelectorAll('#sldots i').forEach((d,k)=>d.classList.toggle('on',k<=i));const ss=$('#slstat');if(ss)ss.textContent=SLSTAT[i];i++};setTimeout(show,0);slT=setInterval(show,1900)}
-function startOB(){OB.active=true;OB.step=0;OB.d={...(S.profile||{}),focus:Object.keys(S.quests)};render('up')}
+function startOB(){OB.active=true;OB.step=0;OB.d={...(S.profile||{}),focus:Object.keys(S.quests),dreamWeight:S.goals?.weight?.target,dreamBF:S.goals?.bf?.target};render('up')}
 V.onboard=()=>{if(!S.profile)OB.active=true;const st=OB.step;
- if(st===OBSTEPS.length){startSlides();return`<div class="ob" style="text-align:center"><div class="loader" style="margin:30px auto 20px"></div><h2>Creating your plan…</h2><p class="muted" id="slstat">Calculating your calories…</p>
+ if(st===OBSTEPS.length){startSlides();return`<div class="ob" style="text-align:center"><div style="display:block;width:max-content;margin:24px auto 18px;background:#15151f;border-radius:22px;padding:14px 20px;box-shadow:0 8px 24px #15151f33"><img src="logo.png" alt="RepWise" style="width:120px;display:block"></div><div class="loader" style="margin:0 auto 16px;width:34px;height:34px;border-width:4px"></div><h2>Creating your plan…</h2><p class="muted" id="slstat">Calculating your calories…</p>
  <div class="card" id="slide" style="margin-top:26px;min-height:190px;display:grid;place-content:center"></div><div class="segs" id="sldots" style="margin:14px 40px">${SLIDES.map(()=>'<i></i>').join('')}</div></div>`}
  const s=OBSTEPS[st],v=OB.d[s.k];
- return`<div class="ob"><div class="flex" style="flex:none">${st?`<button class="iconbtn" style="flex:none" onclick="OB.step--;render('pop')">‹</button>`:'<span style="flex:none;width:40px"></span>'}<div class="obbar" style="margin:0"><i style="width:${(st+1)/OBSTEPS.length*100}%"></i></div><span class="muted" style="flex:none">${st+1}/${OBSTEPS.length}</span></div>${st===0?`<div style="text-align:center;margin:22px 0 4px"><h1 style="margin:0">RepWise</h1><p class="muted" style="font-style:italic;margin:4px 0 0">“Be Wise in Every Rep”</p></div>`:''}
+ return`<div class="ob"><div class="flex" style="flex:none">${st?`<button class="iconbtn" style="flex:none" onclick="OB.step--;render('pop')">‹</button>`:'<span style="flex:none;width:40px"></span>'}<div class="obbar" style="margin:0"><i style="width:${(st+1)/OBSTEPS.length*100}%"></i></div><span class="muted" style="flex:none">${st+1}/${OBSTEPS.length}</span></div>${st===0?`<div style="text-align:center;margin:22px 0 4px"><div style="display:inline-block;background:#15151f;border-radius:22px;padding:14px 20px;box-shadow:0 8px 24px #15151f33"><img src="logo.png" alt="RepWise" style="width:150px;display:block"></div><p class="muted" style="font-style:italic;margin:4px 0 0">“Be Wise in Every Rep”</p></div>`:''}
  <div style="margin-top:26px"><h2>${s.q}</h2>${s.s?`<p class="muted">${s.s}</p>`:''}</div>
  ${s.multi?`<div class="stagger" style="margin-top:10px">${Object.keys(TREES).map(id=>`<div class="opt ${(OB.d.focus||[]).includes(id)?'on':''}" style="padding:12px;margin:8px 0" onclick="togFocus('${id}',this)"><span class="e" style="font-size:26px">${TREES[id].icon}</span><div><b>${TREES[id].name}</b><small>${TREES[id].cat} · ${TREES[id].steps.length} checkpoints</small></div></div>`).join('')}</div><div class="sticky" style="bottom:16px"><button class="btn" onclick="OB.step++;render('push')">${(OB.d.focus||[]).length?`Continue with ${(OB.d.focus||[]).length} quest${(OB.d.focus||[]).length>1?'s':''}`:'Skip for now'}</button></div>`:s.txt?`<input id="obt" style="margin-top:30px;font-size:22px;font-weight:800" maxlength="30" placeholder="Your name" value="${esc(v||'')}"><div style="flex:1"></div><button class="btn" onclick="const n=$('#obt').value.trim();if(!n)return toast('Enter a name');OB.d.name=n;OB.step++;render('push')">Continue</button>${!S.profile?`<button class="btn sec2" style="margin-top:10px" onclick="importSheet()">I have a backup — restore</button>`:''}`:s.o?`<div class="stagger" style="margin-top:14px">${s.o.map(([val,e,t,sub])=>`<div class="opt ${v==val?'on':''}" onclick="OB.d['${s.k}']=${typeof val==='number'?val:`'${val}'`};setTimeout(()=>{OB.step++;render('push')},180);this.classList.add('on')"><span class="e">${e}</span><div><b>${t}</b>${sub?`<small>${sub}</small>`:''}</div></div>`).join('')}</div>`
  :`<div class="bignum"><button onclick="nb(-1)">−</button><input id="obn" oninput="updBmi()" type="number" inputmode="decimal" value="${v??s.n[0]}"><button onclick="nb(1)">+</button></div><div class="unit">${s.n[1]}</div>${s.k==='weight'&&OB.d.height?`<div id="bmiw" style="margin-top:22px">${bmiMeter((v??s.n[0])/Math.pow(OB.d.height/100,2))}</div>`:''}<div style="flex:1"></div><button class="btn" onclick="obNum()">Continue</button>`}</div>`};
@@ -329,7 +331,10 @@ function bmiMeter(b){const lo=15,hi=40,pos=Math.min(100,Math.max(0,(b-lo)/(hi-lo
 function updBmi(){const el=$('#bmiw'),i=$('#obn');if(!el||!i||!OB.d.height)return;const w=+i.value;if(w>0)el.innerHTML=bmiMeter(w/Math.pow(OB.d.height/100,2))}
 function nb(d){const s=OBSTEPS[OB.step],i=$('#obn');i.value=+(Math.min(s.n[3],Math.max(s.n[2],(+i.value||s.n[0])+d*s.n[4]))).toFixed(1);updBmi();vib(8)}
 function obNum(){const s=OBSTEPS[OB.step],v=+$('#obn').value;if(!v||v<s.n[2]||v>s.n[3])return toast(`Enter ${s.n[2]}–${s.n[3]} ${s.n[1]}`);OB.d[s.k]=v;OB.step++;render('push')}
-function finishOB(){if(!OB.active)return;const first=!S.profile;const d=OB.d;S.profile={...S.profile,...d};(Array.isArray(d.focus)?d.focus:[]).forEach(id=>{if(!(id in S.quests))S.quests[id]=0});delete S.profile.focus;
+function finishOB(){if(!OB.active)return;const first=!S.profile;const d=OB.d;S.profile={...S.profile,...d};(Array.isArray(d.focus)?d.focus:[]).forEach(id=>{if(!(id in S.quests))S.quests[id]=0});delete S.profile.focus;S.goals=S.goals||{};
+ if(d.dreamWeight&&(!S.goals.weight||S.goals.weight.done)&&Math.abs(d.dreamWeight-d.weight)>=.1)S.goals.weight={target:d.dreamWeight,start:d.weight,down:d.dreamWeight<d.weight,set:Date.now(),done:null};
+ const _bf=bodyFat()?.bf;if(d.dreamBF&&_bf&&(!S.goals.bf||S.goals.bf.done)&&Math.abs(d.dreamBF-_bf)>=.1)S.goals.bf={target:d.dreamBF,start:+_bf.toFixed(1),down:d.dreamBF<_bf,set:Date.now(),done:null};
+ delete S.profile.dreamWeight;delete S.profile.dreamBF;
  if(first)S.weights.push([Date.now(),d.weight]);OB.active=false;save();stack=[];tab='plan';if(first)push('result');else{render('fade');toast('Plan updated ✅')}}
 V.result=()=>{const t=targets(),b=bodyFat(),p=S.profile;setTimeout(()=>confetti(40),400);
  return`<div class="top"><h1>Your plan is ready 🎉</h1></div>
@@ -447,16 +452,15 @@ function routeSVG(pts,live){if(pts.length<2)return`<div style="display:grid;plac
  const la=pts.map(p=>p[0]),lo=pts.map(p=>p[1]),mnA=Math.min(...la),mxA=Math.max(...la),mnO=Math.min(...lo),mxO=Math.max(...lo),k=Math.cos(mnA*Math.PI/180);
  const sp=Math.max((mxA-mnA),(mxO-mnO)*k,1e-5),W=320,H=240,pad=24,X=o=>pad+((o-mnO)*k/sp)*(W-pad*2)+((W-pad*2)-((mxO-mnO)*k/sp)*(W-pad*2))/2,Y=a=>H-pad-((a-mnA)/sp)*(H-pad*2)-((H-pad*2)-((mxA-mnA)/sp)*(H-pad*2))/2;
  const d=pts.map(p=>`${X(p[1]).toFixed(1)},${Y(p[0]).toFixed(1)}`).join(' ');const e=pts.at(-1),s=pts[0];
- return`<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:100%"><defs><pattern id="g" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0H0V20" fill="none" stroke="#dfe5ee"/></pattern></defs><rect width="100%" height="100%" fill="url(#g)"/><polyline points="${d}" fill="none" stroke="#ff4f6d" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${X(s[1])}" cy="${Y(s[0])}" r="7" fill="#22c55e" stroke="#fff" stroke-width="3"/><circle cx="${X(e[1])}" cy="${Y(e[0])}" r="8" fill="#ff4f6d" stroke="#fff" stroke-width="3">${live?'<animate attributeName="r" values="7;11;7" dur="1.4s" repeatCount="indefinite"/>':''}</circle></svg>`}
+ return`<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:100%"><defs><pattern id="g" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0H0V20" fill="none" stroke="#dfe5ee"/></pattern></defs><rect width="100%" height="100%" fill="url(#g)"/><polyline points="${d}" fill="none" stroke="#e3262f" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${X(s[1])}" cy="${Y(s[0])}" r="7" fill="#22c55e" stroke="#fff" stroke-width="3"/><circle cx="${X(e[1])}" cy="${Y(e[0])}" r="8" fill="#e3262f" stroke="#fff" stroke-width="3">${live?'<animate attributeName="r" values="7;11;7" dur="1.4s" repeatCount="indefinite"/>':''}</circle></svg>`}
 V.run=()=>{const t=targets(),st=S.steps[today()]||0,km=st*0.00076,kc=Math.round(km*0.6*S.profile.weight);
  const tot=S.runs.reduce((s,r)=>s+r.dist,0);
  return`<div class="top"><h1>Activity</h1><span class="chip">👟 ${(tot/1000).toFixed(1)} km total</span></div>
- <div class="card" style="text-align:center">${ring(st/t.steps,'#ff4f6d',`<div class="big" id="stepnow">${st.toLocaleString()}</div><div class="muted">of ${t.steps.toLocaleString()} steps</div>`)}
+ <div class="card" style="text-align:center">${ring(st/t.steps,'#e3262f',`<div class="big" id="stepnow">${st.toLocaleString()}</div><div class="muted">of ${t.steps.toLocaleString()} steps</div>`)}
  <div class="runstats"><div><b>${km.toFixed(2)}</b><small>KM</small></div><div><b>${kc}</b><small>KCAL</small></div><div><b>${Math.round(st/100)}</b><small>MINS</small></div></div>
- ${pedo.on?`<button class="btn sec2" onclick="stopPedo()">⏸ Pause step counter</button><p class="muted" style="margin-top:8px">Counting steps while the app is open 👟</p>`:`<button class="btn" onclick="startPedo()">▶ Start step counter</button><p class="muted" style="margin-top:8px">Uses your phone's motion sensor.</p>`}
- <button class="btn sec2" style="margin-top:8px" onclick="addStepsManual()">✏️ Enter steps manually</button></div>
- <button class="btn" onclick="startRun('run')">▶ Start activity</button><p class="muted" style="text-align:center;margin-top:6px">Switch between 🏃 Run, 🚶 Walk and ⏸ Pause anytime — calories adjust to what you're doing.</p>
- <div class="sec">Steps this week</div><div class="card">${chart(...weekSteps(),{color:'#ff4f6d'})}</div>
+ ${stepBox()}</div>
+ ${actExplain()} <button class="btn" onclick="startRun('run')">▶ Start activity</button><p class="muted" style="text-align:center;margin-top:6px">Switch between 🏃 Run, 🚶 Walk and ⏸ Pause anytime — calories adjust to what you're doing.</p>
+ <div class="sec">Steps this week</div><div class="card">${chart(...weekSteps(),{color:'#e3262f'})}</div>
  <div class="sec">Recent activities</div>${S.runs.slice(-10).reverse().map(r=>`<div class="card" style="padding:0;overflow:hidden"><div class="map" style="height:150px;border-radius:0">${routeSVG(r.pts)}</div><div style="padding:14px"><b>${runLbl(r)}</b> <span class="muted">· ${new Date(r.ts).toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})}</span><div class="runstats" style="margin:8px 0 0"><div><b>${(r.dist/1000).toFixed(2)}</b><small>KM</small></div><div><b>${pace(r.time,r.dist)}</b><small>/KM</small></div><div><b>${fmtT(r.time)}</b><small>TIME</small></div><div><b>${runKcal(r)}</b><small>KCAL</small></div></div></div></div>`).join('')||'<p class="muted">No runs or walks yet. Tap Run or Walk to track one with GPS 📡</p>'}`};
 function addStepsManual(){openSheet(`<h3 style="font-size:20px">Steps today</h3><p class="muted">From your watch or phone health app</p><input id="ms" type="number" value="${S.steps[today()]||0}"><button class="btn" style="margin-top:10px" onclick="S.steps[today()]=+$('#ms').value||0;save();closeSheet();render()">Save</button>`)}
 function weekSteps(){const v=[],l=[];for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);v.push(S.steps[iso(d)]||0);l.push(d.toLocaleDateString(undefined,{weekday:'narrow'}))}return[v,l]}
@@ -486,10 +490,9 @@ V.meals=()=>{const t=targets(),d=viewDate,f=dayFood(d),k=sum(f,1),p=sum(f,2),lef
  <div style="text-align:left"><small class="muted">Protein ${p} / ${t.protein} g</small><div class="prog"><i style="width:${Math.min(100,p/t.protein*100)}%;background:linear-gradient(90deg,#3b82f6,#14b8a6)"></i></div></div></div>
  <div class="grid2"><label class="btn" style="text-align:center">📸 Snap meal<input type="file" accept="image/*" capture="environment" style="display:none" onchange="analyzePhoto(this)"></label><button class="btn sec2" onclick="foodSheet()">✏️ Add manually</button></div>
  <div id="aiout"></div>
- <div class="grid2" style="margin-top:10px"><button class="btn sec2" onclick="deficitSheet()">🔥 Deficit: ${-t.adj}</button><button class="btn sec2" onclick="push('foodsci')">🥗 Smart foods</button></div>
- <button class="btn sec2" style="margin-top:10px" onclick="push('fasting')">⏳ Intermittent fasting${S.fast.on?` · ${S.fast.proto} ON`:''}</button>
+ <div class="grid2" style="margin-top:10px"><button class="btn sec2" onclick="push('foodsci')">🥗 Smart foods</button><button class="btn sec2" onclick="push('supps')">💊 Supplements</button></div>
  <div class="sec">Logged</div><div class="list">${f.map((x,i)=>`<div class="row" style="cursor:default"><div class="tile" style="background:${PASTEL[i%8]};width:44px;height:44px;font-size:22px">🍽️</div><div class="rbody"><b>${esc(x[0])}</b><small>${x[2]}g protein</small></div><b>${x[1]}</b><button class="iconbtn" style="width:32px;height:32px;font-size:14px;box-shadow:none" onclick="S.food[viewDate].splice(${i},1);save();render()">✕</button></div>`).join('')||'<div class="row muted" style="cursor:default">Nothing logged yet 🍽️</div>'}</div>
- <div class="sec">📊 Your calorie balance (14 days)</div><div class="card">${balanceChart()}</div>`};
+ <div class="sec flex" style="justify-content:space-between"><span>📊 Body Calorie Track</span><small style="color:var(--acc);cursor:pointer" onclick="push('caltrack')">Every day ›</small></div><div class="card">${rangeTabs('render()')}${trackChart()}</div>`};
 function foodSheet(pre={}){openSheet(`<h3 style="font-size:20px">Add food</h3>
  <select onchange="const v=FOODS[this.value];if(v){$('#fn').value=this.value;$('#fk').value=v[0];$('#fp').value=v[1]}"><option value="">Quick pick…</option>${Object.keys(FOODS).map(x=>`<option>${x}</option>`).join('')}</select>
  <input id="fn" placeholder="Food name" value="${esc(pre.name||'')}"><div class="flex"><input id="fk" type="number" placeholder="kcal" value="${pre.kcal??''}"><input id="fp" type="number" placeholder="protein g" value="${pre.protein??''}"><input id="fx" type="number" value="1" step="0.5" placeholder="servings"></div>
@@ -540,7 +543,7 @@ function testCP(id){const q=questList().find(x=>x.id===id),[e,n]=q.steps[q.i];op
 function doTest(id){const q=questList().find(x=>x.id===id),[e,n]=q.steps[q.i],r=parseFloat($('#tc').value);if(!r)return;const w=+($('#tcw')?.value||0);closeSheet();const m=checkQuests(e,r,w);save();render();toast(m.length?m.join('<br>'):`${r}/${n} — so close! Keep training 💪`)}
 
 // ================= MORE =================
-function chart(vals,labels,{type='bar',color='#ff4f6d',emoji=''}={}){if(!vals.length||vals.every(v=>!v))return'<p class="muted" style="text-align:center;padding:20px 0">Not enough data yet — keep going! 🌱</p>';
+function chart(vals,labels,{type='bar',color='#e3262f',emoji=''}={}){if(!vals.length||vals.every(v=>!v))return'<p class="muted" style="text-align:center;padding:20px 0">Not enough data yet — keep going! 🌱</p>';
  const W=320,H=150,P=20,mx=Math.max(...vals.map(Math.abs),1),mn=type==='line'?Math.min(...vals,0):0,n=vals.length,bw=(W-P*2)/n,y=v=>H-P-((v-mn)/(mx-mn||1))*(H-P*2);let s=`<svg viewBox="0 0 ${W} ${H}" style="width:100%">`;
  if(type==='bar')vals.forEach((v,i)=>{const hh=Math.max(3,(Math.abs(v)/mx)*(H-P*2));s+=`<rect x="${P+i*bw+4}" y="${H-P-hh}" width="${bw-8}" height="${hh}" rx="7" fill="${color}" opacity="${i===n-1?1:.55}"><animate attributeName="height" from="0" to="${hh}" dur=".7s"/><animate attributeName="y" from="${H-P}" to="${H-P-hh}" dur=".7s"/></rect>`;if(v)s+=`<text x="${P+i*bw+bw/2}" y="${H-P-hh-5}" fill="#555" font-size="10" font-weight="700" text-anchor="middle">${v>=1000?(v/1000).toFixed(1)+'k':Math.round(v)}</text>`});
  else{const pts=vals.map((v,i)=>`${P+i*bw+bw/2},${y(v)}`);s+=`<polygon points="${P+bw/2},${H-P} ${pts.join(' ')} ${P+(n-1)*bw+bw/2},${H-P}" fill="${color}" opacity=".12"/><polyline points="${pts.join(' ')}" fill="none" stroke="${color}" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2000" stroke-dashoffset="2000"><animate attributeName="stroke-dashoffset" to="0" dur="1.4s" fill="freeze"/></polyline>`;
@@ -549,19 +552,16 @@ function chart(vals,labels,{type='bar',color='#ff4f6d',emoji=''}={}){if(!vals.le
 function weeklyXP(){const v=[],l=[];for(let i=7;i>=0;i--){const end=Date.now()-i*7*864e5,st=end-7*864e5;v.push(S.workouts.filter(w=>w.ts>st&&w.ts<=end).reduce((s,w)=>s+w.xp,0));l.push(i?`-${i}w`:'now')}return[v,l]}
 function liftSeries(ex){const v=[],l=[];S.workouts.forEach(w=>{const ss=w.sets.filter(s=>s.ex===ex);if(ss.length){v.push(Math.max(...ss.map(s=>e1rm(s.w,s.r))));l.push(new Date(w.ts).getDate()+'/'+(new Date(w.ts).getMonth()+1))}});return[v.slice(-12),l.slice(-12)]}
 let chartEx=null;
-V.more=()=>{const p=S.profile,t=targets(),b=bodyFat(),lean=p.weight*(1-b.bf/100);const [xv,xl]=weeklyXP();const done=Object.keys(EX).filter(e=>bestSet(e));chartEx=done.includes(chartEx)?chartEx:done[0];const [lv,ll]=chartEx?liftSeries(chartEx):[[],[]];const gain=lv.length>1?Math.round((lv.at(-1)/lv[0]-1)*100):0;
- const ws=S.weights.slice(-20);const goalBF=p.sex==='m'?15:23;
- return`<div class="top"><h1>Progress</h1><button class="iconbtn" onclick="push('settings')">⚙️</button></div>
- ${goalCard()}<div class="card flex"><div class="tile" style="background:#ffe4e6;flex:none">${p.sex==='m'?'🧔':'👩'}</div><div><b style="font-size:18px">Level ${level().lvl} athlete</b><p class="muted">${p.weight} kg · ${p.height} cm · ${({cut:'Losing fat',slowcut:'Slow cut',maintain:'Toning',bulk:'Building muscle'})[p.goal]}</p></div></div>
- <div class="sec">🧬 Body composition</div><div class="grid2 stagger"><div class="stat"><small>Body fat</small><b data-count="${b.bf.toFixed(1)}" data-dec="1">0</b><small style="text-transform:none">${bfLabel(b.bf,p.sex)}</small></div><div class="stat"><small>Lean mass</small><b>${lean.toFixed(1)} kg</b></div><div class="stat"><small>BMI</small><b>${b.bmi.toFixed(1)}</b></div><div class="stat"><small>Fat to ${goalBF}%</small><b>${Math.max(0,p.weight-lean/(1-goalBF/100)).toFixed(1)} kg</b></div></div>
- <p class="muted" style="margin-top:8px">${b.method}</p>
+V.more=()=>{const p=S.profile,t=targets();
+ return`<div class="top"><h1>More</h1><button class="iconbtn" onclick="push('settings')">⚙️</button></div>
+ <div class="card flex"><div class="tile" style="background:#fdeced;flex:none">${p.sex==='m'?'🧔':'👩'}</div><div><b style="font-size:18px">Level ${level().lvl} athlete</b><p class="muted">${p.weight} kg · ${p.height} cm · ${({cut:'Losing fat',slowcut:'Slow cut',maintain:'Toning',bulk:'Building muscle'})[p.goal]}</p></div></div>
  <div class="sec">📊 Plan</div><div class="list"><div class="row" style="cursor:default"><div class="rbody"><b>Calorie target</b></div><b>${t.kcal} kcal</b></div><div class="row" style="cursor:default"><div class="rbody"><b>Maintenance (TDEE)</b></div><b>${t.tdee}</b></div><div class="row" onclick="deficitSheet()"><div class="rbody"><b>${t.adj<0?'Daily deficit':'Daily surplus'}</b><small>Tap to adjust</small></div><b>${Math.abs(t.adj)}</b><span class="chev">›</span></div><div class="row" style="cursor:default"><div class="rbody"><b>Protein</b></div><b>${t.protein} g</b></div></div>
- <div class="sec">⚖️ Weight</div><div class="card">${chart(ws.map(w=>w[1]),ws.map(w=>new Date(w[0]).getDate()),{type:'line',color:'#a855f7',emoji:ws.length>1&&ws.at(-1)[1]<ws[0][1]?'📉':'⚖️'})}${ws.length>1?`<p class="muted">${(ws.at(-1)[1]-ws[0][1]).toFixed(1)} kg since ${new Date(ws[0][0]).toLocaleDateString()}</p>`:''}</div>
- <div class="sec">⚡ XP per week</div><div class="card">${chart(xv,xl,{color:'#3b82f6'})}${xv.at(-1)>xv.at(-2)?'<p class="muted">🔥 Beating last week — keep it up!</p>':''}</div>
- <div class="sec">📈 Strength</div><div class="card">${done.length?`<select onchange="chartEx=this.value;render()">${done.map(e=>`<option ${e===chartEx?'selected':''}>${e}</option>`).join('')}</select>${chart(lv,ll,{type:'line',color:'#22c55e',emoji:'💪'})}<p class="muted">Estimated 1-rep max${gain>0?` · <b style="color:var(--good)">+${gain}% stronger!</b> 🚀`:''}</p>`:'<p class="muted">Log a workout to see your strength curve 🌱</p>'}</div>`};
+ <div class="sec">Explore</div><div class="list"><div class="row" onclick="push('learn')"><span style="font-size:22px">📚</span><div class="rbody"><b>Learn</b><small>Articles, hypertrophy, muscle parts</small></div><span class="chev">›</span></div><div class="row" onclick="push('settings')"><span style="font-size:22px">⚙️</span><div class="rbody"><b>Settings</b><small>Plan, reminders, backup</small></div><span class="chev">›</span></div></div>`};
+function strengthCard(){const done=Object.keys(EX).filter(e=>bestSet(e));chartEx=done.includes(chartEx)?chartEx:done[0];const [lv,ll]=chartEx?liftSeries(chartEx):[[],[]];const gain=lv.length>1?Math.round((lv.at(-1)/lv[0]-1)*100):0;
+ return`<div class="sec">📈 Strength</div><div class="card">${done.length?`<select onchange="chartEx=this.value;render()">${done.map(e=>`<option ${e===chartEx?'selected':''}>${e}</option>`).join('')}</select>${chart(lv,ll,{type:'line',color:'#22c55e',emoji:'💪'})}<p class="muted">Estimated 1-rep max${gain>0?` · <b style="color:var(--good)">+${gain}% stronger!</b> 🚀`:''}</p>`:'<p class="muted">Log a workout to see your strength curve 🌱</p>'}</div>`}
 V.settings=()=>{const p=S.profile;return`<div class="top">${backBtn()}<h1>Settings</h1><span></span></div>
- <p class="muted" style="text-align:center;font-style:italic;margin:6px 0 14px"><b style="font-style:normal">RepWise</b> · “Be Wise in Every Rep”</p>
- <div class="list"><div class="row" onclick="startOB()"><span style="font-size:22px">👤</span><div class="rbody"><b>Redo my plan</b><small>Goal, age, height, weight, activity</small></div><span class="chev">›</span></div>
+ <p class="muted" style="text-align:center;font-style:italic;margin:6px 0 14px"><span style="display:block;margin:0 auto 6px;background:#15151f;border-radius:16px;padding:10px;width:max-content"><img src="logo.png" alt="RepWise" style="width:90px;display:block"></span>“Be Wise in Every Rep”</p>
+ <div class="list"><div class="row" onclick="startOB()"><span style="font-size:22px">👤</span><div class="rbody"><b>Redo my plan</b><small>Goal, body, dream weight & body fat, deficit, fasting</small></div><span class="chev">›</span></div>
  <div class="row" onclick="measSheet()"><span style="font-size:22px">📏</span><div class="rbody"><b>Body measurements</b><small>Waist, neck, hip → accurate body fat</small></div><span class="chev">›</span></div>
  <div class="row" onclick="S.apiKey=prompt('Anthropic API key',S.apiKey||'')||null;save();toast('Saved')"><span style="font-size:22px">🤖</span><div class="rbody"><b>AI photo key</b><small>${S.apiKey?'Set ✓':'Not set'}</small></div><span class="chev">›</span></div>
  <div class="row" onclick="push('splits')"><span style="font-size:22px">🗓️</span><div class="rbody"><b>Workout style</b><small>${SPLITS[S.split].name}</small></div><span class="chev">›</span></div>
@@ -585,7 +585,7 @@ function goalSheet(k){const d=GOALDEF[k],g=(S.goals||{})[k];if(g&&!g.done)return
 function saveGoal(k){const d=GOALDEF[k],v=+$('#gv').value,cur=d.cur();if(!v||v<d.min||v>d.max)return toast(`Enter ${d.min}–${d.max} ${d.unit}`);
  if(Math.abs(v-cur)<.1)return toast('Pick a target different from where you are now');
  S.goals=S.goals||{};S.goals[k]={target:v,start:+cur.toFixed(1),down:v<cur,set:Date.now(),done:null};save();closeSheet();render();toast('🎯 Goal set — go get it!')}
-function measSheet(){const p=S.profile;openSheet(`<h3 style="font-size:20px">Measurements (cm)</h3><p class="muted">Waist at navel, neck below Adam's apple, hip at widest (women).</p><input id="mw" type="number" step="0.1" placeholder="Waist" value="${p.waist||''}"><input id="mn" type="number" step="0.1" placeholder="Neck" value="${p.neck||''}"><input id="mh" type="number" step="0.1" placeholder="Hip (women)" value="${p.hip||''}"><button class="btn" style="margin-top:10px" onclick="S.profile.waist=+$('#mw').value||0;S.profile.neck=+$('#mn').value||0;S.profile.hip=+$('#mh').value||0;save();closeSheet();render();toast('Body fat updated 🧬')">Save</button>`)}
+function measSheet(){const p=S.profile;openSheet(`<h3 style="font-size:20px">Measurements (cm)</h3><p class="muted">Waist at navel, neck below Adam's apple, hip at widest (women).</p><input id="mw" type="number" step="0.1" placeholder="Waist" value="${p.waist||''}"><input id="mn" type="number" step="0.1" placeholder="Neck" value="${p.neck||''}"><input id="mh" type="number" step="0.1" placeholder="Hip (women)" value="${p.hip||''}"><button class="btn" style="margin-top:10px" onclick="S.profile.waist=+$('#mw').value||0;S.profile.neck=+$('#mn').value||0;S.profile.hip=+$('#mh').value||0;S.profile.measTs=Date.now();checkGoals();save();closeSheet();render();toast('Body fat updated 🧬')">Save</button>`)}
 // ---- account transfer (no server: file or code) ----
 function payload(){const d={...S};delete d.apiKey;delete d.active;return JSON.stringify({app:'gymquest',v:1,exported:Date.now(),data:d})}
 async function gz(str,dir){const s=new Blob([str]).stream().pipeThrough(dir?new CompressionStream('gzip'):new DecompressionStream('gzip'));return new Response(s)}
@@ -618,5 +618,13 @@ document.addEventListener('backbutton',e=>{if($('#sheet').classList.contains('sh
 window.addEventListener('popstate',()=>{});
 </script>
 <script src="features.js"></script>
+<script src="smart.js"></script>
+<script src="track.js"></script>
+<script src="ui.js"></script>
+<script src="foods.js"></script>
+<script src="addfood.js"></script>
+<script src="progress.js"></script>
+<script src="suggest.js"></script>
+<script src="more.js"></script>
 </body>
 </html>

@@ -93,14 +93,15 @@ const ER=/(?:\p{Extended_Pictographic}|[✓✕✔✖])(?:️|‍(?:\p{Extended_P
 const svg=n=>`<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${P[n]}"/></svg>`;
 const name=m=>{const k=m.replace(/️/g,'');return SEQ[k]||M[[...k][0]]||'sparkle'};
 window.ic=n=>svg(P[n]?n:'sparkle');
+const KC=/([0-9#*])\uFE0F?\u20E3/g;
 const SKIP=new Set(['SCRIPT','STYLE','TEXTAREA','INPUT','TITLE']);
 function fix(root){const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);const hits=[];let t;
- while(t=w.nextNode()){ER.lastIndex=0;if(ER.test(t.data))hits.push(t)}
+ while(t=w.nextNode()){ER.lastIndex=0;KC.lastIndex=0;if(ER.test(t.data)||KC.test(t.data))hits.push(t)}
  for(const n of hits){const p=n.parentNode;if(!p||SKIP.has(p.nodeName))continue;
   if(p.nodeName==='OPTION'){n.data=n.data.replace(ER,'').trim();continue}
-  const tmp=document.createElement('span');tmp.innerHTML=n.data.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'})[c]).replace(ER,m=>svg(name(m)));
+  const tmp=document.createElement('span');tmp.innerHTML=n.data.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'})[c]).replace(KC,(m,d)=>`<span class="kc">${d}</span>`).replace(ER,m=>svg(name(m)));
   const f=document.createDocumentFragment();while(tmp.firstChild)f.appendChild(tmp.firstChild);p.replaceChild(f,n)}}
-const st=document.createElement('style');st.textContent='.ic{width:1em;height:1em;vertical-align:-.14em;display:inline-block;flex:none}';document.head.appendChild(st);
+const st=document.createElement('style');st.textContent='.kc{display:inline-grid;place-items:center;min-width:1.15em;height:1.15em;font-size:.8em;font-weight:800;line-height:1;border:1.75px solid currentColor;border-radius:.3em;font-variant-numeric:tabular-nums}.ic{width:1em;height:1em;vertical-align:-.14em;display:inline-block;flex:none}';document.head.appendChild(st);
 const go=()=>{fix(document.body);new MutationObserver(ms=>{for(const m of ms){if(m.type==='characterData')fix(m.target.parentNode||document.body);else m.addedNodes.forEach(a=>a.nodeType===1?fix(a):a.nodeType===3&&a.parentNode&&fix(a.parentNode))}}).observe(document.body,{childList:true,subtree:true,characterData:true})};
 document.body?go():document.addEventListener('DOMContentLoaded',go);
 })();

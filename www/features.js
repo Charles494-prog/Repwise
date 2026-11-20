@@ -88,6 +88,7 @@ V.fasting=()=>{const F=S.fast,w=fastWin();return`<div class="top">${backBtn()}<h
  ${FASTS.map(([id,h,lbl,d])=>`<div class="opt ${F.proto===id?'on':''}" onclick="S.fast.proto='${id}';save();schedFast();render()"><span class="e" style="font-size:16px;font-weight:900;min-width:52px">${id}</span><div><b>${lbl}</b><small>${h} h fasting · ${24-h} h eating · ${d}</small></div></div>`).join('')}
  <div class="sec">🍽️ Eating window starts at</div><div class="card"><select onchange="S.fast.start=+this.value;save();schedFast();render()">${Array.from({length:24},(_,i)=>`<option value="${i}" ${i===F.start?'selected':''}>${hh(i)}</option>`).join('')}</select>
  <p class="muted" style="margin-top:8px">Eat <b>${hh(w.st)} – ${hh(w.en)}</b>, fast the other ${w.h} hours. Tip: an earlier window (e.g. 8am–4pm) showed better blood sugar results than a late one.</p></div>
+ <div class="sec">⏳ Hour by hour: what happens in your body</div>${fastTimeline()}
  <div class="sec">🔬 What fasting does to your body</div><div class="stagger">${FAST_SCI.map(s=>sciCard(s)).join('')}</div>`};
 function togFast(){S.fast.on=!S.fast.on;save();schedFast();render();toast(S.fast.on?`⏳ ${S.fast.proto} fasting on`:'Fasting mode off');
  if(S.fast.on&&window.Notification&&Notification.permission==='default')Notification.requestPermission()}
@@ -212,7 +213,7 @@ const FAM=[
 const TIER={m:['🏢','Machine / cable'],b:['🏋️','Barbell'],d:['💪','Dumbbell'],bar:['🧗','Pull-up / dip bar'],h:['🏠','Home / bodyweight']};
 const FAM_OF={};FAM.forEach((f,i)=>f[1].forEach(([e,t])=>{(FAM_OF[e]??=[]).push(i)}));
 const tierOf=e=>{for(const i of FAM_OF[e]||[])return FAM[i][1].find(x=>x[0]===e)[1];return null};
-S.equip??='gym';S.bar??=false;S.rotEq??=false;
+S.equip??="gym";S.bar??=false;S.rotEq??=true;
 const EQUIPS={gym:['🏢','Full gym'],dumbbell:['💪','Dumbbells only'],home:['🏠','Home / no equipment']};
 function avail(t){return !t||S.equip==='gym'||t==='h'||(t==='d'&&S.equip==='dumbbell')||(t==='bar'&&S.bar)}
 function equivs(e){const i=(FAM_OF[e]||[])[0];return i==null?[]:FAM[i][1].filter(x=>EX[x[0]])}
@@ -295,6 +296,32 @@ function balanceChart(days=14){const t=targets(),B=S.burn||{},v=[];for(let i=day
  <div class="flex" style="gap:10px;font-size:12px;color:var(--muted);justify-content:center"><span>🟩 Deficit day</span><span>🟥 Surplus day</span><span style="color:#f59e0b">━ Running total</span></div>
  <p class="muted" style="margin-top:6px">${def}/${logged.length} days in deficit · net <b style="color:${tot<0?'var(--good)':'var(--acc)'}">${tot>0?'+':''}${tot.toLocaleString()} kcal</b> ${tot<0?`≈ <b>${(-tot/7700).toFixed(2)} kg</b> of fat lost 🎉`:'— above maintenance'}</p>`}
 
-schedFast();
+// Hour-by-hour fasting timeline (approximate; timing varies with your last meal, activity and body).
+const FAST_HRS=[
+ [0,'🍽️','Fed state','Blood sugar and insulin rise as you digest your last meal. Your body stores energy as glycogen and fat.'],
+ [2,'📈','Digesting','Insulin is still elevated. Nutrients from your meal are being absorbed and used.'],
+ [4,'📉','Blood sugar settles','Blood sugar returns to baseline. Insulin starts to fall.'],
+ [6,'🔄','Post-absorptive','Digestion is mostly done. Your liver starts releasing stored glycogen to keep blood sugar steady.'],
+ [8,'⚡','Glycogen in use','The liver keeps breaking down glycogen. Fat burning starts to increase slowly.'],
+ [10,'😋','Hunger wave','Ghrelin (the hunger hormone) often peaks around your usual mealtimes — it passes in ~20 min. Drink water.'],
+ [12,'🔥','Metabolic switch begins','Insulin is low and liver glycogen is running down. The body shifts toward burning more fat for fuel.'],
+ [14,'💧','Fat burning ramps up','More fat is released from fat cells (lipolysis) and used for energy.'],
+ [16,'🧪','Ketones rising','The liver starts turning fat into ketones — an alternative fuel for the brain and muscles. The classic 16:8 point.'],
+ [18,'🧠','Ketosis (light)','Ketone levels rise further. Many people report steady energy and focus once adapted.'],
+ [20,'📈','Growth hormone up','Growth hormone increases during fasting, which helps protect muscle and mobilise fat.'],
+ [24,'♻️','Autophagy increasing','Glycogen is largely used up. Cellular cleanup (autophagy) is thought to increase — strong in animal studies, still being researched in humans.'],
+ [36,'🔬','Deeper ketosis','Fat and ketones are the main fuel. Extended fasts like this should be occasional.'],
+ [48,'⚠️','Extended fast','Growth hormone is much higher, but the risk of muscle loss, dizziness and electrolyte issues rises. Talk to a doctor before fasting this long.'],
+];
+function fastTimeline(){const w=fastWin(),st=fastState(),cur=S.fast.on&&!st.open?w.h-st.left:-1,g=w.h;
+ return`<div style="display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;padding:4px 2px 12px;margin:0 -2px" id="ftl">${FAST_HRS.map(([h,e,t,d],i)=>{const nx=(FAST_HRS[i+1]||[999])[0],now=cur>=h&&cur<nx,goal=h<=g&&g<nx,past=cur>=nx;
+  return`<div style="flex:0 0 72%;scroll-snap-align:start;background:${now?'linear-gradient(135deg,#ede9fe,#faf5ff)':'#fff'};border:2px solid ${now?'#a855f7':goal?'#22c55e':'transparent'};border-radius:18px;padding:14px;box-shadow:0 2px 12px #0000000a;opacity:${past?.6:1}" ${now?'data-now':''}>
+  <div class="flex" style="justify-content:space-between"><b style="font-size:26px;font-weight:900;color:${h>=48?'#ef4444':'#a855f7'}">${h}h${h>=48?'+':''}</b><span style="font-size:30px">${e}</span></div>
+  <b>${t}</b>${now?' <span class="badge" style="background:#a855f7;color:#fff">YOU ARE HERE</span>':''}${goal?' <span class="badge" style="background:#22c55e;color:#fff">YOUR ${S.fast.proto} GOAL</span>':''}
+  <p style="font-size:13px;line-height:1.45;margin-top:6px">${d}</p></div>`}).join('')}</div>
+ <div style="height:6px;background:#eee;border-radius:3px;position:relative;margin:-4px 4px 4px"><i style="position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:linear-gradient(90deg,#a855f7,#22c55e);width:${Math.min(100,Math.max(0,cur)/48*100)}%"></i></div>
+ <p class="muted" style="font-size:12px">← Swipe through the hours → ${cur>=0?`You're <b>${dur(cur)}</b> into your fast.`:''} Timings are approximate and vary person to person. 📚 Anton et al., 2018, Obesity; de Cabo & Mattson, 2019, NEJM; Ho et al., 1988, J Clin Invest (GH)</p>`}
+
+window.afterRender=()=>{const n=document.querySelector('#ftl [data-now]');if(n)n.parentNode.scrollLeft=n.offsetLeft-n.parentNode.offsetLeft-8};
 setInterval(()=>{if(S.fast.on&&(tab==='plan'&&!stack.length||stack.at(-1)?.[0]==='fasting')&&!$('#sheet').classList.contains('show'))render()},60000);
-render('fade');
+// initial render happens in smart.js

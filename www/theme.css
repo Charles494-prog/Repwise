@@ -1,0 +1,73 @@
+/* RepWise design tokens — the single source of truth for colour, type, spacing and radius.
+   Neutral UI; the accent is reserved for the primary action and meaningful states. */
+:root{
+ /* colour */
+ --ink:#15151f;--ink-2:#6b6b78;--ink-3:#a3a3ae;--line:#e9e9ee;--bg:#f7f7f8;--surface:#fff;--fill:#efeff2;
+ --accent:#e3262f;--ok:#16a34a;
+ /* type scale: display · title · body · label · caption */
+ --fs-display:44px;--fs-title:22px;--fs-body:16px;--fs-label:14px;--fs-caption:12px;
+ /* 8pt spacing */
+ --s1:8px;--s2:16px;--s3:24px;--s4:32px;--s5:48px;
+ /* radius */
+ --r-card:12px;--r-pill:999px;
+ /* legacy aliases so older components resolve to tokens */
+ --txt:var(--ink);--muted:var(--ink-2);--acc:var(--accent);--acc2:var(--accent);--card:var(--surface);--good:var(--ok);--r:var(--r-card)
+}
+html,body{background:var(--bg);color:var(--ink);font-size:var(--fs-body)}
+#app{padding:0 var(--s2)}
+
+/* type */
+.t-display{font-size:var(--fs-display);font-weight:800;line-height:1.05;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.t-title{font-size:var(--fs-title);font-weight:700;letter-spacing:-.01em}
+.t-body{font-size:var(--fs-body);font-weight:500}
+.t-label{font-size:var(--fs-label);font-weight:600}
+.t-caption{font-size:var(--fs-caption);font-weight:500;color:var(--ink-2)}
+.num{font-variant-numeric:tabular-nums}
+.muted{color:var(--ink-2)}
+
+/* header */
+.top{padding:var(--s3) 0 var(--s2)}
+.top h1{font-size:28px;font-weight:800;letter-spacing:-.02em}
+.chip{background:var(--fill);box-shadow:none;color:var(--ink);font-size:var(--fs-label);font-weight:600}
+
+/* section heading: sentence case, no bars, no colour */
+.sec,.hdr{display:flex;align-items:baseline;justify-content:flex-start;gap:8px;font-size:17px!important;font-weight:700;letter-spacing:-.01em;text-transform:none;color:var(--ink);margin:var(--s5) 0 var(--s1)!important}
+.sec>small,.hdr>small,.sec>span:last-child:not(:first-child){margin-left:auto;font-size:var(--fs-label);font-weight:600;color:var(--ink-2)}
+
+/* buttons: one solid primary; everything else is quiet */
+.btn{background:var(--accent);border-radius:var(--r-pill);box-shadow:none;font-size:var(--fs-body);font-weight:700;padding:15px}
+.btn.sec2{background:var(--surface);color:var(--ink);box-shadow:none;border:1px solid var(--line)}
+.qa{display:flex;justify-content:space-between;margin-top:var(--s2)}
+.qa button{flex:1;background:none;border:none;color:var(--ink);font-size:var(--fs-caption);font-weight:600;display:flex;flex-direction:column;align-items:center;gap:6px;padding:var(--s1) 0;cursor:pointer}
+.qa button .ic{width:22px;height:22px;stroke-width:1.75}
+.qa button:active{opacity:.5}
+
+/* segmented control (neutral) */
+.seg{display:flex;background:var(--fill);border-radius:var(--r-pill);padding:3px;margin-bottom:var(--s2)}
+.seg button{flex:1;border:none;background:none;border-radius:var(--r-pill);padding:7px 0;font-size:var(--fs-label);font-weight:600;color:var(--ink-2);cursor:pointer}
+.seg button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px #15151f1a}
+
+/* plain list with dividers (no container) */
+.plist{border-top:1px solid var(--line)}
+.plist .li{display:flex;align-items:center;gap:var(--s2);padding:14px 0;border-bottom:1px solid var(--line)}
+.plist .li b{font-size:var(--fs-body);font-weight:600;display:block}
+.plist .li small{font-size:var(--fs-caption);color:var(--ink-2)}
+.plist .li .x{background:none;border:none;color:var(--ink-3);padding:6px;cursor:pointer}
+.empty{color:var(--ink-2);font-size:var(--fs-label);padding:var(--s1) 0}
+
+/* slim progress bar */
+.bar{height:6px;border-radius:3px;background:var(--fill);overflow:hidden}
+.bar>i{display:block;height:100%;background:var(--accent);border-radius:3px;transition:width .8s cubic-bezier(.2,.8,.2,1)}
+
+/* hidden toast no longer peeks under the status bar */
+#toast{transform:translateY(-200%);opacity:0;transition:transform .35s cubic-bezier(.2,.8,.2,1),opacity .2s}
+#toast.show{opacity:1}
+
+/* bottom navigation: light, neutral; active = filled icon + label in ink */
+nav{background:rgba(255,255,255,.94);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--line);box-shadow:none;padding:8px 0 calc(8px + env(safe-area-inset-bottom))}
+nav button{color:var(--ink-3);font-size:11px;font-weight:600;gap:4px}
+nav button svg{width:24px;height:24px;stroke-width:1.75;transition:none}
+nav button.on{color:var(--ink)}
+nav button.on svg{transform:none;fill:currentColor;fill-opacity:.14;stroke-width:2.2}
+nav button.on span{font-weight:700}
+body{padding-bottom:calc(72px + env(safe-area-inset-bottom))}
