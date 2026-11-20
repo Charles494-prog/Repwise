@@ -72,3 +72,20 @@
     return R.call(this, a, b);
   };
 })();
+
+// ---------- 6. Day rollover while the app stays open ----------
+// viewDate is set at launch; if the app is left open (or resumed) after midnight it kept logging into
+// yesterday. When the calendar day changes, a view that was on "today" moves to the new today.
+(function () {
+  let lastToday = today();
+  window.__dayTick = function () {
+    const t = today(); if (t === lastToday) return false;
+    const wasToday = viewDate === lastToday; lastToday = t;
+    if (wasToday) viewDate = t;
+    try { ensureWeek(); } catch (e) {}
+    render(); return true;
+  };
+  window.__setLastToday = d => { lastToday = d; };
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) window.__dayTick(); });
+  setInterval(() => { if (!document.hidden) window.__dayTick(); }, 30000);
+})();

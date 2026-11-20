@@ -53,3 +53,16 @@ test('injection anchors: every string anchor used to extend a view is found', as
     for(const f of v)f();localStorage.removeItem('rwDev');return window.__anchorMiss`);
   assert.deepEqual(miss, []);
 });
+
+test('dates: logging at 23:59 / 00:01 / across year and month ends lands on the local day', async () => {
+  for (const [clock, tz, day] of [['2026-12-31T23:59:00+08:00', 'Asia/Manila', '2026-12-31'], ['2027-01-01T00:01:00+08:00', 'Asia/Manila', '2027-01-01'], ['2027-02-28T23:59:30+08:00', 'Asia/Manila', '2027-02-28'], ['2027-01-01T00:30:00+08:00', 'America/New_York', '2026-12-31']]) {
+    await p.open({ state: baseState(), clock, tz });
+    const r = await p.eval(`foodSheet();afOpenIng('banana');afIngToPlate(true);closeSheet();for(const t of ['plan','meals','body','train'])go(t);push('caltrack');return [today(),Object.keys(S.food).filter(k=>S.food[k].length)]`);
+    assert.equal(r[0], day); assert.deepEqual(r[1], [day]); assert.deepEqual(p.errors, []);
+  }
+});
+test('dates: app left open past midnight moves "today" forward instead of logging into yesterday', async () => {
+  await p.open({ state: baseState() });
+  const r = await p.eval(`const y=(()=>{const d=new Date();d.setDate(d.getDate()-1);return iso(d)})();viewDate=y;__setLastToday(y);__dayTick();return viewDate===today()`);
+  assert.equal(r, true);
+});
