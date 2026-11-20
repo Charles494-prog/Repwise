@@ -89,11 +89,11 @@ chev:'M12 19V5M5 12l7-7 7 7',
 };
 const M={'🏆':'trophy','🏋':'dumbbell','💪':'dumbbell','🦵':'leg','🏃':'run','🏅':'medal','🤸':'stretch','🧗':'mountain','🔥':'flame','🎯':'target','⚖':'scale','🚶':'walk','⚡':'zap','👟':'foot','✅':'checkc','⚠':'alert','✓':'check','✔':'check','📈':'up','🍽':'food','🔒':'lock','⚔':'swords','🚣':'waves','⏱':'timer','🚀':'rocket','🔬':'flask','✨':'sparkle','📉':'down','📡':'signal','🔄':'refresh','🙌':'hand','🪑':'chair','🦅':'wing','📏':'ruler','👩':'user','👨':'user','🧔':'user','👤':'user','🧑':'user','🎉':'party','💧':'drop','✕':'x','❌':'x','✖':'x','➕':'plus','⬆':'aup','⬇':'adown','⏸':'pause','✏':'pencil','📸':'camera','🌱':'sprout','🌿':'leaf','🥗':'leaf','🧬':'dna','📋':'clip','🦋':'wing','🕊':'wing','🔨':'hammer','💀':'skull','🍑':'pulse','🦶':'foot','🧘':'stretch','🐒':'hang','🔺':'tri','🏠':'home','🎲':'dice','💥':'zap','👑':'crown','🥩':'meat','🍔':'cookie','🍩':'cookie','📅':'cal','😴':'moon','🐢':'gauge','💊':'pill','☕':'coffee','🧠':'bulb','💡':'bulb','🤔':'bulb','🦴':'bone','🙂':'smile','👋':'smile','🐻':'heavy','🛋':'chair','💸':'cash','💻':'code','🎮':'game','📴':'offline','💬':'chat','🤖':'bot','📚':'book','🔁':'repeat','🔍':'search','👇':'adown','⚙':'gear','📊':'chart','🗑':'trash','💾':'save','📂':'folder','📁':'folder','📤':'upload','📥':'download','📱':'phone','🚫':'ban','📍':'pin','⭐':'sparkle','🌟':'sparkle'};
 const SEQ={'🧑‍💻':'code'};
-const ER=/(?:\p{Extended_Pictographic}|[✓✕✔✖])(?:️|‍(?:\p{Extended_Pictographic})️?)*/gu;
+const ER=/(?<!\u2060)(?:\p{Extended_Pictographic}|[✓✕✔✖])(?:️|‍(?:\p{Extended_Pictographic})️?)*/gu;
 const svg=n=>`<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${P[n]}"/></svg>`;
 const name=m=>{const k=m.replace(/️/g,'');return SEQ[k]||M[[...k][0]]||'sparkle'};
 window.ic=n=>svg(P[n]?n:'sparkle');
-const KC=/([0-9#*])\uFE0F?\u20E3/g;
+const KC=/(?<!\u2060)([0-9#*])\uFE0F?\u20E3/g;
 const SKIP=new Set(['SCRIPT','STYLE','TEXTAREA','INPUT','TITLE']);
 function fix(root){const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);const hits=[];let t;
  while(t=w.nextNode()){ER.lastIndex=0;KC.lastIndex=0;if(ER.test(t.data)||KC.test(t.data))hits.push(t)}

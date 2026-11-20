@@ -66,3 +66,16 @@ test('dates: app left open past midnight moves "today" forward instead of loggin
   const r = await p.eval(`const y=(()=>{const d=new Date();d.setDate(d.getDate()-1);return iso(d)})();viewDate=y;__setLastToday(y);__dayTick();return viewDate===today()`);
   assert.equal(r, true);
 });
+
+test('emoji replacer: user-entered emoji stay as typed; app emoji still become icons', async () => {
+  await p.open({ state: baseState({ food: { [td()]: [['🍗 chicken', 300, 30]] }, myMeals: [{ id: 'm1', name: '🥗 salad 1️⃣', items: [{ id: 'lettuce', g: 100 }] }] }) });
+  const r = await p.eval(`go('meals');await new Promise(r=>setTimeout(r,200));const row=[...document.querySelectorAll('.plist .li b')].find(b=>b.textContent.includes('chicken'));
+    foodSheet();await new Promise(r=>setTimeout(r,200));const my=[...document.querySelectorAll('.afli b')].find(b=>b.textContent.includes('salad'));
+    return {food:row.textContent.replace(/\\u2060/g,''),foodSvg:!!row.querySelector('svg'),my:my.textContent.replace(/\\u2060/g,'').trim(),appIcons:document.querySelectorAll('#app svg.ic').length}`);
+  assert.equal(r.food, '🍗 chicken'); assert.equal(r.foodSvg, false); assert.ok(r.my.startsWith('🥗 salad 1️⃣'), r.my); assert.ok(r.appIcons > 0);
+});
+test('emoji replacer: cost on a 600-row list stays small', async () => {
+  await p.open({ state: baseState() });
+  const ms = await p.eval(`const html=Array.from({length:600},(_, i)=>'<div class="row">🍽️ Item '+i+' 🔥 '+i+'</div>').join('');const t=performance.now();document.querySelector('#app').innerHTML=html;await new Promise(r=>setTimeout(r,0));return performance.now()-t`);
+  assert.ok(ms < 250, `${ms} ms`);
+});

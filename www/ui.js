@@ -28,7 +28,7 @@ V.meals=()=>{const t=targets(),d=viewDate,f=dayFood(d),k=sum(f,1),p=sum(f,2),bur
  <div class="qa"><button onclick="foodSheet()">${ic('search')}Add food</button><button onclick="push('nutrition')">${ic('flask')}Nutrients</button><button onclick="push('foodsci')">${ic('leaf')}Smart foods</button><button onclick="push('supps')">${ic('pill')}Supplements</button></div>
  <div id="aiout"></div>
  <div class="hdr">Logged${f.length?`<small class="num">${k.toLocaleString()} kcal</small>`:''}</div>
- ${f.length?`<div class="plist">${f.map((x,i)=>`<div class="li"><div style="flex:1;min-width:0"><b>${esc(x[0])}</b><small>${x[2]} g protein</small></div><span class="t-label num">${x[1]}</span><button class="x" aria-label="Remove" onclick="S.food[viewDate].splice(${i},1);save();render()">${ic('x')}</button></div>`).join('')}</div>`:'<div class="empty">No meals logged yet.</div>'}
+ ${f.length?`<div class="plist">${f.map((x,i)=>`<div class="li"><div style="flex:1;min-width:0"><b>${escT(x[0])}</b><small>${x[2]} g protein</small></div><span class="t-label num">${x[1]}</span><button class="x" aria-label="Remove" onclick="S.food[viewDate].splice(${i},1);save();render()">${ic('x')}</button></div>`).join('')}</div>`:'<div class="empty">No meals logged yet.</div>'}
  ${balDays().length>=2?`<div class="hdr">Calorie balance</div>${mealsTrack()}`:''}
  <div style="height:var(--s4)"></div>`};
 
@@ -175,7 +175,7 @@ addFood=function(){const n=$('#fn').value.trim(),x=+$('#fx').value||1,c=COOK[+$(
 const msum=(f,i)=>f.reduce((s,x)=>s+(x[i]||0),0);
 const _meals20=V.meals;V.meals=()=>{const f=dayFood(viewDate),m=macroT();let h=_meals20();
  if(f.some(x=>x[3]!=null||x[4]!=null))h=h.replace('<div style="margin-top:var(--s2)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span class="t-label">Water',`<div class="t-caption num" style="margin-top:var(--s1);display:flex;justify-content:space-between"><span>Carbs ${Math.round(msum(f,3))}/${m.carb} g</span><span>Fat ${Math.round(msum(f,4))}/${m.fat} g</span><span>Fiber ${Math.round(msum(f,5))}/${m.fiber} g</span></div><div style="margin-top:var(--s2)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span class="t-label">Water`);
- f.forEach(x=>{if(x[3]!=null||x[4]!=null)h=h.replace(`<b>${esc(x[0])}</b><small>${x[2]} g protein</small>`,`<b>${esc(x[0])}</b><small>P ${x[2]} · C ${x[3]??'–'} · F ${x[4]??'–'}${x[5]?` · fiber ${x[5]}`:''} g</small>`)});return h};
+ f.forEach(x=>{if(x[3]!=null||x[4]!=null)h=h.replace(`<b>${escT(x[0])}</b><small>${x[2]} g protein</small>`,`<b>${escT(x[0])}</b><small>P ${x[2]} · C ${x[3]??'–'} · F ${x[4]??'–'}${x[5]?` · fiber ${x[5]}`:''} g</small>`)});return h};
 
 // ---------- Popular "extras": what the science actually says ----------
 const EXTRAS=[

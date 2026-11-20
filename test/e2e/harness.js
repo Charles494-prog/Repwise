@@ -34,7 +34,7 @@ class Page {
     if (clock !== undefined) pre.push(`(()=>{const off=${new Date(clock).getTime()}-Date.now();const R=Date;class D extends R{constructor(...a){a.length?super(...a):super(R.now()+off)}static now(){return R.now()+off}};window.Date=D;window.__clockOff=off})();`);
     if (this._script) await this.send('Page.removeScriptToEvaluateOnNewDocument', { identifier: this._script });
     this._script = (await this.send('Page.addScriptToEvaluateOnNewDocument', { source: pre.join('\n') })).identifier;
-    if (tz) await this.send('Emulation.setTimezoneOverride', { timezoneId: tz });
+    await this.send('Emulation.setTimezoneOverride', { timezoneId: tz || '' }).catch(() => {});
     await this.send('Runtime.evaluate', { expression: 'sessionStorage.clear()' }).catch(() => {});
     this.errors = [];
     await this.send('Page.navigate', { url: this.base + '/index.html' }); await sleep(900);
