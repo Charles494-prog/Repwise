@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f1220">
+<link rel="manifest" href="manifest.json">
+<title>GymQuest</title>
+<style>
+:root{--bg:#0f1220;--card:#1a1e33;--muted:#8a90b0;--txt:#eef0ff;--acc:#7c5cff;--good:#2ecc71;--warn:#f5a623;--bad:#ff5c7a}
+*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,sans-serif}
+body{background:var(--bg);color:var(--txt);padding-bottom:80px}
+header{padding:16px;font-size:22px;font-weight:800}
+header small{display:block;font-size:13px;color:var(--muted);font-weight:500}
+main{padding:0 12px}
+.card{background:var(--card);border-radius:14px;padding:14px;margin-bottom:12px}
+h3{font-size:15px;margin-bottom:8px}
+.muted{color:var(--muted);font-size:13px}
+.row{display:flex;gap:8px;align-items:center}
+.row>*{flex:1}
+input,select,button{width:100%;padding:10px;border-radius:10px;border:1px solid #2c3150;background:#12152a;color:var(--txt);font-size:15px;margin:4px 0}
+button{background:var(--acc);border:none;font-weight:700;cursor:pointer}
+button.ghost{background:#262b48}
+button.sm{width:auto;padding:6px 10px;font-size:13px}
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:#141830;border-top:1px solid #2c3150;padding-bottom:env(safe-area-inset-bottom)}
+nav button{background:none;border-radius:0;margin:0;color:var(--muted);font-size:12px;padding:10px 0}
+nav button.on{color:var(--acc)}
+nav span{display:block;font-size:20px}
+.bar{height:8px;background:#262b48;border-radius:4px;overflow:hidden;margin-top:4px}
+.bar>div{height:100%;background:linear-gradient(90deg,var(--acc),#4fd1ff)}
+.big{font-size:28px;font-weight:800}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.rank{padding:10px;border-radius:12px;background:#12152a}
+.badge{display:inline-block;padding:2px 8px;border-radius:8px;font-size:12px;font-weight:700}
+.item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #262b48;font-size:14px}
+.tip{border-left:3px solid var(--acc);padding:6px 10px;margin:6px 0;font-size:14px;background:#12152a;border-radius:6px}
+#toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:var(--acc);padding:12px 18px;border-radius:12px;font-weight:700;display:none;z-index:9;text-align:center}
+</style>
+</head>
+<body>
+<header id="hdr">GymQuest<small>Level up your body</small></header>
+<main id="app"></main>
+<div id="toast"></div>
+<nav>
+ <button data-t="home" class="on"><span>🏠</span>Home</button>
+ <button data-t="train"><span>🏋️</span>Train</button>
+ <button data-t="food"><span>🍗</span>Food</button>
+ <button data-t="ranks"><span>🏆</span>Ranks</button>
+ <button data-t="me"><span>👤</span>Plan</button>
+</nav>
+<script>
+// ---------- Data ----------
+const MUSCLES=['Chest','Back','Shoulders','Biceps','Triceps','Quads','Hamstrings','Glutes','Calves','Core'];
+// exercise: [primary muscles (full XP), secondary (half XP)]
+const EX={
+ 'Bench Press':[['Chest'],['Triceps','Shoulders']],
+ 'Incline Dumbbell Press':[['Chest'],['Shoulders','Triceps']],
+ 'Push-up':[['Chest'],['Triceps','Core']],
+ 'Chest Fly':[['Chest'],[]],
+ 'Pull-up':[['Back'],['Biceps']],
+ 'Lat Pulldown':[['Back'],['Biceps']],
+ 'Barbell Row':[['Back'],['Biceps']],
+ 'Seated Cable Row':[['Back'],['Biceps']],
+ 'Deadlift':[['Back','Hamstrings','Glutes'],['Core']],
+ 'Overhead Press':[['Shoulders'],['Triceps']],
+ 'Lateral Raise':[['Shoulders'],[]],
+ 'Face Pull':[['Shoulders'],['Back']],
+ 'Barbell Curl':[['Biceps'],[]],
+ 'Hammer Curl':[['Biceps'],[]],
+ 'Tricep Pushdown':[['Triceps'],[]],
+ 'Skull Crusher':[['Triceps'],[]],
+ 'Dips':[['Triceps','Chest'],[]],
+ 'Squat':[['Quads','Glutes'],['Core']],
+ 'Leg Press':[['Quads'],['Glutes']],
+ 'Lunge':[['Quads','Glutes'],[]],
+ 'Leg Extension':[['Quads'],[]],
+ 'Romanian Deadlift':[['Hamstrings','Glutes'],['Back']],
+ 'Leg Curl':[['Hamstrings'],[]],
+ 'Hip Thrust':[['Glutes'],['Hamstrings']],
+ 'Calf Raise':[['Calves'],[]],
+ 'Plank (sec as reps)':[['Core'],[]],
+ 'Hanging Leg Raise':[['Core'],[]],
+ 'Crunch':[['Core'],[]],
+};
+const RANKS=[['Iron','#7d7d7d'],['Bronze','#cd7f32'],['Silver','#c0c0c0'],['Gold','#ffd700'],['Platinum','#4fd1c5'],['Diamond','#7ab8ff'],['Master','#c77dff'],['Grandmaster','#ff5c7a'],['Legend','#ffae00']];
+const DIVS=['III','II','I'];
+// XP needed for each sub-tier grows
+const tierXP=i=>Math.round(300*Math.pow(1.35,i));
+const FOODS={'Rice (1 cup cooked)':[205,4],'Chicken breast (100g)':[165,31],'Egg (1 large)':[72,6],'Banana':[105,1],'Oats (1/2 cup dry)':[150,5],'Whey scoop':[120,24],'Bread slice':[80,3],'Peanut butter (1 tbsp)':[95,4],'Tuna can':[120,26],'Milk (1 cup)':[150,8],'Apple':[95,0],'Pork adobo (1 cup)':[450,30],'Beef (100g)':[250,26],'Greek yogurt (170g)':[100,17],'Sweet potato (medium)':[110,2]};
+
+let S=JSON.parse(localStorage.getItem('gq')||'null')||{profile:null,food:{},workouts:[],xp:{},active:null};
+MUSCLES.forEach(m=>S.xp[m]??=0);
+const save=()=>localStorage.setItem('gq',JSON.stringify(S));
+const today=()=>new Date().toISOString().slice(0,10);
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function toast(t){const e=$('#toast');e.innerHTML=t;e.style.display='block';clearTimeout(e._t);e._t=setTimeout(()=>e.style.display='none',2600)}
+
+// ---------- Calcs ----------
+function rankOf(xp){let i=0;while(xp>=tierXP(i)&&i<RANKS.length*3-1){xp-=tierXP(i);i++}
+ const [n,c]=RANKS[Math.floor(i/3)];return{name:n+' '+DIVS[i%3],color:c,idx:i,cur:xp,need:tierXP(i)}}
+function targets(){const p=S.profile;if(!p)return null;
+ const bmr=10*p.weight+6.25*p.height-5*p.age+(p.sex==='m'?5:-161);
+ const tdee=bmr*p.activity;
+ const adj={cut:-500,slowcut:-250,maintain:0,bulk:300}[p.goal];
+ return{bmr:Math.round(bmr),tdee:Math.round(tdee),kcal:Math.round(tdee+adj),protein:Math.round(p.weight*(p.goal==='bulk'?1.8:2.0)),adj}}
+const dayFood=d=>S.food[d]||[];
+const sum=(a,i)=>a.reduce((s,x)=>s+x[i],0);
+const e1rm=(w,r)=>w*(1+r/30);
+function bestSet(ex,beforeTs){let best=null;
+ for(const w of S.workouts){if(beforeTs&&w.ts>=beforeTs)continue;
+  for(const s of w.sets)if(s.ex===ex&&(!best||e1rm(s.w,s.r)>e1rm(best.w,best.r)))best=s}
+ return best}
+function lastSets(ex){for(let i=S.workouts.length-1;i>=0;i--){const ss=S.workouts[i].sets.filter(s=>s.ex===ex);if(ss.length)return ss}return null}
+function suggestion(ex){const ls=lastSets(ex);if(!ls)return'First time! Pick a weight you can do for 8–12 clean reps.';
+ const top=ls.reduce((a,b)=>e1rm(b.w,b.r)>e1rm(a.w,a.r)?b:a);
+ if(top.r>=12)return`Last: ${top.w}kg × ${top.r}. 🔥 Go heavier: try <b>${+(top.w+2.5).toFixed(1)}kg × 8</b>`;
+ return`Last: ${top.w}kg × ${top.r}. Beat it: <b>${top.w}kg × ${top.r+1}</b> or <b>${+(top.w+2.5).toFixed(1)}kg × ${Math.max(top.r-2,5)}</b>`}
+function daysSince(m){for(let i=S.workouts.length-1;i>=0;i--){if(S.workouts[i].sets.some(s=>EX[s.ex]&&EX[s.ex][0].includes(m)))return Math.floor((Date.now()-S.workouts[i].ts)/864e5)}return null}
+function streak(){const days=new Set(S.workouts.map(w=>new Date(w.ts).toISOString().slice(0,10)));let n=0,d=new Date();
+ if(!days.has(today()))d.setDate(d.getDate()-1);
+ while(days.has(d.toISOString().slice(0,10))){n++;d.setDate(d.getDate()-1)}return n}
+
+// XP for a set: base on volume, bonus for PR (progressive overload)
+function setXP(set){const vol=set.w>0?set.w*set.r:set.r*5;let xp=Math.round(10+vol/10);let pr=false;
+ const prev=bestSet(set.ex);
+ if(prev&&e1rm(set.w,set.r)>e1rm(prev.w,prev.r)){xp=Math.round(xp*2)+25;pr=true}
+ else if(!prev){xp+=10}
+ return{xp,pr}}
+
+// ---------- Views ----------
+let tab='home';
+const V={};
+V.home=()=>{const t=targets(),f=dayFood(today()),k=sum(f,1),pr=sum(f,2);
+ if(!t)return`<div class="card"><h3>Welcome to GymQuest ⚔️</h3><p class="muted">Set up your profile first so I can calculate your calories, deficit and plan.</p><button onclick="go('me')">Set up profile</button></div>`;
+ const total=MUSCLES.reduce((s,m)=>s+S.xp[m],0),lvl=Math.floor(Math.sqrt(total/100))+1;
+ const nextL=Math.pow(lvl,2)*100,prevL=Math.pow(lvl-1,2)*100;
+ return`<div class="card"><div class="row"><div><div class="muted">Player Level</div><div class="big">Lv ${lvl}</div></div><div style="text-align:right"><div class="muted">Streak</div><div class="big">🔥 ${streak()}</div></div></div>
+ <div class="bar"><div style="width:${(total-prevL)/(nextL-prevL)*100}%"></div></div><div class="muted">${total-prevL} / ${nextL-prevL} XP to Lv ${lvl+1}</div></div>
+ <div class="card"><h3>Today's Calories</h3><div class="row"><div><div class="big">${k}</div><div class="muted">eaten</div></div><div><div class="big" style="color:${t.kcal-k>=0?'var(--good)':'var(--bad)'}">${t.kcal-k}</div><div class="muted">left of ${t.kcal}</div></div></div>
+ <div class="bar"><div style="width:${Math.min(100,k/t.kcal*100)}%"></div></div>
+ <p class="muted" style="margin-top:6px">Protein ${pr} / ${t.protein} g · Deficit today: <b>${t.tdee-k}</b> kcal vs maintenance (${t.tdee})</p></div>
+ <div class="card"><h3>💡 Suggestions</h3>${tips().map(x=>`<div class="tip">${x}</div>`).join('')}</div>`};
+function tips(){const t=targets(),f=dayFood(today()),k=sum(f,1),p=sum(f,2),out=[];
+ const neglected=MUSCLES.map(m=>[m,daysSince(m)]).filter(([,d])=>d===null||d>=5).map(x=>x[0]);
+ if(neglected.length)out.push(`Train these today — not hit in 5+ days: <b>${neglected.slice(0,4).join(', ')}</b>`);
+ const h=new Date().getHours();
+ if(p<t.protein*0.5&&h>=14)out.push(`You're behind on protein (${p}/${t.protein}g). Add chicken, tuna, eggs or a whey shake.`);
+ if(k>t.kcal)out.push(`You're ${k-t.kcal} kcal over target. A 30–45 min walk burns ~150–250 kcal.`);
+ const low=MUSCLES.reduce((a,m)=>S.xp[m]<S.xp[a]?m:a);out.push(`Weakest rank: <b>${low}</b> (${rankOf(S.xp[low]).name}). Give it extra sets to catch up.`);
+ if(S.profile.goal.includes('cut'))out.push('On a cut, keep lifting heavy to hold muscle; aim for 7–9k steps a day.');
+ out.push('Progressive overload = more XP: beat last session by +1 rep or +2.5 kg and get a <b>2× PR bonus</b>.');
+ return out}
+
+V.train=()=>{const a=S.active;
+ if(!a)return`<div class="card"><h3>Start a workout</h3><p class="muted">Every set earns XP for the muscles it trains. Beating your best set (more weight or more reps) earns a 2× PR bonus.</p><button onclick="startW()">▶ Start workout</button></div>
+ <div class="card"><h3>Suggested split today</h3>${splitToday()}</div>
+ <div class="card"><h3>History</h3>${S.workouts.slice(-10).reverse().map((w,i)=>`<div class="item"><span>${new Date(w.ts).toLocaleDateString()} · ${w.sets.length} sets</span><span class="badge" style="background:#262b48">+${w.xp} XP</span></div>`).join('')||'<p class="muted">No workouts yet.</p>'}</div>`;
+ const opts=Object.keys(EX).map(e=>`<option ${e===a.ex?'selected':''}>${e}</option>`).join('');
+ return`<div class="card"><h3>Workout in progress · +${a.xp} XP</h3>
+ <select id="ex" onchange="S.active.ex=this.value;save();render()">${opts}</select>
+ <div class="tip">${suggestion(a.ex)}</div>
+ <div class="row"><input id="w" type="number" inputmode="decimal" placeholder="kg (0=bodyweight)"><input id="r" type="number" inputmode="numeric" placeholder="reps"></div>
+ <button onclick="addSet()">+ Log set</button></div>
+ <div class="card"><h3>Sets</h3>${a.sets.map((s,i)=>`<div class="item"><span>${esc(s.ex)} — ${s.w}kg × ${s.r} ${s.pr?'🏅':''}</span><span>+${s.xp}</span></div>`).join('')||'<p class="muted">No sets yet.</p>'}
+ <div class="row" style="margin-top:8px"><button class="ghost" onclick="if(confirm('Discard workout?')){S.active=null;save();render()}">Discard</button><button onclick="finishW()">✔ Finish</button></div></div>`};
+function splitToday(){const order=[['Push','Bench Press, Overhead Press, Incline Dumbbell Press, Lateral Raise, Tricep Pushdown',['Chest','Shoulders','Triceps']],['Pull','Pull-up/Lat Pulldown, Barbell Row, Face Pull, Barbell Curl, Hammer Curl',['Back','Biceps']],['Legs','Squat, Romanian Deadlift, Leg Press, Leg Curl, Calf Raise, Hanging Leg Raise',['Quads','Hamstrings','Glutes','Calves','Core']]];
+ const score=o=>o[2].reduce((s,m)=>s+(daysSince(m)??99),0)/o[2].length;
+ const best=order.reduce((a,b)=>score(b)>score(a)?b:a);
+ return`<div class="big">${best[0]} day</div><p class="muted">${best[1]}</p><p class="muted">3–4 sets each, 6–12 reps. Rest 2 min on big lifts.</p>`}
+function startW(){S.active={ts:Date.now(),ex:'Bench Press',sets:[],xp:0};save();render()}
+function addSet(){const w=parseFloat($('#w').value)||0,r=parseInt($('#r').value);if(!r||r<1)return toast('Enter reps');
+ const a=S.active,set={ex:a.ex,w,r};
+ // compare vs history AND sets earlier in this session
+ const tmp={ts:a.ts,sets:a.sets};S.workouts.push(tmp);const {xp,pr}=setXP(set);S.workouts.pop();
+ set.xp=xp;set.pr=pr;a.sets.push(set);a.xp+=xp;
+ const before={};const [pri,sec]=EX[a.ex];[...pri,...sec].forEach(m=>before[m]=rankOf(S.xp[m]).name);
+ pri.forEach(m=>S.xp[m]+=xp);sec.forEach(m=>S.xp[m]+=Math.round(xp/2));
+ let msg=pr?`🏅 NEW PR! +${xp} XP (2× bonus)`:`+${xp} XP`;
+ for(const m in before){const n=rankOf(S.xp[m]).name;if(n!==before[m])msg+=`<br>⬆️ ${m} ranked up to ${n}!`}
+ save();render();toast(msg)}
+function finishW(){const a=S.active;if(!a.sets.length){S.active=null;save();return render()}
+ S.workouts.push({ts:a.ts,sets:a.sets,xp:a.xp});S.active=null;save();go('ranks');toast(`Workout done! +${a.xp} XP 💪`)}
+
+V.food=()=>{const t=targets(),f=dayFood(today());const k=sum(f,1),p=sum(f,2);
+ return`<div class="card"><h3>Add food</h3>
+ <select id="fq" onchange="const v=FOODS[this.value];if(v){$('#fn').value=this.value;$('#fk').value=v[0];$('#fp').value=v[1]}"><option value="">Quick pick…</option>${Object.keys(FOODS).map(x=>`<option>${x}</option>`).join('')}</select>
+ <input id="fn" placeholder="Food name"><div class="row"><input id="fk" type="number" placeholder="kcal"><input id="fp" type="number" placeholder="protein g"><input id="fx" type="number" value="1" step="0.5" placeholder="servings"></div>
+ <button onclick="addFood()">+ Add</button></div>
+ <div class="card"><h3>Today · ${k} kcal · ${p}g protein</h3>${t?`<p class="muted">Target ${t.kcal} kcal · ${t.protein}g protein · ${t.kcal-k>=0?(t.kcal-k)+' left':(k-t.kcal)+' over'}</p>`:''}
+ ${f.map((x,i)=>`<div class="item"><span>${esc(x[0])}</span><span>${x[1]} kcal · ${x[2]}g <button class="sm ghost" onclick="S.food[today()].splice(${i},1);save();render()">✕</button></span></div>`).join('')||'<p class="muted">Nothing logged yet.</p>'}</div>
+ <div class="card"><h3>Last 7 days</h3>${last7()}</div>`};
+function addFood(){const n=$('#fn').value.trim(),x=parseFloat($('#fx').value)||1,k=Math.round((parseFloat($('#fk').value)||0)*x),p=Math.round((parseFloat($('#fp').value)||0)*x);
+ if(!n||!k)return toast('Enter name and kcal');(S.food[today()]??=[]).push([x!==1?`${n} ×${x}`:n,k,p]);save();render()}
+function last7(){const t=targets();let out='',tot=0;for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const key=d.toISOString().slice(0,10),k=sum(dayFood(key),1);
+ if(t&&k)tot+=t.tdee-k;out+=`<div class="item"><span>${d.toLocaleDateString(undefined,{weekday:'short'})}</span><span>${k||'—'} kcal ${t&&k?`<span class="muted">(${t.tdee-k>=0?'-':'+'}${Math.abs(t.tdee-k)})</span>`:''}</span></div>`}
+ return out+(t?`<p class="muted" style="margin-top:6px">Weekly deficit: <b>${tot}</b> kcal ≈ <b>${(tot/7700).toFixed(2)} kg</b> fat</p>`:'')}
+
+V.ranks=()=>`<div class="card"><h3>Muscle Ranks</h3><p class="muted">Iron → Bronze → Silver → Gold → Platinum → Diamond → Master → Grandmaster → Legend</p></div>
+ <div class="grid">${MUSCLES.map(m=>{const r=rankOf(S.xp[m]),d=daysSince(m);return`<div class="rank"><b>${m}</b><br><span class="badge" style="background:${r.color};color:#111">${r.name}</span>
+ <div class="bar"><div style="width:${r.cur/r.need*100}%"></div></div><div class="muted">${r.cur}/${r.need} XP${d!==null?` · ${d}d ago`:''}</div></div>`}).join('')}</div>
+ <div class="card" style="margin-top:12px"><h3>Personal Records 🏅</h3>${Object.keys(EX).map(e=>[e,bestSet(e)]).filter(x=>x[1]).map(([e,b])=>`<div class="item"><span>${e}</span><span>${b.w}kg × ${b.r} <span class="muted">(e1RM ${Math.round(e1rm(b.w,b.r))})</span></span></div>`).join('')||'<p class="muted">Log sets to set PRs.</p>'}</div>`;
+
+V.me=()=>{const p=S.profile||{sex:'m',age:25,height:170,weight:70,activity:1.55,goal:'cut'},t=targets();
+ const sel=(id,o,v)=>`<select id="${id}">${o.map(([a,b])=>`<option value="${a}" ${a==v?'selected':''}>${b}</option>`).join('')}</select>`;
+ return`<div class="card"><h3>Profile</h3>
+ ${sel('ps',[['m','Male'],['f','Female']],p.sex)}
+ <div class="row"><input id="pa" type="number" value="${p.age}" placeholder="Age"><input id="ph" type="number" value="${p.height}" placeholder="Height cm"><input id="pw" type="number" step="0.1" value="${p.weight}" placeholder="Weight kg"></div>
+ ${sel('pact',[[1.2,'Sedentary (desk, no exercise)'],[1.375,'Light (1–3 workouts/wk)'],[1.55,'Moderate (3–5/wk)'],[1.725,'Very active (6–7/wk)']],p.activity)}
+ ${sel('pg',[['cut','Lose fat (−500 kcal, ~0.5kg/wk)'],['slowcut','Slow cut (−250 kcal)'],['maintain','Maintain / recomp'],['bulk','Lean bulk (+300 kcal)']],p.goal)}
+ <button onclick="saveProfile()">Save</button></div>
+ ${t?`<div class="card"><h3>Your Plan</h3>
+ <div class="item"><span>BMR (at rest)</span><b>${t.bmr} kcal</b></div>
+ <div class="item"><span>Maintenance (TDEE)</span><b>${t.tdee} kcal</b></div>
+ <div class="item"><span>Daily target</span><b>${t.kcal} kcal</b></div>
+ <div class="item"><span>${t.adj<0?'Daily deficit':t.adj>0?'Daily surplus':'Balance'}</span><b>${Math.abs(t.adj)} kcal</b></div>
+ <div class="item"><span>Protein</span><b>${t.protein} g</b></div>
+ <div class="item"><span>Expected change</span><b>${(t.adj*7/7700).toFixed(2)} kg/week</b></div>
+ <p class="muted" style="margin-top:8px">Training: Push / Pull / Legs, 3–6×/week. Add weight or reps every session you can. Sleep 7–9h.</p></div>`:''}
+ <div class="card"><h3>Data</h3><button class="ghost" onclick="exportD()">Export backup</button><button class="ghost" onclick="if(confirm('Delete ALL data?')){localStorage.removeItem('gq');location.reload()}">Reset everything</button></div>`};
+function saveProfile(){S.profile={sex:$('#ps').value,age:+$('#pa').value,height:+$('#ph').value,weight:+$('#pw').value,activity:+$('#pact').value,goal:$('#pg').value};
+ if(!S.profile.age||!S.profile.height||!S.profile.weight)return toast('Fill in all fields');save();render();toast('Plan updated ✅')}
+function exportD(){const b=new Blob([JSON.stringify(S)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='gymquest-backup.json';a.click()}
+
+function go(t){tab=t;document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));render();scrollTo(0,0)}
+function render(){$('#app').innerHTML=V[tab]()}
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>go(b.dataset.t));
+render();
+if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
