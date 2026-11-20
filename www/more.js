@@ -93,10 +93,7 @@
 
   // ---------- 2. Health tracker: blood pressure + blood sugar ----------
   S.bp ??= []; S.glu ??= [];   // bp: [ts, sys, dia, pulse]; glu: [ts, mg/dL, context]
-  const bpCat = (s, d) => s >= 180 || d >= 120 ? ['Hypertensive crisis — get medical help now', 3] : s >= 140 || d >= 90 ? ['High (stage 2)', 2] : s >= 130 || d >= 80 ? ['High (stage 1)', 1] : s >= 120 ? ['Elevated', 1] : s < 90 || d < 60 ? ['Low', 1] : ['Normal', 0];
-  const gluCat = (v, c) => c === 'fasting' ? (v < 70 ? ['Low', 1] : v < 100 ? ['Normal', 0] : v < 126 ? ['Prediabetes range', 1] : ['Diabetes range', 2])
-    : c === 'after' ? (v < 70 ? ['Low', 1] : v < 140 ? ['Normal', 0] : v < 200 ? ['Prediabetes range', 1] : ['Diabetes range', 2])
-    : (v < 70 ? ['Low', 1] : v < 140 ? ['Normal', 0] : v < 200 ? ['High', 1] : ['Very high', 2]);
+  const bpCat = RWCore.bpCat, gluCat = RWCore.gluCat;
   const CTX = [['fasting', 'Fasting'], ['after', '2 h after a meal'], ['random', 'Random']];
   window.bpSheet = () => openSheet(`<h3 class="t-title">Blood pressure</h3><p class="t-caption" style="margin:4px 0 var(--s2)">Sit quietly for 5 minutes, arm at heart level, no caffeine for 30 minutes.</p>
     <div class="afrow"><span>Systolic (top)</span><input id="bps" type="number" inputmode="numeric" placeholder="120" style="width:90px"></div>
@@ -130,8 +127,7 @@
   const _body = V.body; V.body = () => { const h = _body(), k = '<div class="pg-hdr">Measurements</div>', k2 = '<div class="pg-hdr"><span>Measurements</span>'; const i = h.indexOf(k) >= 0 ? h.indexOf(k) : h.indexOf(k2); return i >= 0 ? h.slice(0, i) + healthSection() + h.slice(i) : h + healthSection(); };
 
   // ---------- 3. Added sugar today (AHA limit: 36 g men / 25 g women) ----------
-  const SUGARY = { sugar: 1, honey: 0.82, condensed_milk: 0.54, banana_ketchup: 0.2, softdrink: 0.106, green_tea_sweet: 0.075, coffee_3in1: 0.5, ice_cream: 0.21, cocoa_tablea: 0.1 };
-  function addedSugar(d) { let g = 0; for (const x of dayFood(d)) { const items = x[6]?.items || []; const m = x[6]?.mult || 1; for (const it of items) if (SUGARY[it.id]) g += it.g * SUGARY[it.id] * m; if (!items.length && /soft ?drink|coke|soda|juice|milk ?tea|halo/i.test(x[0])) g += (x[3] || 0) * 0.8; } return Math.round(g); }
+  const addedSugar = d => RWCore.addedSugar(dayFood(d));
   window.addedSugar = addedSugar;
   const _m = V.meals; V.meals = () => { const h = _m(), lim = S.profile.sex === 'f' ? 25 : 36, g = addedSugar(viewDate); if (!dayFood(viewDate).length) return h;
     const line = `<div class="t-caption num" style="margin-top:var(--s1);display:flex;justify-content:space-between;cursor:pointer" onclick="sugarInfo()"><span>Added sugar ~${g} g of ${lim} g limit</span><span style="${g > lim ? 'color:var(--accent);font-weight:600' : ''}">${g > lim ? 'Over' : g > lim * 0.7 ? 'Close' : 'OK'}</span></div>`;

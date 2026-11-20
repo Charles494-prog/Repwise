@@ -92,3 +92,17 @@
   document.addEventListener('visibilitychange', () => { if (!document.hidden) window.__dayTick(); });
   setInterval(() => { if (!document.hidden) window.__dayTick(); }, 30000);
 })();
+
+// ---------- 7. Steps: spread long gaps over the days they covered, handle reboots, first install ----------
+(function () {
+  if (typeof syncSteps !== 'function') return;
+  window.applyStepReading = function (total, now = Date.now()) {
+    const prev = S.ss ? { raw: S.ss.raw, at: S.ss.at || now } : null, r = RWCore.stepAttribution(prev, total, now);
+    for (const [d, n] of Object.entries(r.add)) S.steps[d] = (S.steps[d] || 0) + n;
+    S.ss = r.next; save(); return r.add;
+  };
+  syncSteps = async function () {
+    const P = window.Capacitor?.Plugins?.StepSensor; if (!P || !stepSt.available || !stepSt.granted) return;
+    try { const { total } = await P.read(); applyStepReading(total); if (tab === 'train' && trainSub === 'run' && !stack.length) render(); } catch (e) {}
+  };
+})();

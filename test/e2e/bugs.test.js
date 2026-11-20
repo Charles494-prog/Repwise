@@ -90,3 +90,26 @@ test('storage: 2-year history loads and renders within budget', async () => {
   for (const k of ['plan', 'meals', 'train', 'body', 'caltrack', 'save']) assert.ok(r[k] < 400, `${k} ${r[k]} ms`);
   assert.ok(r.rows <= 93, 'calorie track list is paged'); assert.deepEqual(p.errors, []);
 });
+
+const LN_MOCK = `window.__ln={pending:new Map(),listeners:{}};window.Capacitor={Plugins:{LocalNotifications:{checkPermissions:async()=>({display:'granted'}),requestPermissions:async()=>({display:'granted'}),
+  getPending:async()=>{await new Promise(r=>setTimeout(r,5));return {notifications:[...__ln.pending.values()]}},cancel:async({notifications})=>{await new Promise(r=>setTimeout(r,5));notifications.forEach(n=>__ln.pending.delete(n.id))},
+  schedule:async({notifications})=>{await new Promise(r=>setTimeout(r,5));notifications.forEach(n=>__ln.pending.set(n.id,n))},addListener:(ev,fn)=>{__ln.listeners[ev]=fn;return {remove(){}}}}}};`;
+test('notifications: no duplicates after many concurrent re-schedules; deep links open the right screen', async () => {
+  await p.open({ state: baseState({ notif: { water: true, food: true, workout: true, fast: true, weigh: true }, fast: { on: true, proto: '16:8', start: 12 } }), inject: LN_MOCK });
+  const r = await p.eval(`await new Promise(r=>setTimeout(r,800));const base=__ln.pending.size;await Promise.all(Array.from({length:10},()=>schedNotifs()));S.fast.reset=Date.now();await Promise.all([schedNotifs(),schedNotifs()]);
+    const v=[...__ln.pending.values()],keys=v.map(n=>n.title+'|'+new Date(n.schedule.at).getTime());const L=__ln.listeners.localNotificationActionPerformed,links={};
+    for(const g of ['meals','plan','workouts','run','fasting']){stack=[];L({notification:{extra:{go:g}}});links[g]=stack.length?stack.at(-1)[0]:tab==='train'?'train:'+trainSub:tab}return {base,ids:v.length,unique:new Set(v.map(n=>n.id)).size,dup:keys.length-new Set(keys).size,links}`);
+  assert.ok(r.base > 0); assert.equal(r.ids, r.unique); assert.equal(r.dup, 0);
+  assert.deepEqual(r.links, { meals: 'meals', plan: 'plan', workouts: 'train:workouts', run: 'train:run', fasting: 'fasting' });
+});
+test('steps: in-app reading pipeline (first install, normal, reboot, day-long gap)', async () => {
+  await p.open({ state: baseState() });
+  const r = await p.eval(`S.steps={};delete S.ss;const D=864e5,t0=new Date();t0.setHours(12,0,0,0);const n=t0.getTime();
+    applyStepReading(5000,n-D);applyStepReading(5400,n-D+3600e3);applyStepReading(200,n-D+7200e3);applyStepReading(12200,n);return S.steps`);
+  const vals = Object.values(r); assert.equal(vals.reduce((a, b) => a + b, 0), 400 + 200 + 12000); assert.equal(Object.keys(r).length, 2);
+});
+test('back button: sheet → stack → Today → press twice to exit', async () => {
+  await p.open({ state: baseState() });
+  const r = await p.eval(`go('meals');push('nutrition');foodSheet();afOpenDish('adobo');const seq=[];for(let i=0;i<6;i++)seq.push(handleBack());return seq`);
+  assert.deepEqual(r, ['sheet', 'sheet', 'pop', 'today', 'arm', 'exit']);
+});

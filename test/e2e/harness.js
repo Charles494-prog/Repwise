@@ -26,8 +26,9 @@ class Page {
   async eval(expr) { const r = await this.send('Runtime.evaluate', { expression: `(async()=>{${expr}})()`, awaitPromise: true, returnByValue: true });
     if (r.exceptionDetails) throw new Error('eval: ' + (r.exceptionDetails.exception?.description || r.exceptionDetails.text)); return r.result.value; }
   // Load the app with optional initial state (object or raw string), fake clock (ISO/ms) and timezone.
-  async open({ state, raw, clock, tz, autoDialogs = true } = {}) {
+  async open({ state, raw, clock, tz, autoDialogs = true, inject } = {}) {
     const pre = [];
+    if (inject) pre.push(inject);
     if (autoDialogs) pre.push(`window.confirm=()=>true;window.alert=()=>{};window.prompt=()=>null;`);
     if (raw !== undefined || state !== undefined) pre.push(`if(!sessionStorage.__seeded){localStorage.clear();${raw !== undefined ? `localStorage.setItem('gq',${JSON.stringify(raw)});` : `localStorage.setItem('gq',${JSON.stringify(JSON.stringify(state))});`}sessionStorage.__seeded=1}`);
     else pre.push(`if(!sessionStorage.__seeded){localStorage.clear();sessionStorage.__seeded=1}`);
