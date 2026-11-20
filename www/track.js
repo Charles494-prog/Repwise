@@ -257,8 +257,7 @@ function animTracks(){requestAnimationFrame(()=>setTimeout(()=>{document.querySe
 const _ar9=window.afterRender;window.afterRender=function(){_ar9&&_ar9();if(!$('#rvtw'))animTracks()};
 const _plan9=V.plan;V.plan=()=>{const h=_plan9();if(viewDate!==today())return h;const k='<div class="sec" style="display:flex;justify-content:space-between;align-items:baseline">✅ Must do';return h.includes(k)?h.replace(k,liveProgress()+k):liveProgress()+h};
 // Progress tab: body-fat history chart + check-in row in settings
-const _more9=V.more;V.more=()=>{const L=S.bfLog.slice(-20),c=L.length>1?`<div class="sec">🧬 Body fat history</div><div class="card">${chart(L.map(x=>x[1]),L.map(x=>new Date(x[0]).getDate()),{type:'line',color:'#f97316',emoji:L.at(-1)[1]<L[0][1]?'📉':'🧬'})}<p class="muted">${(L.at(-1)[1]-L[0][1]).toFixed(1)}% since ${new Date(L[0][0]).toLocaleDateString()}</p></div>`:'';
- return _more9().replace('<div class="sec">📈 Strength</div>',c+'<div class="sec">📈 Strength</div>')};
+// (body-fat history moved to the Progress screen)
 const _set9=V.settings;V.settings=()=>_set9().replace('<div class="row" onclick="measSheet()">',`<div class="row" onclick="checkIn(1)"><span style="font-size:22px">📋</span><div class="rbody"><b>Check-in</b><small>Update weight, measurements & height</small></div><span class="chev">›</span></div><div class="row" onclick="measSheet()">`);
 
 // ================= MUSCLE HEADS / REGIONS =================

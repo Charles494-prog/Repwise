@@ -60,3 +60,15 @@
     try { const data = RWStore.migrate(await RWStore.readBackup(name)); localStorage.setItem('gq', JSON.stringify(data)); location.reload(); } catch (e) { toast('Couldn’t read that backup'); }
   };
 })();
+
+// ---------- 5. Dev mode: report HTML-injection anchors that aren't found ----------
+// Views are extended by string-injecting markup at known anchors. If an anchor changes, the feature
+// silently vanishes. With localStorage.rwDev='1' (or ?dev), a missing anchor logs a visible error.
+(function () {
+  if (!(localStorage.getItem('rwDev') === '1' || /[?&]dev\b/.test(location.search))) return;
+  const R = String.prototype.replace; window.__anchorMiss = [];
+  String.prototype.replace = function (a, b) {
+    if (typeof a === 'string' && a.length > 12 && a[0] === '<' && !this.includes(a)) { const msg = 'Injection anchor not found: ' + a.slice(0, 80); window.__anchorMiss.push(msg); console.error(msg); }
+    return R.call(this, a, b);
+  };
+})();

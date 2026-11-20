@@ -43,3 +43,13 @@ test('render: a focused input keeps focus and caret through a re-render', async 
     const _v=V.settings;V.settings=()=>_v()+'<input id="probe">';render();V.settings=_v;const e=document.activeElement;return [e.id,e.selectionStart]`);
   assert.equal(r[0], 'probe');
 });
+
+test('injection anchors: every string anchor used to extend a view is found', async () => {
+  await p.open({ state: baseState({ food: { [td()]: [['Rice', 205, 4, 45, 0.4, 0.6, { kind: 'custom', items: [{ id: 'rice_white', g: 158 }] }]] }, fast: { on: true, proto: '16:8', start: 12 } }) });
+  await p.eval("localStorage.setItem('rwDev','1')"); await p.reload();
+  const miss = await p.eval(`const v=[()=>{stack=[];go('plan')},()=>{stack=[];go('meals')},()=>{stack=[];trainSub='workouts';go('train')},()=>{trainSub='run';go('train')},()=>{trainSub='challenges';go('train')},()=>{stack=[];go('body')},()=>{stack=[];go('more')},
+    ()=>push('settings'),()=>push('learn'),()=>push('nutrition'),()=>push('supps'),()=>push('sleep'),()=>push('fasting'),()=>push('prog','push'),()=>{S.active=null;startW('push');render()},()=>{stack=[];go('meals');foodSheet();afOpenDish('adobo')},
+    ()=>{closeSheet();startOB();for(let i=0;i<OBSTEPS.length;i++){OB.step=i;render()}OB.active=false;stack=[];go('plan')},()=>{stack=[];push('result')}];
+    for(const f of v)f();localStorage.removeItem('rwDev');return window.__anchorMiss`);
+  assert.deepEqual(miss, []);
+});
