@@ -79,3 +79,14 @@ test('emoji replacer: cost on a 600-row list stays small', async () => {
   const ms = await p.eval(`const html=Array.from({length:600},(_, i)=>'<div class="row">🍽️ Item '+i+' 🔥 '+i+'</div>').join('');const t=performance.now();document.querySelector('#app').innerHTML=html;await new Promise(r=>setTimeout(r,0));return performance.now()-t`);
   assert.ok(ms < 250, `${ms} ms`);
 });
+
+test('storage: 2-year history loads and renders within budget', async () => {
+  await p.open({ state: baseState() });
+  await p.eval(`const D=864e5,now=Date.now(),s=JSON.parse(localStorage.getItem('gq'));s.food={};s.workouts=[];s.weights=[];
+    for(let i=730;i>=0;i--){const d=iso(now-i*D);s.food[d]=Array.from({length:5},(_,k)=>['Adobo '+k,354,22,5,27,0.3,{kind:'dish',dish:'adobo',variant:'chicken',items:[{id:'chicken_thigh_skin',g:130},{id:'oil_veg',g:4.5,oil:true}],mult:1}]);s.weights.push([now-i*D,90-i*0.01]);if(i%2===0)s.workouts.push({ts:now-i*D,prog:'push',sets:Array.from({length:20},()=>({ex:'Bench Press',w:60,r:8,xp:12})),xp:240,prs:0})}
+    localStorage.setItem('gq',JSON.stringify(s));localStorage.removeItem('gq_last')`);
+  await p.reload();
+  const r = await p.eval(`const t=f=>{const a=performance.now();f();return performance.now()-a};const o={kb:localStorage.getItem('gq').length/1024};for(const v of ['plan','meals','train','body'])o[v]=t(()=>{stack=[];go(v)});o.caltrack=t(()=>push('caltrack'));o.save=t(()=>save());o.rows=document.querySelectorAll('#app .list .row').length;return o`);
+  for (const k of ['plan', 'meals', 'train', 'body', 'caltrack', 'save']) assert.ok(r[k] < 400, `${k} ${r[k]} ms`);
+  assert.ok(r.rows <= 93, 'calorie track list is paged'); assert.deepEqual(p.errors, []);
+});

@@ -2,7 +2,7 @@
 // UMD so the migrations can be unit-tested in Node.
 (function (root) {
   'use strict';
-  const KEY = 'gq', LAST = 'gq_last', CURRENT = 2;
+  const KEY = 'gq', LAST = 'gq_last', CURRENT = 2, LAST_MAX = 1.8e6;
   const isObj = v => v && typeof v === 'object' && !Array.isArray(v);
   const num = v => (typeof v === 'number' && isFinite(v) ? v : +v || 0);
 
@@ -49,7 +49,8 @@
     let last = null; try { last = JSON.parse(ls.getItem(LAST) || 'null'); } catch (_) {}
     if (last && last.day === day) return false;
     const json = JSON.stringify(s);
-    try { ls.setItem(LAST, JSON.stringify({ day, ts: Date.now(), data: s })); } catch (_) {}
+    // The last-good copy doubles storage use; past ~1.8M chars (≈ several years of logs) rely on file backups.
+    try { if (json.length < LAST_MAX) ls.setItem(LAST, JSON.stringify({ day, ts: Date.now(), data: s })); else ls.removeItem && ls.removeItem(LAST); } catch (_) { try { ls.removeItem && ls.removeItem(LAST); } catch (e) {} }
     s.lastBackup = Date.now();
     const FS = P?.Filesystem; if (!FS) return true;
     try {

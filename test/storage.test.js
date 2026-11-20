@@ -30,3 +30,7 @@ test('snapshot prunes native backups to the newest 7', async () => {
   const FS = { writeFile: async ({ path }) => files.set(path.split('/')[1], 'x'), readdir: async () => ({ files: [...files.keys()].map(name => ({ name })) }), deleteFile: async ({ path }) => files.delete(path.split('/')[1]) };
   await R.snapshot({}, mem(), { Filesystem: FS }); assert.equal(files.size, 7); assert.ok(!files.has('repwise-2026-01-01.json'));
 });
+test('snapshot skips the in-localStorage copy for very large histories (relies on file backups)', async () => {
+  const big = { blob: 'x'.repeat(2e6) }, ls = mem({ gq_last: '{"day":"old","data":{}}' }); ls.removeItem = k => ls.setItem(k, '');
+  await R.snapshot(big, ls, {}); assert.equal(ls.getItem('gq_last'), '');
+});

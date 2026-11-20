@@ -3,6 +3,9 @@
 (function () {
   // ---------- 1. Recovery notice after a damaged save ----------
   const st = window.__loadStatus || 'ok';
+  // Native: no last-good copy available → try the newest dated file backup.
+  if (st === 'corrupt' && window.Capacitor?.Plugins?.Filesystem) RWStore.listBackups().then(async l => { if (!l.length) return; try { const d = RWStore.migrate(await RWStore.readBackup(l[0])); localStorage.setItem('gq', JSON.stringify(d)); sessionStorage.rwRecovered = l[0]; location.reload(); } catch (e) {} });
+  if (sessionStorage.rwRecovered) { const f = sessionStorage.rwRecovered; delete sessionStorage.rwRecovered; setTimeout(() => toast(`Your saved data was damaged — restored from backup ${f.replace('repwise-', '').replace('.json', '')}`), 600); }
   if (st !== 'ok') setTimeout(() => toast(st.startsWith('recovered') ? `Your saved data was damaged — restored from ${st.split(':')[1]} backup` : 'Your saved data couldn’t be read. A copy was kept; you can restore a backup in Settings.'), 600);
 
   // ---------- 2. Keep focus, caret and scroll across re-renders ----------
