@@ -170,6 +170,7 @@ function setXP(set){const vol=set.w>0?set.w*set.r:set.r*5;let xp=Math.round(10+v
  else if(!prev){xp+=10}
  return{xp,pr}}
 
+const V={};
 // ---------- Quests ----------
 function questList(){const q=[];for(const id in S.quests){const t=TREES[id],i=S.quests[id];q.push({id,name:t.name,icon:t.icon,steps:t.steps,i})}
  S.custom.forEach((c,k)=>{const steps=[.25,.5,.75,1].map(f=>[c.ex,Math.max(1,Math.round(c.start+(c.target-c.start)*f)),`Train ${c.ex} 2–3×/week. Beat your last set by +1 rep each session.`]);q.push({id:'c'+k,name:`${c.target}× ${c.ex}`,icon:'🎯',steps,i:c.i})});return q}
@@ -206,7 +207,6 @@ let chartEx=null;
 
 // ---------- Views ----------
 let tab='home';
-const V={};
 V.home=()=>{const t=targets(),f=dayFood(today()),k=sum(f,1),pr=sum(f,2);
  if(!t)return`<div class="card"><h3>Welcome to GymQuest ⚔️</h3><p class="muted">Set up your profile first so I can calculate your calories, deficit and plan.</p><button onclick="go('me')">Set up profile</button></div>`;
  const total=MUSCLES.reduce((s,m)=>s+S.xp[m],0),lvl=Math.floor(Math.sqrt(total/100))+1;
