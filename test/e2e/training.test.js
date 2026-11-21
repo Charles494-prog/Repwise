@@ -55,10 +55,17 @@ test('plate: "3 eggs" shows as 3 eggs on the plate and logs one 150 g portion, n
   assert.deepEqual(p.errors, []);
 });
 
-test('ranks: Iron is quick, each tier costs more, Arnold is the final rank', async () => {
+test('ranks: Iron to Bronze is quick, every division costs more than the last, Arnold takes years', async () => {
   await p.open({ state: baseState() });
-  const r = await p.eval(`return {first:tierXP(0),grow:[tierXP(3)/tierXP(2),tierXP(27)/tierXP(26)],last:RANKS.at(-1)[0],top:rankOf(1e9).name}`);
-  assert.ok(r.first <= 150); assert.ok(r.grow[1] > r.grow[0]); assert.equal(r.last, 'Arnold'); assert.equal(r.top, 'Arnold I');
+  const r = await p.eval(`const at=i=>{let s=0;for(let k=0;k<i;k++)s+=tierXP(k);return s};
+    return {first:tierXP(0),bronze:at(3),arnold:at(27),arnoldI:at(29),up:[...Array(29)].every((_,i)=>tierXP(i+1)>tierXP(i)),
+      overall:[orank(at(27)*10).name,orank(at(27)*10-1).name],last:RANKS.at(-1)[0],top:rankOf(1e9).name}`);
+  assert.ok(r.first <= 150); assert.ok(r.bronze <= 600, 'Bronze in about a week');
+  assert.ok(r.up, 'every division costs more XP than the one before');
+  // a dedicated lifter earns ~40k XP per muscle in year 1 and ~60k a year later on: Arnold III ≈ 6–7 years, Arnold I ≈ 8–10
+  assert.ok(r.arnold >= 300000 && r.arnold <= 420000, String(r.arnold)); assert.ok(r.arnoldI >= 400000, String(r.arnoldI));
+  assert.deepEqual(r.overall, ['Arnold III', 'Legend I'], 'overall rank is the same curve ×10 (it adds up 10 muscles)');
+  assert.equal(r.last, 'Arnold'); assert.equal(r.top, 'Arnold I');
   assert.deepEqual(p.errors, []);
 });
 
@@ -94,10 +101,10 @@ test('bodyweight exercises: no "pick a weight", about 10 reps first time, then b
 
 test('rank-ups: queued during a workout, shown together after it with the new badges; can be turned off in Settings', async () => {
   await p.open({ state: baseState() });
-  const r = await p.eval(`S.active=null;startW('push');S.xp.Chest=95;$('#pw').value=20;$('#pr').value=10;addSet();await new Promise(r=>setTimeout(r,900));
+  const r = await p.eval(`S.active=null;startW('push');S.xp.Chest=tierXP(0)-5;$('#pw').value=20;$('#pr').value=10;addSet();await new Promise(r=>setTimeout(r,900));
     const during=!!document.querySelector('.rq'),queued=S.rankQ.map(x=>x.k);restEnd=0;finishW();await new Promise(r=>setTimeout(r,1500));const pop=document.querySelector('.rq');
     const txt=pop&&pop.innerText,img=pop&&pop.querySelector('.rq-badge img').getAttribute('src');pop&&pop.querySelector('.btn').click();
-    stack=[];push('settings');const row=/Rank-up pop-ups/.test(document.body.innerText);S.rankPop=false;S.xp.Back=95;S.rankQueueDummy=1;save();await new Promise(r=>setTimeout(r,900));
+    stack=[];push('settings');const row=/Rank-up pop-ups/.test(document.body.innerText);S.rankPop=false;S.xp.Back=tierXP(0)-5;S.rankQueueDummy=1;save();await new Promise(r=>setTimeout(r,900));
     return {during,queued,txt,img,row,afterOff:!!document.querySelector('.rq'),q:S.rankQ.length}`);
   assert.equal(r.during, false); assert.ok(r.queued.includes('Chest')); assert.match(r.txt, /Congratulations/i); assert.match(r.txt, /You reached/); assert.match(r.img, /img\/ranks\/\w+\.png/);
   assert.ok(r.row); assert.equal(r.afterOff, false); assert.equal(r.q, 0);
@@ -130,10 +137,10 @@ test('missed workouts in a row cost more each time (1×, 1.5×, 2× … linear),
     await new Promise(r=>setTimeout(r,1200));const sheet=document.querySelector('.lq')?.innerText||'';document.querySelector('.lq .lq-later')?.click();
     S.workouts.push({prog:'legs',ts:Date.now()-7*864e5,sets:[]});S.missed[ago(5)]={prog:'push',due:ago(3),st:'open'};missedScan();
     return {a,reset:S.missed[ago(5)].n,mult:[1,2,3,4,9,20].map(missMult),sheet}`);
-  assert.deepEqual(r.a, [[1, 60], [2, 90], [3, 120]]);
+  assert.deepEqual(r.a, [[1, 10], [2, 15], [3, 20]]);
   assert.deepEqual(r.mult, [1, 1.5, 2, 2.5, 5, 5]);
   assert.equal(r.reset, 1, 'a workout in between resets the streak');
-  assert.match(r.sheet, /lost some progress/); assert.match(r.sheet, /Chest[\s\S]*−270 XP/); assert.match(r.sheet, /next one costs 2\.5×/); assert.doesNotMatch(r.sheet, /DEMOTED/);
+  assert.match(r.sheet, /lost some progress/); assert.match(r.sheet, /Chest[\s\S]*−45 XP/); assert.match(r.sheet, /next one costs 2\.5×/); assert.doesNotMatch(r.sheet, /DEMOTED/);
   assert.deepEqual(p.errors, []);
 });
 
@@ -156,14 +163,14 @@ test('missed workouts: the Today card shows the cost; phone reminders the evenin
 
 test('missed workouts: a loss only empties the rank to 0 XP (with a warning); missing again at 0 demotes; Leg Day only hits legs', async () => {
   await p.open({ state: baseState({ startDate: '2020-01-01' }) });
-  const r = await p.eval(`let x=4000;while(rankOf(x).cur!==0)x++;for(const m of MUSCLES)S.xp[m]=x+30;S.rankSeenM=rankSnap();S.rankSeen=orank().i;S.rankQ=[];S.workouts=[];S.missed={};
+  const r = await p.eval(`let x=4000;while(rankOf(x).cur!==0)x++;for(const m of MUSCLES)S.xp[m]=x+5;S.rankSeenM=rankSnap();S.rankSeen=orank().i;S.rankQ=[];S.workouts=[];S.missed={};
     const ago=k=>iso(Date.now()-k*864e5),wait=()=>new Promise(r=>setTimeout(r,1300)),before=rankOf(S.xp.Quads).idx,chest=S.xp.Chest;
     S.missed[ago(9)]={prog:'legs',due:ago(7),st:'open'};missedScan();await wait();
     const pop1=document.querySelector('.lq')?.innerText||'',r1=rankOf(S.xp.Quads),q1=!!S.lossQ;document.querySelector('.lq .lq-later').click();
     S.missed[ago(5)]={prog:'legs',due:ago(3),st:'open'};missedScan();await wait();
     const pop2=document.querySelector('.lq')?.innerText||'',after=rankOf(S.xp.Quads).idx,seen=S.rankSeenM.Quads;document.querySelector('.lq .btn').click();
     return {pop1,cur1:r1.cur,idx1:r1.idx,q1,pop2,before,after,seen,cleared:S.lossQ===null,chest:S.xp.Chest===chest,tab:typeof tab!=='undefined'?tab:null}`);
-  // first miss: 30 XP into the rank → down to 0, same rank, warned
+  // first miss: 5 XP into the rank → down to 0, same rank, warned
   assert.equal(r.idx1, r.before); assert.equal(r.cur1, 0);
   assert.match(r.pop1, /lost some progress/); assert.doesNotMatch(r.pop1, /DEMOTED/); assert.match(r.pop1, /Quads[\s\S]*at 0 XP[\s\S]*demoted/);
   assert.match(r.pop1, /Leg Day/); assert.match(r.pop1, /Hamstrings/); assert.doesNotMatch(r.pop1, /Chest/);
@@ -174,5 +181,21 @@ test('missed workouts: a loss only empties the rank to 0 XP (with a warning); mi
   assert.ok(r.chest, 'Chest untouched by a missed Leg Day');
   assert.ok(r.q1 && r.cleared, 'loss waits until seen, then clears');
   assert.equal(r.tab, 'train', '"Get back on track" opens the Train tab');
+  assert.deepEqual(p.errors, []);
+});
+
+test('missed workouts: losing is much slower than gaining — a month off costs about one session, and one session wins it back', async () => {
+  await p.open({ state: baseState({ startDate: '2020-01-01' }) });
+  const r = await p.eval(`let x=200000;for(const m of MUSCLES)S.xp[m]=x;S.rankSeenM=rankSnap();S.rankSeen=orank().i;S.rankQ=[];S.missed={};
+    // history: 6 Push Days of 4 sets × 60 kg × 8 on Bench (~58 XP a set)
+    S.workouts=[...Array(6)].map((_,i)=>({prog:'push',ts:Date.now()-(60-i*3)*864e5,sets:[...Array(4)].map(()=>({ex:'Bench Press',w:60,r:8,xp:58}))}));
+    const gain=sessGain('Chest'),start=S.xp.Chest,ago=k=>iso(Date.now()-k*864e5);
+    for(let k=0;k<8;k++)S.missed[ago(30-k*3)]={prog:'push',due:ago(29-k*3),st:'open'};missedScan();
+    document.querySelector('.lq .lq-later')?.click();
+    return {gain,lost:start-S.xp.Chest,first:S.missed[ago(30)].xp.Chest,last:S.missed[ago(9)].xp.Chest}`);
+  assert.equal(r.gain, 232, 'average Chest XP per session from history');
+  assert.equal(r.first, Math.round(232 * 0.05), 'one miss costs 5% of a session');
+  assert.ok(r.last > r.first, 'later misses in a row cost more');
+  assert.ok(r.lost < r.gain * 1.25, `a month of misses (${r.lost} XP) costs about one session (${r.gain} XP)`);
   assert.deepEqual(p.errors, []);
 });

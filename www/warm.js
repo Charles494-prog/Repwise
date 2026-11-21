@@ -70,7 +70,7 @@
   // ================= OVERALL RANK =================
   S.xpB ??= 0; S.xpLog ??= []; S.xpMeal ??= {}; S.firsts ??= {};
   const xpTotal = window.xpTotal = () => MUSCLES.reduce((s, m) => s + (+S.xp[m] || 0), 0) + (+S.xpB || 0);
-  const otier = i => rankStep(400, i);
+  const otier = i => rankStep(1000, i); // overall adds up 10 muscles, so ×10 keeps it in step with the average muscle rank
   const rname = i => RANKS[Math.floor(i / 3)][0] + ' ' + DIVS[i % 3];
   const MAXI = RANKS.length * 3 - 1;
   const orank = window.orank = (x = xpTotal()) => { let i = 0; while (x >= otier(i) && i < MAXI) { x -= otier(i); i++; }

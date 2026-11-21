@@ -59,7 +59,7 @@ body.full nav{display:none}
 body.full .sticky{bottom:16px}
 input,select{width:100%;padding:14px;border-radius:14px;border:1.5px solid var(--line);background:#fff;font-size:16px;margin:5px 0;color:var(--txt);outline:none}
 input:focus,select:focus{border-color:var(--acc)}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
 .flex{display:flex;gap:10px;align-items:center}.flex>*{flex:1}
 nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:#fff;border-top:1px solid var(--line);padding:6px 0 calc(6px + env(safe-area-inset-bottom));z-index:5}
 nav button{flex:1;background:none;border:none;color:#9b9bab;font-size:11px;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
@@ -150,9 +150,13 @@ const PROGS={
 };
 const RANKS=[['Iron','#9ca3af'],['Bronze','#cd7f32'],['Silver','#a8b0bd'],['Gold','#eab308'],['Platinum','#14b8a6'],['Diamond','#3b82f6'],['Master','#a855f7'],['Grandmaster','#ef4444'],['Legend','#f97316'],['Arnold','#b8860b']];
 const DIVS=['III','II','I'];
-// Each tier's growth rate rises (×1.12 per division in Iron … ×1.44 in Arnold): Iron is quick to leave, the top is a long climb.
-const rankStep=(base,i)=>{let v=base;for(let k=0;k<i;k++)v*=1.12+.035*Math.floor(k/3);return Math.round(v)}
+// XP each rank takes (split 30/33/37% over its 3 divisions, so every division costs more than the last).
+// Sized on a simulated lifter (PPL, ~85% attendance, real set XP): Bronze in ~1 week, Gold ~3 months, Diamond ~1.4 years,
+// Legend ~5 years, Arnold III ~6.6 years, Arnold I ~9 years — slower for anyone training less.
+const RANK_XP=[500,1500,5000,14000,34000,50000,63000,80000,105000,131000];
+const rankStep=(base,i)=>Math.round(RANK_XP[Math.min(9,Math.floor(i/3))]*[.3,.33,.37][i%3]*base/100);
 const tierXP=i=>rankStep(100,i);
+const kXP=n=>n<10000?Math.round(n).toLocaleString():(Math.round(n/100)/10)+'k'; // 16,090 → 16.1k so rank cards fit on a phone
 const FOODS={'Rice (1 cup cooked)':[205,4],'Chicken breast (100g)':[165,31],'Egg (1 large)':[72,6],'Banana':[105,1],'Oats (1/2 cup dry)':[150,5],'Whey scoop':[120,24],'Bread slice':[80,3],'Peanut butter (1 tbsp)':[95,4],'Tuna can':[120,26],'Milk (1 cup)':[150,8],'Apple':[95,0],'Pork adobo (1 cup)':[450,30],'Beef (100g)':[250,26],'Greek yogurt (170g)':[100,17],'Sweet potato (medium)':[110,2]};
 const TREES={
  pushup:{name:'20 Push-ups',icon:'💥',steps:[
@@ -525,7 +529,7 @@ V.challenges=()=>{const qs=questList();
  return`<div class="top"><h1>Challenges</h1></div>
  <div class="list stagger">${qs.map(q=>{const done=q.i>=q.steps.length;return`<div class="row" onclick="push('quest','${q.id}')"><div class="tile" style="background:#fef3c7">${q.icon}</div><div class="rbody"><b>${escT(q.name)} ${done?'🏆':''}</b><small>${done?'Completed!':`Next: ${stepLbl(q.steps[q.i])}`}</small><div class="prog"><i style="width:${q.i/q.steps.length*100}%"></i></div></div><span class="chev">›</span></div>`}).join('')}
  <div class="row" onclick="newQuest()"><div class="tile" style="background:#fce7f3">➕</div><div class="rbody"><b>New challenge</b><small>Skill paths & custom goals</small></div><span class="chev">›</span></div></div>
- <div class="sec">🏆 Muscle Ranks</div><div class="grid2 stagger">${MUSCLES.map(m=>{const r=rankOf(S.xp[m]),d=daysSince(m);return`<div class="stat"><small>${m}</small><b style="font-size:16px;color:${r.color}">${r.name}</b><div class="prog"><i style="width:${r.cur/r.need*100}%;background:${r.color}"></i></div><small style="text-transform:none;font-weight:600">${r.cur}/${r.need} XP${d!=null?` · ${d}d ago`:''}</small></div>`}).join('')}</div>
+ <div class="sec">🏆 Muscle Ranks</div><div class="grid2 stagger">${MUSCLES.map(m=>{const r=rankOf(S.xp[m]),d=daysSince(m);return`<div class="stat"><small>${m}</small><b style="font-size:16px;color:${r.color}">${r.name}</b><div class="prog"><i style="width:${r.cur/r.need*100}%;background:${r.color}"></i></div><small style="text-transform:none;font-weight:600">${kXP(r.cur)}/${kXP(r.need)} XP${d!=null?` · ${d}d ago`:''}</small></div>`}).join('')}</div>
  <p class="muted" style="margin-top:10px;text-align:center">Iron → Bronze → Silver → Gold → Platinum → Diamond → Master → Grandmaster → Legend → Arnold</p>
  <div class="sec">🏅 Personal Records</div><div class="list">${Object.keys(EX).map(e=>[e,bestSet(e)]).filter(x=>x[1]).map(([e,b])=>`<div class="row" style="cursor:default"><span style="font-size:22px">${EX[e][2]}</span><div class="rbody"><b>${e}</b><small>e1RM ${Math.round(e1rm(b.w,b.r))} kg</small></div><b>${b.w}kg × ${b.r}</b></div>`).join('')||'<div class="row muted" style="cursor:default">Log sets to set PRs.</div>'}</div>`};
 function newQuest(){const avail=Object.keys(TREES).filter(id=>!(id in S.quests));openSheet(`<h3 style="font-size:20px">Pick challenges</h3><p class="muted">Run as many as you want at once.</p>${['Bodyweight','Strength','Endurance'].map(c=>{const ids=avail.filter(id=>TREES[id].cat===c);return ids.length?`<div class="sec" style="margin-top:14px">${({Bodyweight:'🤸',Strength:'🏋️',Endurance:'🏃'})[c]} ${c}</div>`+ids.map(id=>`<div class="opt" onclick="S.quests['${id}']=0;save();this.remove();render();toast('${TREES[id].icon} ${TREES[id].name} started!')"><span class="e">${TREES[id].icon}</span><div><b>${TREES[id].name}</b><small>${TREES[id].steps.length} checkpoints · from ${esc(stepLbl(TREES[id].steps[0]))}</small></div></div>`).join(''):''}).join('')}

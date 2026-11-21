@@ -141,9 +141,11 @@ window.showRankQueue=showRankQueue;
 const _setRQ=V.settings;V.settings=()=>_setRQ().replace(/(<div class="row" onclick="push\('transfer'\)">)/,`<div class="row" style="cursor:default"><div class="rbody"><b>Rank-up pop-ups</b><small>Celebrate new ranks after a workout or activity</small></div><button class="sw ${S.rankPop?'on':''}" role="switch" aria-checked="${S.rankPop}" aria-label="Rank-up pop-ups" onclick="S.rankPop=!S.rankPop;save();render()"><i></i></button></div>$1`);
 
 // ================= MISSED WORKOUTS: make it up within 2 days, or lose a little XP =================
-// Muscle size and strength hold up well for 2–3 weeks without training (Bosquet et al., 2013; McMaster et al., 2013),
-// so one missed session costs only a little XP of the muscles that day trains: 1.5%, at most 60 XP each.
+// Muscle size and strength hold up well for 2–3 weeks without training and come back fast after a break
+// (Bosquet et al., 2013; McMaster et al., 2013; Psilander et al., 2019), so losing is much slower than gaining:
+// one missed session costs the muscles that day trains 5% of what they earn in an average session.
 // Misses in a row cost more each time — 1×, 1.5×, 2×, 2.5× … up to 5× (linear, not exponential); any workout resets it.
+// A whole month off costs about one session's worth, so a single workout wins it back.
 // Losing enough XP can demote a rank; the next time the app opens, a pop-up shows what was lost.
 S.missed??={};S.missedFrom??=today(); // only sessions planned after this update count — no retroactive penalties
 const missMult=n=>Math.min(5,1+.5*(n-1));
@@ -151,7 +153,10 @@ const missMult=n=>Math.min(5,1+.5*(n-1));
 function missN(d){const lastW=S.workouts.reduce((a,w)=>{const x=iso(w.ts);return x<d&&x>a?x:a},'');
  return 1+Object.entries(S.missed).filter(([k,e])=>k<d&&k>lastW&&(e.st==='lost'||e.st==='open')).length}
 // Like ranked games: a loss only empties the current rank down to 0 XP; a muscle already at 0 in its rank gets demoted.
-function missCost(prog,n){const o={},f=missMult(n);for(const m of (PROGS[prog]?.m||[])){const xp=S.xp[m]||0,r=rankOf(xp),c=Math.min(Math.round(60*f),Math.round(xp*.015*f),xp),x=r.cur>0?Math.min(c,r.cur):r.idx>0?c:0;if(x>0)o[m]=x}return o}
+// XP a muscle earns in an average session, from its last 6 sessions (primary sets count fully, secondary half — like grantXP)
+function sessGain(m){const g=w=>(w.sets||[]).reduce((t,s)=>{const e=EX[s.ex];return t+(!e?0:e[0].includes(m)?s.xp||0:e[1].includes(m)?(s.xp||0)/2:0)},0);
+ const v=S.workouts.map(g).filter(x=>x>0).slice(-6);return v.length?v.reduce((a,b)=>a+b,0)/v.length:200}
+function missCost(prog,n){const o={},f=missMult(n);for(const m of (PROGS[prog]?.m||[])){const xp=S.xp[m]||0,r=rankOf(xp),c=Math.min(Math.max(1,Math.round(sessGain(m)*.05*f)),xp),x=r.cur>0?Math.min(c,r.cur):r.idx>0?c:0;if(x>0)o[m]=x}return o}
 const missTxt=xp=>Object.entries(xp).map(([m,x])=>`${m} −${x}`).join(', ');
 const missDemotes=xp=>Object.entries(xp).filter(([m,x])=>rankOf((S.xp[m]||0)-x).idx<rankOf(S.xp[m]||0).idx).map(([m])=>m);
 function missedScan(){if(!S.profile||!S.week)return;const W=ensureWeek(),ti=DOW(Date.now()),td=today(),ov=xpTotal(),was={...S.xp};let lost=[];
@@ -274,7 +279,7 @@ const _fwT=finishW;finishW=function(){const a=S.active;_fwT();const w=S.workouts
 // Wire rows on the Train screens (built by older layers) to the new pages.
 function secList(txt){const h=[...document.querySelectorAll('#app .sec,#app .hdr')].find(s=>s.textContent.includes(txt));return h?.nextElementSibling}
 function wireRanks(){document.querySelectorAll('#app .stat').forEach(st=>{const m=st.querySelector('small')?.textContent?.trim();if(!MUSCLES.includes(m)||st.querySelector('.mr-ic'))return;
- st.classList.add('mr-card');st.insertAdjacentHTML('afterbegin',`<img class="mr-ic" src="${MUS_IMG(m)}" alt=""><span class="mr-b">${rankBadge(rankOf(S.xp[m]||0).idx,34)}</span>`)})}
+ st.classList.add('mr-card');st.insertAdjacentHTML('afterbegin',`<img class="mr-ic" src="${MUS_IMG(m)}" alt=""><span class="mr-b">${rankBadge(rankOf(S.xp[m]||0).idx,28)}</span>`)})}
 function wireTrain(){wireRanks();if(S.rankQ?.length&&!S.active&&!(typeof RUN!=='undefined'&&RUN))setTimeout(showRankQueue,700);
  const pr=secList('Personal Records');pr?.querySelectorAll('.row').forEach(r=>{const n=r.querySelector('.rbody b')?.textContent;if(!n||!EX[n])return;r.style.cursor='pointer';r.onclick=()=>push('exhist',n);
   const b=bestSet(n),v=r.querySelector(':scope>b');if(b&&v)v.textContent=setTxt(n,b);if(isTimed(n)){const sm=r.querySelector('.rbody small');if(sm)sm.textContent='Longest hold '+fmtSec(Math.max(...exSessions(n).flatMap(x=>x.ss).map(s=>s.r)))}});
@@ -301,7 +306,7 @@ document.head.insertAdjacentHTML('beforeend',`<style>
 .rq-k{margin-top:var(--s2);text-transform:uppercase;letter-spacing:.1em;font-weight:800;color:var(--accent)}.rq-t{font-size:30px;margin-top:6px}
 .rq-list{width:100%;margin-top:var(--s2);display:grid;gap:6px}.rq-row{display:flex;align-items:center;gap:10px;background:var(--fill);border-radius:12px;padding:6px 10px;text-align:left}.rq-row b{flex:1}.rq-row span{color:var(--ink-2);font-size:14px}
 @keyframes rqIn{from{transform:scale(.3) rotate(-12deg);opacity:0}to{transform:none;opacity:1}}
-.mr-card{position:relative;padding-left:62px!important;padding-right:44px!important;min-height:76px}.mr-ic{position:absolute;left:8px;top:50%;transform:translateY(-50%);width:48px;height:48px;object-fit:contain}.mr-b{position:absolute;right:8px;top:8px}
+.mr-card{position:relative;padding-left:62px!important;padding-right:12px!important;min-height:76px}.mr-ic{position:absolute;left:8px;top:50%;transform:translateY(-50%);width:48px;height:48px;object-fit:contain}.mr-b{position:absolute;right:6px;top:6px}
 .mw-card{display:flex;align-items:center;gap:12px;background:#fff7ed;border-radius:14px;padding:12px 14px;margin-top:var(--s2)}.mw-card>div{flex:1}.mw-card b{display:block}.mw-card small{color:#9a3412;font-size:13px}.mw-card .mw-warn{display:inline;color:#dc2626}
 .lq{justify-content:flex-start;overflow-y:auto;padding-top:max(var(--s3),env(safe-area-inset-top));padding-bottom:max(var(--s3),env(safe-area-inset-bottom))}.lq>:first-child{margin-top:auto}.lq>:last-child{margin-bottom:auto}
 .lq .rq-k{color:#dc2626}.lq-badge img{width:112px;height:112px;animation:lqDrop .8s ease both}.lq .rq-t{font-size:26px}
