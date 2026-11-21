@@ -101,7 +101,7 @@
     }
     runN = S.runs.length; S.xpLast = tot;
     if (!S.firsts.meal && Object.values(S.food).some(x => x.length)) { S.firsts.meal = 1; setTimeout(() => toast(T('First meal logged. That’s how it starts.', 'Unang meal, naka-log na. Ganyan nagsisimula.')), 700); }
-    if (orank().i > (S.rankSeen ?? 0) && !S.active && !rankTimer) rankTimer = setTimeout(showRankUp, 450);
+    if (window.rankQueueUpdate) window.rankQueueUpdate(); else if (orank().i > (S.rankSeen ?? 0) && !S.active && !rankTimer) rankTimer = setTimeout(showRankUp, 450);
   }
   const _cg = checkGoals; checkGoals = function () { try { _cg(); } catch (e) {} try { tick(); } catch (e) { console.error(e); } };
 

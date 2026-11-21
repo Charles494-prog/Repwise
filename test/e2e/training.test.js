@@ -91,3 +91,32 @@ test('bodyweight exercises: no "pick a weight", about 10 reps first time, then b
   assert.match(r.next.text, /Last time 12 reps\. Beat it: <b>13 reps<\/b>/); assert.equal(r.next.w, 0); assert.ok(r.label);
   assert.deepEqual(p.errors, []);
 });
+
+test('rank-ups: queued during a workout, shown together after it with the new badges; can be turned off in Settings', async () => {
+  await p.open({ state: baseState() });
+  const r = await p.eval(`S.active=null;startW('push');S.xp.Chest=95;$('#pw').value=20;$('#pr').value=10;addSet();await new Promise(r=>setTimeout(r,900));
+    const during=!!document.querySelector('.rq'),queued=S.rankQ.map(x=>x.k);restEnd=0;finishW();await new Promise(r=>setTimeout(r,1500));const pop=document.querySelector('.rq');
+    const txt=pop&&pop.innerText,img=pop&&pop.querySelector('.rq-badge img').getAttribute('src');pop&&pop.querySelector('.btn').click();
+    stack=[];push('settings');const row=/Rank-up pop-ups/.test(document.body.innerText);S.rankPop=false;S.xp.Back=95;S.rankQueueDummy=1;save();await new Promise(r=>setTimeout(r,900));
+    return {during,queued,txt,img,row,afterOff:!!document.querySelector('.rq'),q:S.rankQ.length}`);
+  assert.equal(r.during, false); assert.ok(r.queued.includes('Chest')); assert.match(r.txt, /Congratulations/i); assert.match(r.txt, /You reached/); assert.match(r.img, /img\/ranks\/\w+\.png/);
+  assert.ok(r.row); assert.equal(r.afterOff, false); assert.equal(r.q, 0);
+  assert.deepEqual(p.errors, []);
+});
+
+test('quests: later checkpoints pay much more, finishing a quest adds a big bonus', async () => {
+  await p.open({ state: baseState() });
+  const r = await p.eval(`const q=questList()[0];if(!q)return null;const before=S.xpB||0,c0=checkQuests(q.steps[0][0],999,999);return {first:c0[0],bonus:(S.xpB||0)-before}`);
+  if (r) { assert.match(r.first, /\+150 XP/); }
+  assert.deepEqual(p.errors, []);
+});
+
+test('missed workouts: 2 days to make it up; otherwise only that day\'s muscles lose a little XP and never a rank', async () => {
+  const now = new Date(), mon = new Date(now); mon.setHours(12, 0, 0, 0); mon.setDate(mon.getDate() - ((mon.getDay() + 6) % 7));
+  await p.open({ state: baseState({ startDate: '2020-01-01', xp: { Chest: 5000, Back: 5000, Shoulders: 5000, Biceps: 5000, Triceps: 5000, Quads: 5000, Hamstrings: 5000, Glutes: 5000, Calves: 5000, Core: 5000 } }) });
+  const r = await p.eval(`const fresh=Object.keys(S.missed).length;const d=iso(Date.now()-6*864e5);S.missed[d]={prog:'push',due:iso(Date.now()-4*864e5),st:'open'};const r0=rankOf(S.xp.Chest).idx;missedScan();const e=S.missed[d];
+    S.missed['2099-01-01']={prog:'pull',due:'2099-01-03',st:'open'};stack=[];go('plan');const card=/Missed Pull Day/.test(document.body.innerText)&&/Do it now/.test(document.body.innerText);
+    const all=Object.values(S.missed).reduce((t,x)=>t+((x.xp||{}).Chest||0),0);return {fresh,st:e.st,lost:e.xp,chest:S.xp.Chest,all,rankKept:rankOf(S.xp.Chest).idx===r0,card}`);
+  assert.equal(r.fresh, 0); assert.equal(r.st, 'lost'); assert.ok(r.lost.Chest > 0 && r.lost.Chest <= 60); assert.equal(r.chest, 5000 - r.all); assert.ok(r.rankKept); assert.ok(r.card);
+  assert.deepEqual(p.errors, []);
+});

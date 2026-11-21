@@ -277,8 +277,8 @@ function grantXP(ex,xp){const [pri,sec]=EX[ex],ups=[];[...pri,...sec].forEach(m=
 function questList(){const q=[];for(const id in S.quests){const t=TREES[id];if(!t)continue;const ext=S.ext[id]||[];q.push({id,name:ext.length?`${t.name} → ${stepLbl(ext.at(-1))}`:t.name,icon:t.icon,steps:t.steps.concat(ext),i:S.quests[id]})}
  S.custom.forEach((c,k)=>q.push({id:'c'+k,name:`${c.target}× ${c.ex}`,icon:'🎯',i:c.i,steps:[.25,.5,.75,1].map(f=>[c.ex,Math.max(1,Math.round(c.start+(c.target-c.start)*f)),`Train ${c.ex} 2–3×/week. Beat your last set by +1 rep each session.`]).concat(S.ext['c'+k]||[])}));return q}
 function checkQuests(ex,reps,w=0){const msgs=[];for(const q of questList()){if(q.i>=q.steps.length)continue;const [e,n,,bw]=q.steps[q.i];
- if(e===ex&&reps>=n&&(!bw||w>=bwKg(bw)-0.01)){const reward=100+q.i*50;grantXP(e,reward);if(q.id[0]==='c')S.custom[+q.id.slice(1)].i++;else S.quests[q.id]++;
-  msgs.push(q.i+1>=q.steps.length?`🏆 QUEST COMPLETE: ${q.name}! +${reward} XP`:`✅ Checkpoint ${q.i+1}/${q.steps.length} cleared! +${reward} XP`)}}
+ if(e===ex&&reps>=n&&(!bw||w>=bwKg(bw)-0.01)){const reward=Math.round(150*Math.pow(1.45,q.i)),done=q.i+1>=q.steps.length;grantXP(e,reward);if(done){S.xpB=(S.xpB||0)+1500+q.steps.length*250}if(q.id[0]==='c')S.custom[+q.id.slice(1)].i++;else S.quests[q.id]++;
+  msgs.push(q.i+1>=q.steps.length?`🏆 QUEST COMPLETE: ${q.name}! +${reward} XP + ${1500+q.steps.length*250} bonus XP`:`✅ Checkpoint ${q.i+1}/${q.steps.length} cleared! +${reward} XP`)}}
  if(msgs.length)setTimeout(()=>confetti(),300);return msgs}
 
 // ================= NAV / ROUTER =================
@@ -436,7 +436,7 @@ function addSet(){const a=S.active,ex=a.list[a.idx],w=+$('#pw').value||0,r=parse
  const {xp,pr,ov}=setXP({ex,w,r},a.sets);a.sets.push({ex,w,r,xp,pr,ov});a.xp+=xp;if(pr)a.prs++;
  const ups=grantXP(ex,xp);a.ups.push(...ups);const qm=checkQuests(ex,r,w);a.qs.push(...qm);save();render();
  xpFly(`+${xp} XP`);if(pr){setTimeout(()=>toast(`🏅 NEW PR! ${w}kg × ${r} — 2× XP!`),200);confetti(30)}else if(ov)setTimeout(()=>toast(`📈 Overload! Beat last session — bonus XP. Beat your all-time best for 2×!`),200)
- if(ups.length)setTimeout(()=>{toast('⬆️ RANK UP! '+ups.join(', '));confetti()},900);if(qm.length)setTimeout(()=>toast(qm.join('<br>')),1600)}
+ if(qm.length)setTimeout(()=>toast(qm.join('<br>')),1600)}
 function finishW(){const a=S.active;if(!a.sets.length){if(confirm('No sets logged. Exit workout?')){S.active=null;save();go('workouts')}return}
  S.workouts.push({ts:a.ts,prog:a.prog,sets:a.sets,xp:a.xp,prs:a.prs});S.active=null;save();stack=[['summary',[a]]];render('up');confetti(80)}
 V.summary=a=>{const mins=Math.max(1,Math.round((Date.now()-a.ts)/6e4));return`<div style="text-align:center;padding-top:40px"><div style="font-size:90px;animation:bounce .6s">🏆</div><h1>Workout complete!</h1><p class="muted">${CHEERS[Math.floor(Math.random()*CHEERS.length)]}</p></div>

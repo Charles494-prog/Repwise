@@ -111,6 +111,49 @@ const _sgT=sugg;sugg=function(ex){const s=_sgT(ex);if(!S.active?.deload||!s.w)re
 // Next session's targets come from the last normal session, not the deload.
 const _lsT=lastSets;lastSets=function(ex){for(let i=S.workouts.length-1;i>=0;i--){if(S.workouts[i].deload)continue;const ss=S.workouts[i].sets.filter(s=>s.ex===ex);if(ss.length)return ss}return _lsT(ex)};
 
+// ================= RANK BADGES (Neon set) + RANK-UP POP-UPS =================
+// New ranks — overall, each muscle and cardio — are queued and shown together in one "Congratulations" pop-up
+// after the workout or activity, never in the middle of one. They can be turned off in Settings.
+S.rankPop??=true;S.rankQ??=[];
+const RANK_IMG=i=>`img/ranks/${RANKS[Math.floor(i/3)][0].toLowerCase()}.png`,MUS_IMG=m=>`img/muscles/${m.toLowerCase()}.png`;
+const rankName=i=>RANKS[Math.floor(i/3)][0]+' '+DIVS[i%3];
+window.rankBadge=(i,size=24)=>`<img src="${RANK_IMG(i)}" width="${size}" height="${size}" alt="${RANKS[Math.floor(i/3)][0]}" style="flex:none;display:block;object-fit:contain">`;
+function rankSnap(){const o={};for(const m of MUSCLES)o[m]=rankOf(S.xp[m]||0).idx;o.Cardio=rankOf(S.cardioXp||0).idx;return o}
+S.rankSeenM??=rankSnap(); // first run: today's ranks count as already seen
+window.rankQueueUpdate=function(){const now=rankSnap();for(const k in now){const was=S.rankSeenM[k]??now[k];if(now[k]>was){S.rankQ=S.rankQ.filter(x=>x.k!==k);S.rankQ.push({k,i:now[k]})}S.rankSeenM[k]=Math.max(was,now[k])}
+ const o=orank();if(o.i>(S.rankSeen??0)&&!S.rankQ.some(x=>x.k==='overall'&&x.i===o.i)){S.rankQ=S.rankQ.filter(x=>x.k!=='overall');S.rankQ.push({k:'overall',i:o.i})}
+ if(S.rankQ.length)setTimeout(showRankQueue,600)};
+let rqOpen=false;
+function rankQDone(off){const o=S.rankQ.find(x=>x.k==='overall');if(o)S.rankSeen=Math.max(S.rankSeen??0,o.i);S.rankQ=[];if(off)S.rankPop=false;save()}
+function showRankQueue(){if(rqOpen||!S.rankQ.length)return;if(!S.rankPop)return rankQDone();
+ if(S.active||(typeof RUN!=='undefined'&&RUN)||OB.active||document.querySelector('.w-over'))return;
+ rqOpen=true;const Q=S.rankQ.slice().sort((a,b)=>(b.k==='overall')-(a.k==='overall')||b.i-a.i),top=Q[0],label=x=>x.k==='overall'?'Overall rank':`${x.k} rank`;
+ const el=document.createElement('div');el.className='w-over rq';el.setAttribute('role','dialog');
+ el.innerHTML=`<div class="rq-badge"><img src="${RANK_IMG(top.i)}" alt=""></div><div class="t-caption rq-k">Congratulations!</div><div class="t-display rq-t">You reached ${rankName(top.i)}</div><p class="muted">${label(top)}</p>
+  ${Q.length>1?`<div class="rq-list">${Q.slice(1).map(x=>`<div class="rq-row">${x.k==='overall'?rankBadge(x.i,40):`<img src="${MUS_IMG(x.k)}" alt="" width="40" height="40">`}<b>${x.k==='overall'?'Overall':x.k}</b><span>${rankName(x.i)}</span>${rankBadge(x.i,32)}</div>`).join('')}</div>`:''}
+  <button class="btn" style="margin-top:var(--s3);width:100%">Nice!</button><button class="aflink rq-off" style="margin-top:var(--s1)">Turn off rank-up pop-ups</button><small class="t-caption">You can turn them back on in Settings.</small>`;
+ const close=off=>{rankQDone(off);el.remove();rqOpen=false;if(off)toast('Rank-up pop-ups off — turn them on in Settings')};
+ el.querySelector('.btn').onclick=()=>close(false);el.querySelector('.rq-off').onclick=()=>close(true);document.body.appendChild(el);vib([20,40,60])}
+window.showRankQueue=showRankQueue;
+const _setRQ=V.settings;V.settings=()=>_setRQ().replace(/(<div class="row" onclick="push\('transfer'\)">)/,`<div class="row" style="cursor:default"><div class="rbody"><b>Rank-up pop-ups</b><small>Celebrate new ranks after a workout or activity</small></div><button class="sw ${S.rankPop?'on':''}" role="switch" aria-checked="${S.rankPop}" aria-label="Rank-up pop-ups" onclick="S.rankPop=!S.rankPop;save();render()"><i></i></button></div>$1`);
+
+// ================= MISSED WORKOUTS: make it up within 2 days, or lose a little XP =================
+// Muscle size and strength hold up well for 2–3 weeks without training (Bosquet et al., 2013; McMaster et al., 2013),
+// so one missed session costs only a little XP of the muscles it trains: 1.5%, at most 60 XP each, never a rank.
+S.missed??={};S.missedFrom??=today(); // only sessions planned after this update count — no retroactive penalties
+function missedScan(){if(!S.profile||!S.week)return;const W=ensureWeek(),ti=DOW(Date.now()),td=today();let lost=[];
+ for(let i=0;i<ti;i++){const d=iso(dayOfWeek(i));if(S.missed[d]||d<S.missedFrom||(S.startDate&&d<S.startDate))continue;if(dayPlan(d).type!=='missed')continue;
+  const prog=W.queue[W.pat.slice(0,i).filter(Boolean).length]||W.queue.at(-1);if(!prog)continue;const due=new Date(d+'T12:00');due.setDate(due.getDate()+2);S.missed[d]={prog,due:iso(due),st:'open'}}
+ for(const [d,e] of Object.entries(S.missed)){if(e.st!=='open')continue;
+  if(S.workouts.some(w=>w.prog===e.prog&&iso(w.ts)>d&&iso(w.ts)<=e.due)){e.st='done';continue}
+  if(td>e.due){e.st='lost';e.xp={};for(const m of (PROGS[e.prog]?.m||[])){const cur=rankOf(S.xp[m]||0).cur,x=Math.min(60,Math.round((S.xp[m]||0)*.015),cur);if(x>0){S.xp[m]-=x;e.xp[m]=x}}
+   if(Object.keys(e.xp).length)lost.push(e)}}
+ for(const x of Object.keys(S.missed))if(x<iso(Date.now()-60*864e5))delete S.missed[x];
+ if(lost.length){save();const e=lost.at(-1);setTimeout(()=>toast(`Missed ${(PROGS[e.prog]||{}).name}: ${Object.entries(e.xp).map(([m,x])=>`${m} −${x}`).join(', ')} XP. Muscle fades slowly — one session and you're back on track.`),900)}}
+function missedCard(){const open=Object.entries(S.missed).filter(([,e])=>e.st==='open'&&today()<=e.due);if(!open.length)return'';
+ return open.map(([d,e])=>`<div class="mw-card"><div><b>Missed ${(PROGS[e.prog]||{}).name} · ${new Date(d+'T12:00').toLocaleDateString(undefined,{weekday:'short'})}</b><small>Do it by ${new Date(e.due+'T12:00').toLocaleDateString(undefined,{weekday:'long'})} to keep your ${(PROGS[e.prog]?.m||[]).slice(0,3).join(', ')} XP. Muscle fades slowly — skipping costs only a little XP, never a rank.</small></div><button class="btn sm" onclick="startW('${e.prog}')">Do it now</button></div>`).join('')}
+const _planMW=V.plan;V.plan=()=>{try{missedScan()}catch(e){console.error(e)}const h=_planMW(),c=missedCard();if(!c)return h;const k=h.indexOf('<div class="sec');return k>0?h.slice(0,k)+c+h.slice(k):c+h};
+
 // ================= BODY FAT: never show an impossible tape result =================
 // The US Navy tape formula can go negative (or absurdly high) when the waist is measured too high, too tight or in
 // inches. Then fall back to the BMI/build estimate and say why, instead of showing "-10%".
@@ -180,7 +223,9 @@ const _fwT=finishW;finishW=function(){const a=S.active;_fwT();const w=S.workouts
 
 // Wire rows on the Train screens (built by older layers) to the new pages.
 function secList(txt){const h=[...document.querySelectorAll('#app .sec,#app .hdr')].find(s=>s.textContent.includes(txt));return h?.nextElementSibling}
-function wireTrain(){
+function wireRanks(){document.querySelectorAll('#app .stat').forEach(st=>{const m=st.querySelector('small')?.textContent?.trim();if(!MUSCLES.includes(m)||st.querySelector('.mr-ic'))return;
+ st.classList.add('mr-card');st.insertAdjacentHTML('afterbegin',`<img class="mr-ic" src="${MUS_IMG(m)}" alt=""><span class="mr-b">${rankBadge(rankOf(S.xp[m]||0).idx,34)}</span>`)})}
+function wireTrain(){wireRanks();if(S.rankQ?.length&&!S.active&&!(typeof RUN!=='undefined'&&RUN))setTimeout(showRankQueue,700);
  const pr=secList('Personal Records');pr?.querySelectorAll('.row').forEach(r=>{const n=r.querySelector('.rbody b')?.textContent;if(!n||!EX[n])return;r.style.cursor='pointer';r.onclick=()=>push('exhist',n);
   const b=bestSet(n),v=r.querySelector(':scope>b');if(b&&v)v.textContent=setTxt(n,b);if(isTimed(n)){const sm=r.querySelector('.rbody small');if(sm)sm.textContent='Longest hold '+fmtSec(Math.max(...exSessions(n).flatMap(x=>x.ss).map(s=>s.r)))}});
  document.querySelectorAll('#app details.row').forEach(d=>{const n=d.querySelector('.rbody b')?.textContent,sm=d.querySelector('summary');if(!n||!sm)return;
@@ -202,6 +247,12 @@ document.head.insertAdjacentHTML('beforeend',`<style>
 .plstats div,.exstats div{background:var(--surface);border-radius:var(--r-card);padding:12px}
 .plstats b,.exstats b{display:block;font-size:18px;font-weight:800;font-variant-numeric:tabular-nums}.plstats small,.exstats small{font-size:12px;color:var(--ink-2)}
 .exstats small{display:block;margin-bottom:2px}
+.rq{text-align:center}.rq-badge img{width:150px;height:150px;object-fit:contain;filter:drop-shadow(0 8px 24px #0004);animation:rqIn .6s cubic-bezier(.2,1.4,.4,1)}
+.rq-k{margin-top:var(--s2);text-transform:uppercase;letter-spacing:.1em;font-weight:800;color:var(--accent)}.rq-t{font-size:30px;margin-top:6px}
+.rq-list{width:100%;margin-top:var(--s2);display:grid;gap:6px}.rq-row{display:flex;align-items:center;gap:10px;background:var(--fill);border-radius:12px;padding:6px 10px;text-align:left}.rq-row b{flex:1}.rq-row span{color:var(--ink-2);font-size:14px}
+@keyframes rqIn{from{transform:scale(.3) rotate(-12deg);opacity:0}to{transform:none;opacity:1}}
+.mr-card{position:relative;padding-left:62px!important;padding-right:44px!important;min-height:76px}.mr-ic{position:absolute;left:8px;top:50%;transform:translateY(-50%);width:48px;height:48px;object-fit:contain}.mr-b{position:absolute;right:8px;top:8px}
+.mw-card{display:flex;align-items:center;gap:12px;background:#fff7ed;border-radius:14px;padding:12px 14px;margin-top:var(--s2)}.mw-card>div{flex:1}.mw-card b{display:block}.mw-card small{color:#9a3412;font-size:13px}
 .setline{display:grid;grid-template-columns:52px 1fr auto;gap:8px;align-items:center;padding:10px 14px;border-top:1px solid var(--line);font-variant-numeric:tabular-nums;font-size:14px}
 body.resting #app button[onclick^="addSet"],body.resting #app button[onclick^="mv(1)"],body.resting #app button[onclick*="timerStart"],body.resting #app button[onclick^="pickEx()"]{opacity:.4}
 #rest.nudge{animation:restNudge .4s}
