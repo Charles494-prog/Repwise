@@ -51,6 +51,13 @@
   .afing .del{display:none;position:absolute;right:0;top:0;height:52px;width:88px;background:var(--accent);color:#fff;border:none;font-weight:700}
   .afedit{padding:0 0 14px}.afedit .chips{margin-top:var(--s1)}
   .afnote{font-size:13px;color:var(--ink-2);margin-top:6px;line-height:1.4}
+  .afacts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:var(--s2)}.afacts button{display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;border:1.5px solid var(--line);background:var(--surface);border-radius:16px;padding:14px;cursor:pointer;color:var(--ink)}
+  .afacts button:active{background:var(--fill)}.afacts b{font-size:16px}.afacts small{font-size:12px;color:var(--ink-2);line-height:1.3}.afacts .ai{width:36px;height:36px;border-radius:12px;background:#fdeced;color:var(--accent);display:grid;place-items:center;margin-bottom:4px}.afacts .ai .ic{width:20px;height:20px}
+  .afcats{flex-wrap:wrap;margin:0;padding:0}.afcats button{margin:0}
+  .afempty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:var(--s4) var(--s2);color:var(--ink-2);font-size:14px}.afempty .ic{width:32px;height:32px;color:var(--ink-3)}.afempty b{color:var(--ink);font-size:15px}
+  .afbrowse-h{display:flex;align-items:center;gap:var(--s1);margin:var(--s2) 0 var(--s1)}.afbrowse-h b{flex:1;font-size:17px}
+  .afact{display:flex;gap:4px;flex:none}.afact button{width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);display:grid;place-items:center;cursor:pointer;font-size:14px}.afact button.on{background:var(--ink);color:#fff;border-color:var(--ink)}.afact .ic{width:16px;height:16px}
+  .afing .afkc{width:44px}
   </style>`);
   document.head.insertAdjacentHTML('beforeend', `<style>
   .afsrc{font-size:var(--fs-caption);color:var(--ink-3);font-weight:500;margin-left:6px}
@@ -176,7 +183,7 @@
 
   // ---------- search ----------
   function scrSearch() {
-    return `${head('Add food', null, `<button class="aflink" style="text-decoration:none;padding:6px 8px" onclick="afNewIng('','search')">+ Ingredient</button><button class="aflink" style="text-decoration:none;padding:6px 8px" onclick="afCreate('')">Create meal</button>`)}
+    return `${head('Add food', null)}
     <div class="afsearch">${ic('search')}<input id="afq" placeholder="Search food, dish or my meals" autocomplete="off" oninput="afSearch(this.value)"></div>
     <div id="afres"></div>`;
   }
@@ -185,7 +192,9 @@
     for (const d of Object.keys(S.food).sort().reverse()) for (const x of [...S.food[d]].reverse()) { if (seen.has(x[0]) || out.length >= 8) continue; seen.add(x[0]); out.push(x); }
     AF.recent = out; return out.map((x, i) => ({ type: 'recent', i, name: x[0], kcal: x[1], serving: 'last logged', src: 'Recent' }));
   }
-  window.afSearch = q => {
+  const BROWSE = [['dish', 'Filipino dishes'], ['meat', 'Meat & fish'], ['veg', 'Vegetables'], ['fruit', 'Fruit'], ['carb', 'Rice & carbs'], ['oil', 'Oils & sauces'], ['other', 'Other']];
+  window.afBrowse = g => { AF.browse = g; afSearch(''); const sc = document.querySelector('.afscr'); if (sc) sc.scrollTop = 0; };
+  window.afSearch = q => { if (q && q.trim()) AF.browse = null;
     AF.q = q; const box = $('#afres'); if (!box) return;
     if (AF.screen === 'ing') {
       const all = index().filter(e => e.type === 'ing');
@@ -199,11 +208,16 @@
     const all = index(), rec = recentList();
     if (!q.trim()) {
       const favs = all.filter(e => isFav(e.key)), mine = all.filter(e => e.type === 'my'), myIng = all.filter(e => e.src === 'My ingredient');
-      box.innerHTML = (favs.length ? `<div class="afgroup">Favorites</div>${favs.map(e => row(e, true)).join('')}` : '')
+      // Start screen: two clear actions, browse by category, then your own foods.
+      if (AF.browse) { const B = BROWSE.find(b => b[0] === AF.browse), list = AF.browse === 'dish' ? all.filter(e => e.type === 'dish') : all.filter(e => e.type === 'ing' && e.group === AF.browse);
+        box.innerHTML = `<div class="afbrowse-h"><button class="aflink" style="text-decoration:none" onclick="afBrowse(null)">‹ All</button><b>${B[1]}</b><span class="t-caption">${list.length}</span></div>${list.sort((a, b) => a.name.localeCompare(b.name)).map(e => row(e)).join('')}`; return; }
+      box.innerHTML = `<div class="afacts"><button onclick="afNewIng('','search')"><span class="ai">${ic('plus')}</span><b>Custom ingredient</b><small>Add one from its nutrition label</small></button><button onclick="afCreate('')"><span class="ai">${ic('clip')}</span><b>Create meal</b><small>Combine ingredients into one meal</small></button></div>
+        <div class="afgroup">Browse</div><div class="chips afcats">${BROWSE.map(([k, l]) => `<button onclick="afBrowse('${k}')">${l}</button>`).join('')}</div>`
+        + (favs.length ? `<div class="afgroup">Favorites</div>${favs.map(e => row(e, true)).join('')}` : '')
         + (mine.length ? `<div class="afgroup">My meals</div>${mine.map(e => row(e)).join('')}` : '')
         + (myIng.length ? `<div class="afgroup">My ingredients</div>${myIng.map(e => row(e)).join('')}` : '')
         + (rec.length ? `<div class="afgroup">Recent</div>${rec.map(e => row(e)).join('')}` : '')
-        + (!favs.length && !mine.length && !rec.length ? `<div class="afnote" style="padding:var(--s3) 0">Search the catalog — 50+ Filipino dishes and 130 ingredients. Star anything you eat often. Can't find something? Tap <b>+ Ingredient</b> to add your own from its nutrition label.</div>` : '');
+        + (!favs.length && !mine.length && !rec.length ? `<div class="afempty">${ic('search')}<b>Search 50+ Filipino dishes and 130 ingredients</b><span>or browse above. Tap ☆ on anything you eat often and it shows up here.</span></div>` : '');
       return;
     }
     let res = F.search(q, [...all, ...rec]);
@@ -287,12 +301,13 @@
   // ---------- builder (copies, new meals, editing My meals) ----------
   window.afCreate = name => { Object.assign(AF, { items: [], name: (name || '').trim() || nextName(), method: 'raw', oilType: 'none', oilAmt: null, manual: false, override: null, extra: null, editMy: null, edit: -1, from: 'search', adjustedFrom: null }); go('builder'); };
   const nextName = () => { let n = 1; while (S.myMeals.some(m => m.name === `Custom meal #${n}`)) n++; return `Custom meal #${n}`; };
+  const rowAct = (edit, del, open) => `<span class="afact"><button class="${open ? 'on' : ''}" aria-label="Edit amount" onclick="${edit}">✏️</button><button aria-label="Remove" onclick="${del}">${ic('x')}</button></span>`;
   function scrBuilder() {
     const { meal, totals: t } = current(), editing = AF.editMy != null;
     const rows = meal.items.map((it, i) => { const ing = F.ING[it.id], k = Math.round(ing.per100.kcal * it.g / 100);
       if (it.oil) return `<div class="afing"><div class="row2"><b>${ing.name}</b><span class="gbtn" style="background:none">${r1(it.g)} ${unitOf(ing)}</span><span class="afkc">${k}</span></div></div>`;
       const open = AF.edit === i;
-      return `<div class="afing" ontouchstart="afTS(event)" ontouchmove="afTM(event)" ontouchend="afTE(event,${i})"><button class="del" onclick="afDel(${i})">Delete</button><div class="row2"><b>${escT(ing.name)}</b><button class="gbtn" onclick="afEdit(${i})">${r1(it.g)} ${unitOf(ing)}</button><span class="afkc">${k}</span></div>
+      return `<div class="afing"><div class="row2"><b>${escT(ing.name)}</b><button class="gbtn" onclick="afEdit(${i})">${r1(it.g)} ${unitOf(ing)}</button><span class="afkc">${k}</span>${rowAct(`afEdit(${i})`, `afDel(${i})`, open)}</div>
         ${open ? `<div class="afedit" style="background:var(--surface);position:relative"><div class="afrow" style="border:none;padding:4px 0"><span class="afstep"><button onclick="afG(${i},-10)">−</button><b>${r1(it.g)} ${unitOf(ing)}</b><button onclick="afG(${i},10)">+</button></span><span class="t-caption">${fmt(F.scale(ing.per100, it.g))}</span></div>
         <div class="chips">${[50, 100, 150, 200].map(g => `<button onclick="afSetG(${i},${g})">${g} g</button>`).join('')}${ing.pc ? `<button onclick="afSetG(${i},${ing.pc.g})">1 ${ing.pc.label}</button><button onclick="afSetG(${i},${ing.pc.g * 2})">2 ${ing.pc.label}s</button>` : ''}</div></div>` : ''}</div>`; }).join('');
     const ex = AF.extra, exRow = ex ? `<div class="afing"><div class="row2"><b>Other (entered by hand)</b><button class="gbtn" onclick="afExtraEdit()">edit</button><span class="afkc">${Math.round(ex.kcal || 0)}</span></div></div>` : '';
@@ -375,13 +390,13 @@
       const chips = ing ? (ing.pc ? [1, 2, 3, 4, 6].map(n => n * ing.pc.g) : [50, 100, 150, 200, 300]).map(x => `<button class="${Math.abs(g - x) < 0.05 ? 'on' : ''}" onclick="afPlAmt(${i},${x})">${amtLabel(ing, x)}</button>`).join('')
         : [0.5, 1, 1.5, 2, 3].map(p => `<button class="${it.mult === p ? 'on' : ''}" onclick="afPlMult(${i},${p})">${multL(p)}</button>`).join('');
       const step = ing ? `<div class="afrow" style="border:none;padding:4px 0"><span class="afstep"><button onclick="afPlAmt(${i},${g}-${ing.pc ? ing.pc.g : 10})">−</button><b>${amtLabel(ing, g)}</b><button onclick="afPlAmt(${i},${g}+${ing.pc ? ing.pc.g : 10})">+</button></span><span class="t-caption num">${r1(g)} g</span></div>` : '';
-      return `<div class="afing" ontouchstart="afTS(event)" ontouchmove="afTM(event)" ontouchend="afTE(event,${i})"><button class="del" onclick="afPlDel(${i})">Remove</button><div class="row2"><b>${escT(it.name)}</b><button class="gbtn" onclick="afPlEdit(${i})">${ing ? amtLabel(ing, g) : multL(it.mult)}</button><span class="afkc">${Math.round(it.totals.kcal * it.mult)}</span></div>
+      return `<div class="afing"><div class="row2"><b>${escT(it.name)}</b><button class="gbtn" onclick="afPlEdit(${i})">${ing ? amtLabel(ing, g) : multL(it.mult)}</button><span class="afkc">${Math.round(it.totals.kcal * it.mult)}</span>${rowAct(`afPlEdit(${i})`, `afPlDel(${i})`, AF.plEdit === i)}</div>
       ${AF.plEdit === i ? `<div class="afedit" style="position:relative;background:var(--surface)">${step}<div class="chips">${chips}</div></div>` : ''}</div>`; }).join('');
     return `${head('Plate', "afBack('search')")}
     <div class="afsticky"><div class="t-display num" style="font-size:40px">${Math.round(t.kcal)}<span class="t-label muted" style="letter-spacing:0"> kcal</span></div><div class="t-caption num">${fmt(t)}</div></div>
     ${rows || '<div class="afnote">Your plate is empty.</div>'}
     <button class="aflink" style="text-decoration:none;display:flex;align-items:center;gap:8px" onclick="afBack('search')">${ic('plus')} Add more</button>
-    ${AF.plate.length ? '<div class="afnote">Tap an amount to change it · swipe left to remove.</div>' : ''}
+    ${AF.plate.length ? '<div class="afnote">Tap ✎ or the amount to change it · × to remove.</div>' : ''}
     ${AF.plate.length ? primary(t, 'Log plate', 'afLogPlate()') : ''}`;
   }
   window.afPlEdit = i => { AF.plEdit = AF.plEdit === i ? -1 : i; show(); };
@@ -446,7 +461,7 @@
   window.foodSheet = (pre = {}) => {
     $('#sheet').classList.add('show'); $('#sheetbg').classList.add('show');
     if (pre.name) { Object.assign(AF, { items: [], name: pre.name, method: 'raw', oilType: 'none', oilAmt: null, manual: true, override: { kcal: pre.kcal ?? '', p: pre.protein ?? null, c: pre.carbs ?? null, f: pre.fat ?? null, fib: pre.fiber ?? null }, extra: null, editMy: null, edit: -1, from: 'search', adjustedFrom: null }); go('builder'); return; }
-    AF.q = ''; go('search');
+    AF.q = ''; AF.browse = null; go('search');
   };
   const _close = closeSheet; window.closeSheet = function () { _close(); setTimeout(() => { const sh = $('#sheet'); if (!sh.classList.contains('show')) sh.classList.remove('af'); }, 400); };
   window.AF = AF;
