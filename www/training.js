@@ -29,9 +29,16 @@ const planWeek=P=>{const days=SPLITS[P.split].days;let q=0;return P.pat.map(v=>v
  {k:'exp',q:'How long have you been lifting?',s:'Sets the program and how fast we add weight.',o:[['beginner','🌱','New to it','Under 6 months'],['intermediate','💪','Some experience','6 months – 2 years'],['advanced','🔥','Experienced','2+ years of steady training']]},
  {k:'sessLen',q:'How long can a session be?',s:'We fit the number of exercises to your time.',o:[[30,'⏱️','30 min','4 exercises'],[45,'⏱️','45 min','5 exercises'],[60,'⏱️','60 min','6 exercises'],[90,'⏱️','90 min','Up to 8 exercises']]},
  {k:'equip',q:'Where do you train?',s:'We pick exercises for your equipment.',o:[['gym','🏢','Full gym','Machines, barbells, dumbbells'],['dumbbell','💪','Dumbbells only','At home or a small gym'],['home','🏠','No equipment','Bodyweight at home']]})}
+// Fasting: the user picks when the eating window opens (it used to default to noon for everyone).
+{const i=OBSTEPS.findIndex(s=>s.k==='fastProto');if(i>=0)OBSTEPS.splice(i+1,0,{k:'fastStart',q:'When should your eating window open?',s:'Pick what fits your day. Noon means skipping breakfast; an earlier window is a bit better for blood sugar.',
+ get o(){const f=FASTS.find(x=>x[0]===OB.d.fastProto),eat=24-(f?f[1]:16);return[6,8,10,12,14,16,18].map(h=>[h,h<11?'☕':'⏱️',hh(h),`Eat ${hh(h)} – ${hh((h+eat)%24)}`])}})}
+const fastOff=()=>!OB.d.fastProto||OB.d.fastProto==='off';
 function togOff(i,el){const o=OB.d.offDays=(OB.d.offDays||[]).includes(i)?OB.d.offDays.filter(x=>x!==i):[...(OB.d.offDays||[]),i];el.classList.toggle('on');vib(8);
  const b=$('#offgo');if(b)b.textContent=o.length?`Continue · ${7-o.length} days free`:'No blocked days';if(o.length>=7){OB.d.offDays=o.slice(0,6);el.classList.remove('on');toast('Keep at least one day free')}}
 const _onbT=V.onboard;V.onboard=()=>{
+ // skip the window-start question when fasting is off, in whichever direction the user is moving
+ if(OBSTEPS[OB.step]?.k==='fastStart'&&fastOff())OB.step+=(OB._last??0)>OB.step?-1:1;OB._last=OB.step;
+ if(OB.d.fastStart==null&&OBSTEPS[OB.step]?.k==='fastStart')OB.d.fastStart=S.fast.start;
  if(OB.active&&OB.step>=OBSTEPS.length)return planReveal();
  const s=OBSTEPS[OB.step];if(!s?.custom)return _onbT();const st=OB.step,off=OB.d.offDays||[];
  return`<div class="ob"><div class="flex" style="flex:none"><button class="iconbtn" style="flex:none" onclick="OB.step--;render('pop')">‹</button><div class="obbar" style="margin:0"><i style="width:${(st+1)/OBSTEPS.length*100}%"></i></div><span class="muted" style="flex:none">${st+1}/${OBSTEPS.length}</span></div>
@@ -47,10 +54,12 @@ function planReveal(){const d=OB.d,P=autoPlan(d),wk=planWeek(P),bmr=10*d.weight+
  <div class="plweek">${WD.map((n,i)=>`<div class="${wk[i]?'tr':''}${P.off.includes(i)?' off':''}"><small>${n}</small><b>${wk[i]?esc(PROGS[wk[i]].name.replace(/ (Day|Body)$/,'')):P.off.includes(i)?'Busy':'Rest'}</b></div>`).join('')}</div>
  ${P.capped?`<p class="t-caption" style="margin-top:6px">Only ${7-P.off.length} days are free, so it's a ${P.n}-day plan.</p>`:''}
  <div class="plstats"><div><b>${P.n}</b><small>days / week</small></div><div><b>${P.len}</b><small>min · ${SESS_EX[P.len]} exercises</small></div><div><b>${kcal.toLocaleString()}</b><small>kcal / day</small></div><div><b>${prot}</b><small>g protein</small></div></div>
+ ${fastOff()?'':(()=>{const f=FASTS.find(x=>x[0]===d.fastProto),st=d.fastStart??S.fast.start;return`<div class="plstats" style="grid-template-columns:1fr"><div><b>${hh(st)} – ${hh((st+24-f[1])%24)}</b><small>eating window · ${d.fastProto} fasting</small></div></div>`})()}
  <p class="t-caption" style="margin-top:var(--s2)">Exercises picked for: ${esc(eq.toLowerCase())}. You can swap any exercise or change the days later in Train → This week → Change.</p>
  <div style="flex:1"></div><button class="btn" onclick="finishOB()">Start my plan</button></div>`}
-const _fobT=finishOB;finishOB=function(){if(!OB.active)return;const d=OB.d,P=d.days?autoPlan(d):null;
- if(d.equip){S.equip=d.equip}['offDays','exp','sessLen','equip'].forEach(k=>delete d[k]);_fobT();if(!S.profile)return;
+const _fobT=finishOB;finishOB=function(){if(!OB.active)return;const d=OB.d,P=d.days?autoPlan(d):null,fs=fastOff()?null:d.fastStart;
+ if(d.equip){S.equip=d.equip}['offDays','exp','sessLen','equip','fastStart'].forEach(k=>delete d[k]);_fobT();if(!S.profile)return;
+ delete S.profile.fastStart;if(fs!=null){S.fast.start=fs;delete S.fast.reset;save();try{schedFast()}catch(e){}try{schedNotifs()}catch(e){}}
  if(P){S.split=P.split;delete S.nextSplit;S.trainDays[P.split]=P.n;S.plan={pat:P.pat,off:P.off,exp:P.exp,len:P.len};S.rotEq=P.exp!=='beginner';
   ['offDays','exp','sessLen','equip'].forEach(k=>delete S.profile[k]);S.week=null;ensureWeek();save();render()}};
 // Session length caps the exercises per workout.

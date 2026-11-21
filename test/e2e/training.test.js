@@ -69,3 +69,15 @@ test('history: exercise page lists every set; session page shows what was done; 
   assert.match(r.ex, /10kg × 10/); assert.match(r.wk, /Bench Press/); assert.match(r.wk, /0kg × 1 min/);
   assert.deepEqual(p.errors, []);
 });
+
+test('fasting: setup asks when the eating window opens, and skips the question when fasting is off', async () => {
+  await p.open({ state: baseState() });
+  const r = await p.eval(`startOB();const i=OBSTEPS.findIndex(s=>s.k==='fastStart');OB.d.fastProto='off';OB.step=i;render();const skipped=OBSTEPS[OB.step].k;
+    OB.step=i+1;render();OB.step=i;render();const back=OBSTEPS[OB.step].k;
+    OB.d.fastProto='18:6';OB.step=i;OB._last=i-1;render();const shown=document.querySelector('#app').innerText;
+    OB.d.fastStart=18;OB.step=OBSTEPS.length;render();finishOB();
+    const at=h=>{const d=new Date();d.setHours(h,35,0,0);return fastState(d).open};return {skipped,back,shown,start:S.fast.start,on:S.fast.on,night:at(22),evening:at(19)}`);
+  assert.equal(r.skipped, 'focus'); assert.equal(r.back, 'fastProto'); assert.match(r.shown, /eating window open/i); assert.match(r.shown, /Eat 12 PM – 6 PM/);
+  assert.equal(r.start, 18); assert.ok(r.on); assert.equal(r.evening, true); assert.equal(r.night, true);
+  assert.deepEqual(p.errors, []);
+});
