@@ -1,0 +1,40 @@
+# Builds the iOS app on a macOS runner (no Mac needed locally).
+# Artifacts: a Simulator build (RepWise-simulator.zip) and an unsigned device build (RepWise-unsigned.ipa)
+# that can be signed with your own Apple ID (e.g. Sideloadly / AltStore) or re-signed in Xcode.
+name: iOS build
+on:
+  push:
+    branches: [main]
+    paths: ['www/**', 'ios/**', 'package.json', 'package-lock.json', 'capacitor.config.json', '.github/workflows/ios.yml']
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx cap sync ios
+      - name: Build for the iOS Simulator
+        run: |
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/sim CODE_SIGNING_ALLOWED=NO build
+          (cd build/sim/Build/Products/Debug-iphonesimulator && zip -qry "$GITHUB_WORKSPACE/RepWise-simulator.zip" App.app)
+      - name: Build unsigned device IPA
+        run: |
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
+            -sdk iphoneos -destination 'generic/platform=iOS' \
+            -derivedDataPath build/dev CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build
+          mkdir -p Payload && cp -R build/dev/Build/Products/Release-iphoneos/App.app Payload/
+          zip -qry RepWise-unsigned.ipa Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RepWise-iOS
+          path: |
+            RepWise-simulator.zip
+            RepWise-unsigned.ipa
