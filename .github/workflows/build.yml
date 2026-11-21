@@ -1,11 +1,9 @@
 # Builds RepWise for Android and iOS on every push to main, then publishes both to the rolling
 # "latest" release that the website links to:
-#   /releases/latest/download/RepWise.apk           (Android, signed with the RepWise release key)
+#   /releases/latest/download/RepWise.apk           (Android, signed with android/app/repwise-release.jks)
 #   /releases/latest/download/RepWise-unsigned.ipa  (iPhone, sign with your Apple ID via Sideloadly / AltStore)
 #   /releases/latest/download/RepWise-simulator.zip (iOS Simulator build)
-#
-# Android signing needs these repository secrets (Settings -> Secrets and variables -> Actions):
-#   RW_KEYSTORE_B64 (base64 of repwise-release.jks), RW_STORE_PASS, RW_KEY_ALIAS, RW_KEY_PASS
+# No setup needed: the signing key is in the repo, so every build installs over the previous one.
 name: Build & release
 on:
   push:
@@ -31,22 +29,9 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx cap sync android
-      - name: Restore the release signing key
-        env:
-          RW_KEYSTORE_B64: ${{ secrets.RW_KEYSTORE_B64 }}
-        run: |
-          if [ -z "$RW_KEYSTORE_B64" ]; then
-            echo "::error::Missing RW_KEYSTORE_B64 secret. Add the RepWise signing secrets so Android builds can update existing installs."
-            exit 1
-          fi
-          echo "$RW_KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/repwise-release.jks"
       - name: Build signed release APK
         working-directory: android
         env:
-          RW_KEYSTORE: ${{ runner.temp }}/repwise-release.jks
-          RW_STORE_PASS: ${{ secrets.RW_STORE_PASS }}
-          RW_KEY_ALIAS: ${{ secrets.RW_KEY_ALIAS }}
-          RW_KEY_PASS: ${{ secrets.RW_KEY_PASS }}
           RW_VERSION_CODE: ${{ github.run_number }}
         run: |
           chmod +x gradlew

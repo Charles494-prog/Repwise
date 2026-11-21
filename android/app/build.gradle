@@ -1,7 +1,7 @@
 apply plugin: 'com.android.application'
 
-// Release signing key: from CI environment variables, or a local keystore.properties that is never committed
-// (C:/Users/<you>/RepWise-signing/keystore.properties, or android/keystore.properties).
+// Release signing key: android/keystore.properties (committed, points at app/repwise-release.jks),
+// overridable with RW_* environment variables or ~/RepWise-signing/keystore.properties.
 def rw = [file: System.getenv('RW_KEYSTORE'), store: System.getenv('RW_STORE_PASS'), alias: System.getenv('RW_KEY_ALIAS'), key: System.getenv('RW_KEY_PASS')]
 if (!rw.file) {
     def kp = [rootProject.file('keystore.properties'), new File(System.getProperty('user.home'), 'RepWise-signing/keystore.properties')].find { it.exists() }
