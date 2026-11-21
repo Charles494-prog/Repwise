@@ -1,5 +1,5 @@
 // RepWise cardio: location permission, maps (Leaflet, minimal street tiles), automatic steps on/off,
-// steps counted once (an activity's steps are part of the daily total), run/walk intervals, and cardio XP + rank.
+// steps counted once (an activity's steps are part of the daily total), run/walk intervals, route planning, cardio XP + rank.
 
 // ================= MAPS =================
 // One tile config and one makeMap() for every map in the app. CARTO Positron ("light_all") needs a free key
@@ -30,10 +30,18 @@ function drawMap(key,m){const runs=key==='today'?S.runs.filter(r=>iso(r.ts)===to
  m.extra.clearLayers();
  if(key==='today'){runs.forEach(r=>{if(r.pts.length>1)L.polyline(r.pts,{color:'#e3262f',weight:4,opacity:.8,interactive:false}).addTo(m.extra)});
   if(LOC.pos){dotOn(m,LOC.pos,'#2563eb',8);if(!m.fit){m.map.setView(LOC.pos,16);m.fit=true}}return}
- m.line.setLatLngs(pts);if(!pts.length){if(LOC.pos&&!m.fit)m.map.setView(LOC.pos,16);return}
+ if(key==='plan')return drawPicker(m);
+ const plan=key==='live'?RUN?.plan:S.runs.find(r=>String(r.ts)===key.slice(4))?.plan;
+ if(plan&&!m.planOn){L.polyline(plan.pts,{color:'#2563eb',weight:5,opacity:.45,dashArray:'8 10',interactive:false}).addTo(m.plan);m.planOn=true}
+ m.line.setLatLngs(pts);if(!pts.length){if(plan&&!m.fit){m.map.fitBounds(L.latLngBounds(plan.pts),{padding:[24,24]});m.fit=key!=='live'}else if(LOC.pos&&!m.fit)m.map.setView(LOC.pos,16);return}
  dotOn(m,pts[0],'#16a34a');dotOn(m,pts.at(-1),key==='live'?'#2563eb':'#e3262f',8);
  if(key==='live')follow(m,pts.at(-1));
- else if(!m.fit&&pts.length>1){m.map.fitBounds(m.line.getBounds(),{padding:[24,24]});m.fit=true}}
+ else if(!m.fit&&pts.length>1){m.map.fitBounds(plan?m.line.getBounds().extend(L.latLngBounds(plan.pts)):m.line.getBounds(),{padding:[24,24]});m.fit=true}}
+// Route picker: every suggestion drawn; the selected one on top and thicker. Tapping a line selects its card.
+function drawPicker(m){m.plan.clearLayers();const R=ROUTES;if(LOC.pos)dotOn(m,LOC.pos,'#16a34a');
+ R.list.forEach((r,i)=>{if(i===R.sel)return;L.polyline(r.pts,{color:ROUTE_COL[i%5],weight:4,opacity:.55}).on('click',()=>pickRoute(i)).addTo(m.plan)});
+ const s=R.list[R.sel];if(s){L.polyline(s.pts,{color:ROUTE_COL[R.sel%5],weight:7,opacity:.95}).on('click',()=>pickRoute(R.sel)).addTo(m.plan);if(R.kind==='oneway')dotOn(m,s.pts.at(-1),'#e3262f')}
+ if(R.list.length&&m.fitBatch!==R.batch){m.map.fitBounds(L.latLngBounds(R.list.flatMap(r=>r.pts)),{padding:[20,20]});m.fitBatch=R.batch}else if(!R.list.length&&LOC.pos&&!m.fit){m.map.setView(LOC.pos,15);m.fit=true}}
 // Live follow: centre once, then only pan when the dot nears the edge. A drag / pinch pauses following for 10 s.
 function follow(m,p){if(!m.fit){m.map.setView(p,17,{animate:false});m.fit=true;return}if(Date.now()<m.pauseUntil)return;
  const b=m.map.getBounds(),la=b.getNorth()-b.getSouth(),lo=b.getEast()-b.getWest(),inner=L.latLngBounds([b.getSouth()+la*.2,b.getWest()+lo*.2],[b.getNorth()-la*.2,b.getEast()-lo*.2]);
@@ -99,22 +107,70 @@ V.cardiorank=()=>{const r=rankOf(S.cardioXp);return`<div class="top">${backBtn()
 // ================= INTERVALS: run : walk formats =================
 const FORMATS=[['free','Free','Switch run / walk yourself',0,0,0],['1:1','1 : 1','1 min run · 1 min walk',60,60,15],['2:1','2 : 1','2 min run · 1 min walk',120,60,10],['3:1','3 : 1','3 min run · 1 min walk',180,60,8],['3:2','3 : 2','3 min run · 2 min walk',180,120,6],['5:1','5 : 1','5 min run · 1 min walk',300,60,5],['custom','Custom','Set your own run, walk and rounds',120,60,8]];
 let IVS={f:'1:1',run:60,walk:60,rounds:15,warm:true};
+// Goal: free (as before), a distance, or a time turned into a distance at the user's usual pace; then loop or one way.
+let GOAL={g:'free',dist:5000,time:1800,kind:'loop'};
+const runFrac=()=>IVS.f==='free'?1:IVS.run/(IVS.run+IVS.walk);
+const goalMeters=()=>GOAL.g==='distance'?GOAL.dist:RWRoutes.timeToMeters(GOAL.time,RWRoutes.paces(S.runs),runFrac());
+function goalBox(){const g=GOAL.g,P=RWRoutes.paces(S.runs);
+ const seg=`<div class="cd-seg">${[['free','Free'],['distance','Distance'],['time','Time']].map(([k,l])=>`<button class="${g===k?'on':''}" onclick="goalSet('g','${k}')">${l}</button>`).join('')}</div>`;
+ if(g==='free')return seg;
+ const isD=g==='distance',v=isD?GOAL.dist:GOAL.time,k=isD?'dist':'time',step=isD?500:300;
+ const chips=(isD?[1000,3000,5000,10000]:[900,1800,2700,3600]).map(x=>`<button class="${v===x?'on':''}" onclick="goalSet('${k}',${x})">${isD?x/1000+' km':x/60+' min'}</button>`).join('');
+ return`${seg}<div class="chips" style="margin-top:var(--s1)">${chips}</div>
+ <div class="afrow"><span>${isD?'Distance':'Time'}</span><span class="afstep"><button onclick="goalSet('${k}',${v-step})">−</button><b>${isD?(v/1000).toFixed(1)+' km':v/60+' min'}</b><button onclick="goalSet('${k}',${v+step})">+</button></span></div>
+ ${isD?'':`<p class="t-caption" id="goalest">≈ ${(goalMeters()/1000).toFixed(1)} km at ${P.fromHistory?'your usual pace':runFrac()===1?'a typical jog pace (6:30 /km)':'typical jog (6:30 /km) and walk (11:00 /km) paces'}</p>`}
+ <div class="afsec">Route</div><div class="cd-fmts">${[['loop','Loop','start and finish here, different streets back'],['oneway','One way','end somewhere else, plan your own way back']].map(([x,n,d])=>`<button class="${GOAL.kind===x?'on':''}" onclick="goalSet('kind','${x}')"><b>${n}</b><small>${d.replace(/^./,c=>c.toUpperCase())}</small></button>`).join('')}</div>`}
+function goalSet(k,v){if(k==='dist')v=Math.max(500,Math.min(42000,v));if(k==='time')v=Math.max(300,Math.min(14400,v));GOAL[k]=v;$('#sheet').innerHTML='<div class="grab"></div>'+ivSheet()}
 function startActivity(){if(LOC.state==='denied')return toast('📍 Location is blocked — allow it in phone Settings → Apps → RepWise → Permissions');openSheet(ivSheet())}
 function ivSheet(){const f=IVS.f,cus=f==='custom',total=f==='free'?0:Math.round(((IVS.run+IVS.walk)*IVS.rounds+(IVS.warm?300:0))/60);
  const step=(k,l,d,unit,min,max)=>`<div class="afrow"><span>${l}</span><span class="afstep"><button onclick="ivSet('${k}',${-d},${min},${max})">−</button><b>${k==='rounds'?IVS[k]:IVS[k]/60}${unit}</b><button onclick="ivSet('${k}',${d},${min},${max})">+</button></span></div>`;
- return`<h3 class="t-title">Start activity</h3><p class="t-caption" style="margin:4px 0 var(--s2)">Pick a format. Intervals switch between run and walk for you with a buzz.</p>
+ return`<h3 class="t-title">Start activity</h3>
+ <div class="afsec">Goal</div>${goalBox()}
+ <div class="afsec">Format</div><p class="t-caption" style="margin:-4px 0 var(--s1)">Intervals switch between run and walk for you with a buzz.</p>
  <div class="cd-fmts">${FORMATS.map(([k,n,d])=>`<button class="${f===k?'on':''}" onclick="ivPick('${k}')"><b>${n}</b><small>${d}</small></button>`).join('')}</div>
  ${f==='free'?'':`${cus?step('run','Run',30,' min',30,1800)+step('walk','Walk / rest',30,' min',30,900):''}${step('rounds','Rounds',1,'',1,40)}
   <div class="afrow"><span>5 min warm-up walk</span><button class="sw ${IVS.warm?'on':''}" role="switch" aria-checked="${IVS.warm}" onclick="IVS.warm=!IVS.warm;$('#sheet').innerHTML='<div class=&quot;grab&quot;></div>'+ivSheet()"><i></i></button></div>
   <p class="t-caption" style="margin-top:6px">${IVS.rounds} × (${IVS.run/60} min run + ${IVS.walk/60} min walk)${IVS.warm?' + warm-up':''} · about ${total} min</p>`}
  <p class="t-caption" style="margin-top:var(--s1)">Steps you take during the activity count toward your daily steps too.</p>
- <button class="btn" style="margin-top:var(--s2)" onclick="goActivity()">Start</button>`}
+ ${GOAL.g==='free'?`<button class="btn" style="margin-top:var(--s2)" onclick="goActivity()">Start</button>`:`<button class="btn" style="margin-top:var(--s2)" onclick="openRoutes()">Find routes</button><button class="btn sec2" style="margin-top:var(--s1)" onclick="goActivity()">Start without a route</button>`}`}
 function ivPick(k){const F=FORMATS.find(x=>x[0]===k);IVS.f=k;if(k!=='custom'&&k!=='free'){IVS.run=F[3];IVS.walk=F[4];IVS.rounds=F[5]}$('#sheet').innerHTML='<div class="grab"></div>'+ivSheet()}
 function ivSet(k,d,min,max){IVS[k]=Math.max(min,Math.min(max,IVS[k]+d));$('#sheet').innerHTML='<div class="grab"></div>'+ivSheet()}
-async function goActivity(){closeSheet();await syncSteps();const c0=await chipRead();
+async function goActivity(plan){closeSheet();await syncSteps();const c0=await chipRead();
  const free=IVS.f==='free',ph=[];if(!free){if(IVS.warm)ph.push(['walk',300,'Warm-up']);for(let i=1;i<=IVS.rounds;i++){ph.push(['run',IVS.run,`Round ${i}/${IVS.rounds}`]);ph.push(['walk',IVS.walk,`Round ${i}/${IVS.rounds}`])}}
- startRun(free?'run':ph[0][0]);if(!RUN)return;if(c0!=null)RUN.chip={start:c0,last:c0,acc:0};RUN.uiT=setInterval(()=>{liveStats();if(RUN?.chip&&Math.floor(RUN.el)%10===0)chipTick()},1000);
+ startRun(free?'run':ph[0][0]);if(!RUN)return;if(c0!=null)RUN.chip={start:c0,last:c0,acc:0};if(plan)setPlan(plan);RUN.uiT=setInterval(()=>{liveStats();if(RUN?.chip&&Math.floor(RUN.el)%10===0)chipTick()},1000);
  if(free)return;let t=0;RUN.iv={f:IVS.f,ph:ph.map(([m,s,l])=>({m,s,l,end:t+=s})),i:0,done:false};RUN.ivT=setInterval(ivTick,500)}
+// ================= PLAN A ROUTE =================
+let ROUTES={list:[],sel:0,busy:false,msg:'',meters:0,kind:'loop',batch:0};
+const routeTime=r=>RWRoutes.metersToSecs(r.meters,RWRoutes.paces(S.runs),runFrac());
+const ROUTE_ERR={nokey:'Route planning isn’t set up yet (no OpenRouteService key).',rate:'Too many route requests right now — try again in a minute.',offline:'You’re offline — start without a route.',key:'The route service rejected the key.',none:'No routes found around here.',noloc:'Still finding your location — try again in a moment.'};
+function openRoutes(){ROUTES={list:[],sel:0,busy:false,msg:'',meters:goalMeters(),kind:GOAL.kind,batch:0};closeSheet();push('routepick');
+ if(!LOC.pos){askLocation(true);ROUTES.busy=true;let n=0;const w=setInterval(()=>{if(LOC.pos||++n>40){clearInterval(w);ROUTES.busy=false;if(LOC.pos)loadRoutes(false);else{ROUTES.msg=ROUTE_ERR.noloc;render()}}},250);render();return}
+ loadRoutes(false)}
+async function loadRoutes(fresh){if(ROUTES.busy&&fresh)return;ROUTES.busy=true;ROUTES.msg='';render();
+ try{if(navigator.onLine===false)throw Object.assign(new Error(),{code:'offline'});
+  const list=await RWRoutes.suggestRoutes({start:LOC.pos,meters:ROUTES.meters,kind:ROUTES.kind,n:3,fresh});
+  ROUTES.list=list;ROUTES.sel=0;ROUTES.batch++;ROUTES.msg=!list.length?ROUTE_ERR.none:list.length<3?`Only ${list.length} different route${list.length>1?'s':''} found around here.`:''}
+ catch(e){ROUTES.msg=ROUTE_ERR[e.code]||(e instanceof TypeError?ROUTE_ERR.offline:'Couldn’t plan routes right now.');if(fresh===false)ROUTES.list=[]}
+ ROUTES.busy=false;if(stack.at(-1)?.[0]==='routepick')render()}
+function pickRoute(i){ROUTES.sel=i;document.querySelectorAll('.cd-route').forEach((c,k)=>c.classList.toggle('on',k===i));const m=MAPS.plan;if(m)drawMap('plan',m)}
+const ROUTE_COL=['#2563eb','#0d9488','#9333ea','#ea580c','#64748b'];
+V.routepick=()=>{const R=ROUTES,lbl=r=>Math.abs(r.off)>0.1?` — a bit ${r.off>0?'long':'short'}`:'';
+ return`<div class="top">${backBtn()}<h1 style="font-size:22px;flex:1;margin-left:var(--s1)">Pick a route</h1><span></span></div>
+ <p class="muted" style="margin-top:-6px">${R.kind==='loop'?'Loop':'One way'} · about ${(R.meters/1000).toFixed(1)} km</p>
+ <div class="cd-mapwrap" style="margin-top:var(--s1)">${mapEl('plan',300)}${R.busy&&!R.list.length?'<div class="cd-mapmsg">Finding routes…</div>':''}</div>
+ ${R.msg?`<p class="t-caption" id="routemsg" style="margin-top:var(--s1)">${R.msg}</p>`:''}
+ <div class="cd-routes">${R.list.map((r,i)=>`<button class="cd-route${i===R.sel?' on':''}" onclick="pickRoute(${i})"><i style="background:${ROUTE_COL[i%5]}"></i><span><b>${(r.meters/1000).toFixed(2)} km${lbl(r)}</b><small>≈ ${fmtT(routeTime(r))}${r.ascent!=null?` · ↑ ${Math.round(r.ascent)} m`:''}</small></span></button>`).join('')}</div>
+ <button class="btn" style="margin-top:var(--s2)" ${R.list.length&&!R.busy?'':'disabled'} onclick="startWithRoute()">Start with this route</button>
+ <div class="flex" style="gap:8px;margin-top:var(--s1)"><button class="btn sec2" id="reroll" style="flex:1" ${R.busy?'disabled':''} onclick="loadRoutes(true)">${R.busy&&R.list.length?'Finding new routes…':'Reroll'}</button><button class="btn sec2" style="flex:1" onclick="stack=[];goActivity()">Start without a route</button></div>`};
+function startWithRoute(){const r=ROUTES.list[ROUTES.sel];if(!r)return;stack=[];goActivity({goal:GOAL.g,target:GOAL.g==='distance'?GOAL.dist:GOAL.time,meters:ROUTES.meters,kind:ROUTES.kind,pts:r.pts,len:Math.round(r.meters)})}
+// Live progress along the planned route: nearest point (searched forward so loops don't jump to the finish) and off-route timer.
+function setPlan(p){const cum=[0];for(let i=1;i<p.pts.length;i++)cum.push(cum[i-1]+hav(p.pts[i-1],p.pts[i]));RUN.plan=p;RUN.planCum=cum;RUN.planIdx=0;RUN.offSince=null;RUN.offDist=0}
+function segDist(p,a,b){const k=Math.cos(p[0]*Math.PI/180),x=(q)=>[(q[1]-p[1])*k*111320,(q[0]-p[0])*111320],A=x(a),B=x(b),dx=B[0]-A[0],dy=B[1]-A[1],t=Math.max(0,Math.min(1,dx||dy?-(A[0]*dx+A[1]*dy)/(dx*dx+dy*dy):0));return Math.hypot(A[0]+t*dx,A[1]+t*dy)}
+function planTrack(){const R=RUN,P=R?.plan,p=R?.pts.at(-1);if(!P||!p)return;let best=Infinity,bi=R.planIdx;
+ for(let i=Math.max(0,R.planIdx-5);i<Math.min(P.pts.length,R.planIdx+80);i++){const d=hav(p,P.pts[i]);if(d<best){best=d;bi=i}}if(best<80)R.planIdx=Math.max(R.planIdx,bi);
+ let off=Infinity;for(let i=1;i<P.pts.length;i++)off=Math.min(off,segDist(p,P.pts[i-1],P.pts[i]));R.offDist=off;if(off>50){R.offSince??=Date.now()}else R.offSince=null}
+const planLeft=()=>RUN?.plan?Math.max(0,(RUN.planCum.at(-1)-RUN.planCum[RUN.planIdx])/1000):0;
+const offRoute=()=>!!RUN?.offSince&&Date.now()-RUN.offSince>=20000;
 // Chip phones count activity steps from the chip, so the accelerometer isn't started for them. On phones without
 // a chip the accelerometer counts each step once into the day and once into the activity, and stops after the
 // activity if the activity started it.
@@ -123,10 +179,11 @@ const _srC=startRun;startRun=function(type){const was=pedo.on;if(chipOK())pedo.o
 gpsFix=function(p){if(!RUN||RUN.paused)return;const c=[p.coords.latitude,p.coords.longitude],acc=p.coords.accuracy;RUN.lastFix=Date.now();RUN.acc=Math.round(acc);
  if(acc>35){if(!RUN.pts.length){RUN.pts.push(c);RUN.gap=true}return liveUpdate()}
  const l=RUN.pts.at(-1);if(l&&!RUN.gap){const d=hav(l,c);if(d<3)return liveStats();RUN.dist+=d;RUN.d[RUN.mode]+=d}RUN.gap=false;RUN.pts.push(c);liveUpdate()};
-function liveUpdate(){if(stack.at(-1)?.[0]!=='runlive')return;const m=MAPS.live;if(m)drawMap('live',m);if(RUN.pts.length)$('#livemsg')?.remove();liveStats()}
+function liveUpdate(){planTrack();if(stack.at(-1)?.[0]!=='runlive')return;const m=MAPS.live;if(m)drawMap('live',m);if(RUN.pts.length)$('#livemsg')?.remove();liveStats()}
 function liveStats(){const R=RUN;if(!R||stack.at(-1)?.[0]!=='runlive')return;const set=(id,v)=>{const e=$('#'+id);if(e&&e.textContent!==String(v))e.textContent=v};
  set('ldist',(R.dist/1000).toFixed(2));set('lpace',pace(R.el,R.dist));set('lkcal',actKcal(R));set('lrun',(R.d.run/1000).toFixed(2));set('lwalk',(R.d.walk/1000).toFixed(2));set('lsteps',R.steps);
- set('lgps',`● ${R.paused?'Paused':R.acc?`GPS ±${R.acc} m`:'Finding GPS…'}`)}
+ set('lgps',`● ${R.paused?'Paused':R.acc?`GPS ±${R.acc} m`:'Finding GPS…'}`);
+ if(R.plan){set('lplan',`${planLeft().toFixed(2)} km to go`);$('#loff')?.classList.toggle('show',offRoute())}}
 function say(t){try{const u=new SpeechSynthesisUtterance(t);u.rate=1.05;speechSynthesis.cancel();speechSynthesis.speak(u)}catch(e){}}
 function ivTick(){const R=RUN;if(!R?.iv){clearInterval(R?.ivT);return}const I=R.iv,t=R.el;if(I.done)return;
  let i=I.ph.findIndex(p=>t<p.end);if(i<0){I.done=true;vib([300,100,300,100,300]);say('Intervals complete. Great work.');toast('🏆 Intervals done — keep going or tap Finish');ivPaint();return}
@@ -143,6 +200,7 @@ V.runlive=()=>{const R=RUN;if(!R)return V.run();const on=m=>m==='pause'?R.paused
  const b=(m,e,l)=>`<button class="btn ${on(m)?'':'sec2'}" style="flex:1;padding:16px 4px;font-size:15px" onclick="setMode('${m}')">${e}<br>${l}</button>`;
  return`<div class="top"><span class="chip">${R.paused?'⏸ Paused':R.mode==='run'?'🏃 Running':'🚶 Walking'}</span><span class="chip" id="lgps" style="color:${R.paused?'var(--warn)':'var(--good)'}">● ${R.paused?'Paused':R.acc?`GPS ±${R.acc} m`:'Finding GPS…'}</span></div>
  ${ivBox()}
+ ${R.plan?`<div class="cd-plan"><b id="lplan">${planLeft().toFixed(2)} km to go</b><span class="cd-off${offRoute()?' show':''}" id="loff">Off route</span></div>`:''}
  <div class="cd-mapwrap">${mapEl('live',260)}${R.pts.length?'':'<div class="cd-mapmsg" id="livemsg">📡 Finding your location… outside is best</div>'}<button class="cd-recenter${MAPS.live&&Date.now()<MAPS.live.pauseUntil?' show':''}" id="recenter" aria-label="Recenter map" onclick="recenter()">📍</button></div>
  <div class="card" style="margin-top:12px;text-align:center"><div class="muted">Distance</div><div class="big" style="font-size:54px" id="ldist">${(R.dist/1000).toFixed(2)}</div><div class="muted">km</div>
  <div class="runstats"><div><b id="rtime">${fmtT(R.el)}</b><small>TIME</small></div><div><b id="lpace">${pace(R.el,R.dist)}</b><small>PACE /KM</small></div><div><b id="lkcal">${actKcal(R)}</b><small>KCAL</small></div></div>
@@ -157,7 +215,7 @@ stopRun=async function(){const R=RUN;if(!R)return;navigator.geolocation.clearWat
  if(R.chip){await R.chipP;await chipTick(R)}if(R.pedoMine&&pedo.on)stopPedo();
  if(R.dist<20&&!confirm('Very short activity. Save anyway?')){RUN=null;dropMap('live');syncSteps();go('train');return}
  RUN=null;dropMap('live');const type=R.d.run>20&&R.d.walk>20?'mix':R.d.run>=R.d.walk?'run':'walk',kcal=actKcal(R),d=today();
- const r={type,ts:R.ts,pts:R.pts,dist:Math.round(R.dist),time:Math.round(R.el),steps:R.steps,d:{run:Math.round(R.d.run),walk:Math.round(R.d.walk)},t:{run:Math.round(R.t.run),walk:Math.round(R.t.walk)},kcal,...(R.iv?{fmt:R.iv.f}:{})};
+ const r={type,ts:R.ts,pts:R.pts,dist:Math.round(R.dist),time:Math.round(R.el),steps:R.steps,d:{run:Math.round(R.d.run),walk:Math.round(R.d.walk)},t:{run:Math.round(R.t.run),walk:Math.round(R.t.walk)},kcal,...(R.iv?{fmt:R.iv.f}:{}),...(R.plan?{plan:{goal:R.plan.goal,target:R.plan.target,kind:R.plan.kind,pts:R.plan.pts,len:R.plan.len}}:{})};
  // Automatic steps off: the activity's chip steps still belong in today's total.
  if(R.chip&&!S.autoSteps)S.steps[d]=(S.steps[d]||0)+R.steps;S.actSteps[d]=(S.actSteps[d]||0)+R.steps;
  for(const x of Object.keys(S.actSteps))if(x<iso(Date.now()-60*864e5))delete S.actSteps[x];
@@ -189,7 +247,8 @@ V.actdetail=ts=>{const r=S.runs.find(x=>x.ts===ts);if(!r)return`<div class="top"
  return`<div class="top">${backBtn()}<h1 style="font-size:22px;flex:1;margin-left:var(--s1)">${new Date(r.ts).toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'})}</h1><span></span></div>
  <div class="card" style="padding:0;overflow:hidden">${r.pts.length>1?actHead(r,true):actHead(r)}</div>
  <div class="card"><div class="runstats" style="margin:0"><div><b>${(r.d?.run/1000||0).toFixed(2)}</b><small>RUN KM</small></div><div><b>${(r.d?.walk/1000||0).toFixed(2)}</b><small>WALK KM</small></div><div><b>${(r.steps||0).toLocaleString()}</b><small>STEPS</small></div></div>
- <p class="t-caption" style="margin-top:8px">These steps are part of that day's step total.</p></div>`};
+ <p class="t-caption" style="margin-top:8px">These steps are part of that day's step total.</p></div>
+ ${r.plan?`<div class="card" id="planvs"><b>Planned vs actual</b><p class="t-body" style="margin-top:4px">${r.plan.kind==='loop'?'Loop':'One way'} · ${(r.plan.len/1000).toFixed(2)} km planned · ${(r.dist/1000).toFixed(2)} km done (${r.dist>=r.plan.len?'+':''}${((r.dist-r.plan.len)/1000).toFixed(2)} km)</p><p class="t-caption">Goal: ${r.plan.goal==='time'?`${Math.round(r.plan.target/60)} min`:`${(r.plan.target/1000).toFixed(1)} km`}. Dashed line on the map = planned route.</p></div>`:''}`};
 
 const _rdC=render;render=function(...a){const x=_rdC.apply(this,a);try{mountMaps()}catch(e){console.error(e)}return x};
 
@@ -199,6 +258,12 @@ document.head.insertAdjacentHTML('beforeend',`<style>
 .cmap .leaflet-control-attribution{font-size:9px;background:#ffffffcc}
 .cd-recenter{position:absolute;right:10px;bottom:28px;z-index:600;width:40px;height:40px;border-radius:50%;border:none;background:#fff;box-shadow:0 2px 8px #0003;font-size:18px;display:none;cursor:pointer}.cd-recenter.show{display:grid;place-items:center}
 .cd-act{cursor:pointer}.cd-act:active{opacity:.8}
+.cd-seg{display:flex;background:var(--fill);border-radius:var(--r-pill);padding:3px}.cd-seg button{flex:1;border:none;background:none;border-radius:var(--r-pill);padding:8px 0;font-weight:600;color:var(--ink-2);cursor:pointer}.cd-seg button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px #15151f1a}
+.cd-routes{display:grid;gap:8px;margin-top:var(--s2)}.cd-route{display:flex;align-items:center;gap:12px;text-align:left;border:1.5px solid var(--line);background:var(--surface);border-radius:12px;padding:12px;cursor:pointer;color:var(--ink)}
+.cd-route i{width:14px;height:14px;border-radius:50%;flex:none}.cd-route b{display:block;font-size:16px}.cd-route small{color:var(--ink-2);font-size:13px}.cd-route.on{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
+.cd-plan{display:flex;align-items:center;justify-content:space-between;background:var(--surface);border-radius:14px;padding:10px 14px;margin-bottom:12px;box-shadow:0 1px 2px #15151f0d}.cd-plan b{font-size:18px;font-variant-numeric:tabular-nums}
+.cd-off{display:none;background:#fef3c7;color:#92400e;font-weight:700;font-size:13px;padding:4px 10px;border-radius:999px}.cd-off.show{display:inline-block}
+.btn[disabled]{opacity:.45;pointer-events:none}
 .cd-mapwrap{position:relative}.cd-mapmsg{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:16px;color:var(--ink-2);font-weight:600;font-size:14px;pointer-events:none;z-index:500}
 .cd-loc{display:flex;align-items:center;gap:12px;background:#eff6ff;border-radius:14px;padding:14px;margin:var(--s2) 0}.cd-loc>div{flex:1}.cd-loc b{display:block}.cd-loc small{color:var(--ink-2);font-size:13px}
 .cd-rank{background:var(--surface);border-radius:16px;padding:14px;margin-top:var(--s2);cursor:pointer;box-shadow:0 1px 2px #15151f0d,0 6px 20px #15151f0a}

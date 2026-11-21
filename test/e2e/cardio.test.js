@@ -94,3 +94,64 @@ test('progressive overload: going farther than last time pays 1.5×, a new best 
   assert.ok(r.ov); assert.ok(r.pr); assert.equal(r.k, 3); assert.equal(r.auto, false);
   assert.deepEqual(p.errors, []);
 });
+
+// ---------- Plan a route (OpenRouteService mocked in the page) ----------
+// Loops are circles whose direction depends on the seed (every 6th seed is an out-and-back); window.__orsValid limits
+// how many valid loops exist. One-way routes go to the requested point with a detour (~1.33× the straight line).
+const ORS = `(()=>{const R=6371e3,rad=x=>x*Math.PI/180,deg=x=>x*180/Math.PI;
+ const dest=(p,b,m)=>{const d=m/R,br=rad(b),la=rad(p[0]),lo=rad(p[1]),la2=Math.asin(Math.sin(la)*Math.cos(d)+Math.cos(la)*Math.sin(d)*Math.cos(br));return[deg(la2),deg(lo+Math.atan2(Math.sin(br)*Math.sin(d)*Math.cos(la),Math.cos(d)-Math.sin(la)*Math.sin(la2)))]};
+ const hav=(a,b)=>{const dl=rad(b[0]-a[0]),dn=rad(b[1]-a[1]),h=Math.sin(dl/2)**2+Math.cos(rad(a[0]))*Math.cos(rad(b[0]))*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(h))};
+ const len=p=>p.reduce((s,q,i)=>i?s+hav(p[i-1],q):0,0),brg=(a,b)=>{const y=Math.sin(rad(b[1]-a[1]))*Math.cos(rad(b[0])),x=Math.cos(rad(a[0]))*Math.sin(rad(b[0]))-Math.sin(rad(a[0]))*Math.cos(rad(b[0]))*Math.cos(rad(b[1]-a[1]));return(deg(Math.atan2(y,x))+360)%360};
+ const fc=p=>({ok:true,status:200,json:async()=>({features:[{geometry:{coordinates:p.map(q=>[q[1],q[0],5])},properties:{summary:{distance:len(p),duration:len(p)/1.4},ascent:12}}]})});
+ window.__orsCalls=0;window.__orsValid=Infinity;const real=window.fetch;
+ window.fetch=async(url,init)=>{if(!String(url).includes('openrouteservice'))return real(url,init);window.__orsCalls++;await new Promise(r=>setTimeout(r,20));const b=JSON.parse(init.body);
+  if(b.options&&b.options.round_trip){const{length:L,seed}=b.options.round_trip,s=[b.coordinates[0][1],b.coordinates[0][0]];
+   const ob=()=>{const o=Array.from({length:21},(_,i)=>dest(s,40,i*L/40));return[...o,...o.slice(0,-1).reverse()]};
+   if(window.__orsCalls>window.__orsValid||seed%6===0)return fc(ob());const th=(seed*47)%360,r=L/2/Math.PI,c=dest(s,th,r);return fc(Array.from({length:73},(_,i)=>dest(c,th+180+i*5,r)))}
+  const[a,d]=b.coordinates.map(c=>[c[1],c[0]]);return fc([a,dest(a,brg(a,d)+41.4,hav(a,d)/2/Math.cos(rad(41.4))),d])}})();`;
+const ROUTE_SETUP = `RWRoutes.config.key='test';RWRoutes._state.session={};RWRoutes._state.cache={};LOC.pos=[14.5547,121.0244];LOC.state='granted';`;
+
+test('plan a route: time goal shows the distance estimate from the usual pace; loop gives ≥ 3 suggestions on the map', async () => {
+  const runs = [{ type: 'run', ts: Date.now() - 864e5, pts: [], dist: 5000, time: 1500, d: { run: 5000, walk: 0 }, t: { run: 1500, walk: 0 } }];
+  await p.open({ state: baseState({ runs }), inject: GEO + ORS }); await ready();
+  const r = await p.eval(`${ROUTE_SETUP}startActivity();goalSet('g','time');ivPick('free');goalSet('time',1800);const est=$('#goalest').textContent;goalSet('kind','loop');
+    const btn=[...document.querySelectorAll('#sheet .btn')].map(b=>b.textContent);openRoutes();for(let k=0;k<60&&(ROUTES.busy||!ROUTES.list.length);k++)${wait(50)}
+    const cards=document.querySelectorAll('.cd-route').length,lines=Object.values(MAPS.plan.plan._layers).length,meters=ROUTES.meters;
+    pickRoute(2);const sel=document.querySelectorAll('.cd-route')[2].classList.contains('on');
+    const other=Object.values(MAPS.plan.plan._layers).find(l=>l.getLatLngs().length&&l.options.weight===4);other.fire('click');const tapped=ROUTES.sel!==2&&document.querySelectorAll('.cd-route.on').length===1;
+    return {est,btn,cards,lines,meters,sel,tapped,calls:window.__orsCalls}`);
+  assert.match(r.est, /≈ 6\.0 km at your usual pace/); assert.equal(r.meters, 6000); assert.ok(r.btn.includes('Find routes')); assert.ok(r.btn.includes('Start without a route'));
+  assert.ok(r.cards >= 3); assert.ok(r.lines >= 3); assert.ok(r.sel); assert.ok(r.tapped); assert.ok(r.calls <= 12);
+  assert.deepEqual(p.errors, []);
+});
+
+test('plan a route: Reroll disables while fetching and returns ≥ 3 routes not shown before', async () => {
+  await p.open({ state: baseState(), inject: GEO + ORS }); await ready();
+  const r = await p.eval(`${ROUTE_SETUP}startActivity();goalSet('g','distance');goalSet('dist',5000);openRoutes();for(let k=0;k<60&&(ROUTES.busy||!ROUTES.list.length);k++)${wait(50)}
+    const first=ROUTES.list.slice();const pr=loadRoutes(true);${wait(10)}const dis=$('#reroll').disabled,txt=$('#reroll').textContent;await pr;
+    const second=ROUTES.list.slice();const ov=Math.max(0,...second.flatMap(a=>first.map(b=>RWRoutes.overlap(a.pts,b.pts))));
+    return {n1:first.length,n2:second.length,dis,txt,ov,cards:document.querySelectorAll('.cd-route').length}`);
+  assert.ok(r.n1 >= 3); assert.ok(r.n2 >= 3); assert.ok(r.dis); assert.match(r.txt, /Finding new routes/); assert.ok(r.ov <= 0.7); assert.equal(r.cards, r.n2);
+  assert.deepEqual(p.errors, []);
+});
+
+test('plan a route: fewer than 3 valid routes shows what exists with a one-line note; errors offer starting without a route', async () => {
+  await p.open({ state: baseState(), inject: GEO + ORS }); await ready();
+  const r = await p.eval(`${ROUTE_SETUP}window.__orsValid=2;startActivity();goalSet('g','distance');openRoutes();for(let k=0;k<80&&(ROUTES.busy||!ROUTES.list.length);k++)${wait(50)}
+    const few={n:ROUTES.list.length,msg:($('#routemsg')||{}).textContent};RWRoutes.config.key='';await loadRoutes(true);
+    return {few,keyMsg:$('#routemsg').textContent,escape:[...document.querySelectorAll('.btn')].some(b=>/Start without a route/.test(b.textContent))}`);
+  assert.ok(r.few.n >= 1 && r.few.n < 3); assert.match(r.few.msg, /Only \d different routes? found/); assert.match(r.keyMsg, /isn’t set up/); assert.ok(r.escape);
+  assert.deepEqual(p.errors, []);
+});
+
+test('plan a route: live map draws the dashed plan, shows km to go and Off route; the plan is saved with planned vs actual', async () => {
+  await p.open({ state: baseState(), inject: GEO + ORS }); await ready();
+  const r = await p.eval(`${ROUTE_SETUP}startActivity();goalSet('g','distance');goalSet('dist',3000);ivPick('1:1');openRoutes();for(let k=0;k<60&&(ROUTES.busy||!ROUTES.list.length);k++)${wait(50)}
+    startWithRoute();for(let k=0;k<40&&!RUN?.plan;k++)${wait(50)}${wait(800)}const live=MAPS.live,planLayers=Object.values(live.plan._layers),dash=planLayers[0]?.options.dashArray,iv=!!RUN.iv;
+    const left=$('#lplan').textContent;RUN.pts.push([14.70,121.20]);planTrack();RUN.offSince=Date.now()-21000;liveStats();const off=$('#loff').classList.contains('show');
+    RUN.el=900;await stopRun();const run=S.runs.at(-1);push('actdetail',run.ts);${wait(200)}
+    return {dash,iv,left,off,plan:run.plan&&{kind:run.plan.kind,goal:run.plan.goal,target:run.plan.target,pts:run.plan.pts.length>10},vs:($('#planvs')||{}).textContent,detailPlan:Object.values(MAPS['run:'+run.ts].plan._layers).length}`);
+  assert.equal(r.dash, '8 10'); assert.ok(r.iv); assert.match(r.left, /km to go/); assert.ok(r.off);
+  assert.deepEqual(r.plan, { kind: 'loop', goal: 'distance', target: 3000, pts: true }); assert.match(r.vs, /Planned vs actual/); assert.match(r.vs, /km planned/); assert.equal(r.detailPlan, 1);
+  assert.deepEqual(p.errors, []);
+});
