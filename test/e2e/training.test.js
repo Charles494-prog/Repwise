@@ -86,7 +86,7 @@ test('bodyweight exercises: no "pick a weight", about 10 reps first time, then b
   const now = Date.now();
   await p.open({ state: baseState() });
   const r = await p.eval(`const first=sugg('Push-up').text,bench=sugg('Bench Press').text;S.workouts.push({ts:${now}-864e5,prog:'free',sets:[{ex:'Push-up',w:0,r:12,xp:5},{ex:'Push-up',w:0,r:10,xp:5}],xp:10,prs:0});
-    const next=sugg('Push-up');S.active=null;startW('free');useEx('Push-up');const label=/Added weight \(kg\) · optional/.test(document.body.innerText);return {first,bench,next,label}`);
+    const next=sugg('Push-up');S.active=null;startW('free');useEx('Push-up');const label=document.body.textContent.includes('Added weight (kg) · optional');return {first,bench,next,label}`);
   assert.doesNotMatch(r.first, /weight/i); assert.match(r.first, /about <b>10<\/b>/); assert.match(r.bench, /Pick a weight/);
   assert.match(r.next.text, /Last time 12 reps\. Beat it: <b>13 reps<\/b>/); assert.equal(r.next.w, 0); assert.ok(r.label);
   assert.deepEqual(p.errors, []);
