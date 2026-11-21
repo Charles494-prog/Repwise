@@ -35,9 +35,12 @@ const planWeek=P=>{const days=SPLITS[P.split].days;let q=0;return P.pat.map(v=>v
 const fastOff=()=>!OB.d.fastProto||OB.d.fastProto==='off';
 function togOff(i,el){const o=OB.d.offDays=(OB.d.offDays||[]).includes(i)?OB.d.offDays.filter(x=>x!==i):[...(OB.d.offDays||[]),i];el.classList.toggle('on');vib(8);
  const b=$('#offgo');if(b)b.textContent=o.length?`Continue · ${7-o.length} days free`:'No blocked days';if(o.length>=7){OB.d.offDays=o.slice(0,6);el.classList.remove('on');toast('Keep at least one day free')}}
+// the deficit step preselects the default for the chosen goal, so switching cut → bulk never keeps the old deficit
+const _startOBT=startOB;startOB=function(){OB._defGoal=S.profile?.goal;_startOBT()};
 const _onbT=V.onboard;V.onboard=()=>{
  // skip the window-start question when fasting is off, in whichever direction the user is moving
  if(OBSTEPS[OB.step]?.k==='fastStart'&&fastOff())OB.step+=(OB._last??0)>OB.step?-1:1;OB._last=OB.step;
+ if(OBSTEPS[OB.step]?.k==='deficit'&&OB._defGoal!==OB.d.goal){OB._defGoal=OB.d.goal;const v={cut:500,slowcut:250,maintain:0,bulk:-300}[OB.d.goal];if(v!=null)OB.d.deficit=v}
  if(OB.d.fastStart==null&&OBSTEPS[OB.step]?.k==='fastStart')OB.d.fastStart=S.fast.start;
  if(OB.active&&OB.step>=OBSTEPS.length)return planReveal();
  const s=OBSTEPS[OB.step];if(!s?.custom)return _onbT();const st=OB.step,off=OB.d.offDays||[];

@@ -57,3 +57,18 @@ test('body fat: the Progress screen shows the number without errors for estimate
   }
   assert.deepEqual(p.errors, []);
 });
+
+test('setup: changing the goal preselects that goal\'s deficit; keeping the goal keeps a custom deficit', async () => {
+  const st = baseState(); st.profile = Object.assign({}, st.profile, { goal: 'cut', deficit: 750 });
+  await p.open({ state: st });
+  const r = await p.eval(`const at=k=>{OB.step=OBSTEPS.findIndex(s=>s.k===k);render();return OB.d.deficit};
+    startOB();const kept=at('deficit');
+    startOB();OB.d.goal='bulk';const bulk=at('deficit');OB.d.deficit=-300;
+    OB.d.goal='maintain';const toned=at('deficit');
+    return {kept,bulk,toned,kcal:(()=>{OB.d.goal='bulk';at('deficit');OB.step=OBSTEPS.length;render();finishOB();return targets().kcal-targets().tdee})()}`);
+  assert.equal(r.kept, 750);
+  assert.equal(r.bulk, -300);
+  assert.equal(r.toned, 0);
+  assert.equal(r.kcal, 300, 'a bulk ends up in a surplus');
+  assert.deepEqual(p.errors, []);
+});
