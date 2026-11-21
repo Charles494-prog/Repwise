@@ -15,6 +15,8 @@
     if (!prev || prev.raw == null || !prev.at) return { add: {}, next };
     let delta = total >= prev.raw ? total - prev.raw : total;
     if (delta <= 0) return { add: {}, next };
+    // No time passed since the last reading (two reads in the same millisecond): it all belongs to today.
+    if (now <= prev.at) return { add: { [iso(now)]: Math.min(60000, delta) }, next };
     const add = {}, span = Math.max(1, now - prev.at);
     let t = prev.at;
     while (t < now) {

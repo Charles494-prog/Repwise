@@ -9,6 +9,7 @@ test('steps: app killed for a day spreads steps across both days, not all today'
   const r = C.stepAttribution({ raw: 0, at: at('2026-11-20T12:00') }, 12000, at('2026-11-21T12:00'));
   assert.deepEqual(r.add, { '2026-11-20': 6000, '2026-11-21': 6000 });
 });
+test('steps: two readings in the same millisecond still count', () => { const t = at('2026-11-21T09:00'); assert.deepEqual(C.stepAttribution({ raw: 150, at: t }, 300, t).add, { '2026-11-21': 150 }); });
 test('steps: no change and implausible jumps', () => {
   assert.deepEqual(C.stepAttribution({ raw: 500, at: 1 }, 500, 2).add, {});
   assert.equal(C.stepAttribution({ raw: 0, at: at('2026-11-21T08:00') }, 500000, at('2026-11-21T09:00')).add['2026-11-21'], 60000);
