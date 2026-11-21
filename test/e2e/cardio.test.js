@@ -109,7 +109,7 @@ const ORS = `(()=>{const R=6371e3,rad=x=>x*Math.PI/180,deg=x=>x*180/Math.PI;
    const ob=()=>{const o=Array.from({length:21},(_,i)=>dest(s,40,i*L/40));return[...o,...o.slice(0,-1).reverse()]};
    if(window.__orsCalls>window.__orsValid||seed%6===0)return fc(ob());const th=(seed*47)%360,r=L/2/Math.PI,c=dest(s,th,r);return fc(Array.from({length:73},(_,i)=>dest(c,th+180+i*5,r)))}
   const[a,d]=b.coordinates.map(c=>[c[1],c[0]]);return fc([a,dest(a,brg(a,d)+41.4,hav(a,d)/2/Math.cos(rad(41.4))),d])}})();`;
-const ROUTE_SETUP = `RWRoutes.config.key='test';RWRoutes._state.session={};RWRoutes._state.cache={};LOC.pos=[14.5547,121.0244];LOC.state='granted';`;
+const ROUTE_SETUP = `S.orsKey='test-key-0123456789abcdef';RWRoutes.config.key=S.orsKey;RWRoutes._state.session={};RWRoutes._state.cache={};LOC.pos=[14.5547,121.0244];LOC.state='granted';`;
 
 test('plan a route: time goal shows the distance estimate from the usual pace; loop gives ≥ 3 suggestions on the map', async () => {
   const runs = [{ type: 'run', ts: Date.now() - 864e5, pts: [], dist: 5000, time: 1500, d: { run: 5000, walk: 0 }, t: { run: 1500, walk: 0 } }];
@@ -138,9 +138,9 @@ test('plan a route: Reroll disables while fetching and returns ≥ 3 routes not 
 test('plan a route: fewer than 3 valid routes shows what exists with a one-line note; errors offer starting without a route', async () => {
   await p.open({ state: baseState(), inject: GEO + ORS }); await ready();
   const r = await p.eval(`${ROUTE_SETUP}window.__orsValid=2;startActivity();goalSet('g','distance');openRoutes();for(let k=0;k<80&&(ROUTES.busy||!ROUTES.list.length);k++)${wait(50)}
-    const few={n:ROUTES.list.length,msg:($('#routemsg')||{}).textContent};RWRoutes.config.key='';await loadRoutes(true);
-    return {few,keyMsg:$('#routemsg').textContent,escape:[...document.querySelectorAll('.btn')].some(b=>/Start without a route/.test(b.textContent))}`);
-  assert.ok(r.few.n >= 1 && r.few.n < 3); assert.match(r.few.msg, /Only \d different routes? found/); assert.match(r.keyMsg, /isn’t set up/); assert.ok(r.escape);
+    const few={n:ROUTES.list.length,msg:($('#routemsg')||{}).textContent};
+    return {few,escape:[...document.querySelectorAll('.btn')].some(b=>/Start without a route/.test(b.textContent))}`);
+  assert.ok(r.few.n >= 1 && r.few.n < 3); assert.match(r.few.msg, /Only \d different routes? found/); assert.ok(r.escape);
   assert.deepEqual(p.errors, []);
 });
 
@@ -153,5 +153,31 @@ test('plan a route: live map draws the dashed plan, shows km to go and Off route
     return {dash,iv,left,off,plan:run.plan&&{kind:run.plan.kind,goal:run.plan.goal,target:run.plan.target,pts:run.plan.pts.length>10},vs:($('#planvs')||{}).textContent,detailPlan:Object.values(MAPS['run:'+run.ts].plan._layers).length}`);
   assert.equal(r.dash, '8 10'); assert.ok(r.iv); assert.match(r.left, /km to go/); assert.ok(r.off);
   assert.deepEqual(r.plan, { kind: 'loop', goal: 'distance', target: 3000, pts: true }); assert.match(r.vs, /Planned vs actual/); assert.match(r.vs, /km planned/); assert.equal(r.detailPlan, 1);
+  assert.deepEqual(p.errors, []);
+});
+
+test('plan a route: no key → one-time setup (opt-in); saving a key finds routes; a rejected key asks again; key can be removed', async () => {
+  await p.open({ state: baseState(), inject: GEO + ORS }); await ready();
+  const r = await p.eval(`LOC.pos=[14.5547,121.0244];LOC.state='granted';RWRoutes._state.session={};RWRoutes._state.cache={};startActivity();goalSet('g','distance');
+    const hint=/one-time setup/.test($('#sheet').textContent);openRoutes();${wait(100)}const setup=!!$('.cd-key'),calls0=window.__orsCalls,escape=[...document.querySelectorAll('.btn')].some(b=>/Start without a route/.test(b.textContent));
+    $('#orskey').value='short';saveOrsKey();const stillSetup=!!$('.cd-key');
+    $('#orskey').value='my-own-key-0123456789abcdef';saveOrsKey();for(let k=0;k<60&&(ROUTES.busy||!ROUTES.list.length);k++)${wait(50)}
+    const found=ROUTES.list.length,saved=S.orsKey,stored=JSON.parse(localStorage.getItem('gq')).orsKey;
+    const real=window.fetch;window.fetch=async()=>({ok:false,status:403,json:async()=>({})});await loadRoutes(true);window.fetch=real;const rejected={setup:!!$('.cd-key'),msg:($('#routemsg')||{}).textContent};
+    removeOrsKey();return {hint,setup,calls0,escape,stillSetup,found,saved,stored,rejected,removed:S.orsKey===''&&RWRoutes.config.key===''&&!!$('.cd-key')}`);
+  assert.ok(r.hint); assert.ok(r.setup); assert.equal(r.calls0, 0); assert.ok(r.escape); assert.ok(r.stillSetup);
+  assert.ok(r.found >= 3); assert.equal(r.saved, 'my-own-key-0123456789abcdef'); assert.equal(r.stored, r.saved);
+  assert.ok(r.rejected.setup); assert.match(r.rejected.msg, /didn’t work/); assert.ok(r.removed);
+  assert.deepEqual(p.errors, []);
+});
+
+test('route suggestions are optional: maps and activities work without a key; Cardio has a setup row with step-by-step instructions', async () => {
+  await p.open({ state: baseState(), inject: GEO }); await ready();
+  const r = await p.eval(`trainSub='run';go('train');${wait(300)}const row=[...document.querySelectorAll('.cd-toggle')].find(x=>/Route suggestions/.test(x.textContent));
+    const off=/Off · optional/.test(row.textContent),maps=document.querySelectorAll('.leaflet-container').length;row.click();${wait(100)}
+    const steps=document.querySelectorAll('.cd-key ol li').length,link=!!document.querySelector('.cd-key a[href="https://account.heigit.org"]'),noStart=![...document.querySelectorAll('.btn')].some(b=>/Start without a route/.test(b.textContent));
+    $('#orskey').value='my-own-key-0123456789abcdef';saveOrsKey();${wait(100)}const back=trainSub==='run'&&!stack.length,on=/On · uses your own/.test(document.body.textContent);
+    ivPick('free');await goActivity();${wait(400)}const live=!!MAPS.live;await stopRun();return {off,maps,steps,link,noStart,back,on,live}`);
+  assert.ok(r.off); assert.ok(r.maps >= 1); assert.equal(r.steps, 4); assert.ok(r.link); assert.ok(r.noStart); assert.ok(r.back); assert.ok(r.on); assert.ok(r.live);
   assert.deepEqual(p.errors, []);
 });

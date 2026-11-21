@@ -1,5 +1,6 @@
 {
   "appId": "com.gymquest.app",
   "appName": "RepWise",
-  "webDir": "www"
+  "webDir": "www",
+  "appendUserAgent": "RepWise (+https://github.com/Charles494-prog/Repwise)"
 }

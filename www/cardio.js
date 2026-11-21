@@ -132,7 +132,7 @@ function ivSheet(){const f=IVS.f,cus=f==='custom',total=f==='free'?0:Math.round(
   <div class="afrow"><span>5 min warm-up walk</span><button class="sw ${IVS.warm?'on':''}" role="switch" aria-checked="${IVS.warm}" onclick="IVS.warm=!IVS.warm;$('#sheet').innerHTML='<div class=&quot;grab&quot;></div>'+ivSheet()"><i></i></button></div>
   <p class="t-caption" style="margin-top:6px">${IVS.rounds} × (${IVS.run/60} min run + ${IVS.walk/60} min walk)${IVS.warm?' + warm-up':''} · about ${total} min</p>`}
  <p class="t-caption" style="margin-top:var(--s1)">Steps you take during the activity count toward your daily steps too.</p>
- ${GOAL.g==='free'?`<button class="btn" style="margin-top:var(--s2)" onclick="goActivity()">Start</button>`:`<button class="btn" style="margin-top:var(--s2)" onclick="openRoutes()">Find routes</button><button class="btn sec2" style="margin-top:var(--s1)" onclick="goActivity()">Start without a route</button>`}`}
+ ${GOAL.g==='free'?`<button class="btn" style="margin-top:var(--s2)" onclick="goActivity()">Start</button>`:`${S.orsKey?'':'<p class="t-caption" style="margin-top:var(--s1)">Route suggestions need your own free key — a one-time setup.</p>'}<button class="btn" style="margin-top:var(--s2)" onclick="openRoutes()">Find routes</button><button class="btn sec2" style="margin-top:var(--s1)" onclick="goActivity()">Start without a route</button>`}`}
 function ivPick(k){const F=FORMATS.find(x=>x[0]===k);IVS.f=k;if(k!=='custom'&&k!=='free'){IVS.run=F[3];IVS.walk=F[4];IVS.rounds=F[5]}$('#sheet').innerHTML='<div class="grab"></div>'+ivSheet()}
 function ivSet(k,d,min,max){IVS[k]=Math.max(min,Math.min(max,IVS[k]+d));$('#sheet').innerHTML='<div class="grab"></div>'+ivSheet()}
 async function goActivity(plan){closeSheet();await syncSteps();const c0=await chipRead();
@@ -140,28 +140,51 @@ async function goActivity(plan){closeSheet();await syncSteps();const c0=await ch
  startRun(free?'run':ph[0][0]);if(!RUN)return;if(c0!=null)RUN.chip={start:c0,last:c0,acc:0};if(plan)setPlan(plan);RUN.uiT=setInterval(()=>{liveStats();if(RUN?.chip&&Math.floor(RUN.el)%10===0)chipTick()},1000);
  if(free)return;let t=0;RUN.iv={f:IVS.f,ph:ph.map(([m,s,l])=>({m,s,l,end:t+=s})),i:0,done:false};RUN.ivT=setInterval(ivTick,500)}
 // ================= PLAN A ROUTE =================
-let ROUTES={list:[],sel:0,busy:false,msg:'',meters:0,kind:'loop',batch:0};
+// Route suggestions are opt-in: each user adds their own free OpenRouteService key (2,000 requests/day each), kept on the phone.
+S.orsKey??='';RWRoutes.config.key=S.orsKey;
+let ROUTES={list:[],sel:0,busy:false,msg:'',meters:0,kind:'loop',batch:0,setup:false};
 const routeTime=r=>RWRoutes.metersToSecs(r.meters,RWRoutes.paces(S.runs),runFrac());
-const ROUTE_ERR={nokey:'Route planning isn’t set up yet (no OpenRouteService key).',rate:'Too many route requests right now — try again in a minute.',offline:'You’re offline — start without a route.',key:'The route service rejected the key.',none:'No routes found around here.',noloc:'Still finding your location — try again in a moment.'};
-function openRoutes(){ROUTES={list:[],sel:0,busy:false,msg:'',meters:goalMeters(),kind:GOAL.kind,batch:0};closeSheet();push('routepick');
+const ROUTE_ERR={nokey:'',rate:'Too many route requests right now — try again in a minute.',offline:'You’re offline — start without a route.',key:'That key didn’t work — check it and paste it again.',none:'No routes found around here.',noloc:'Still finding your location — try again in a moment.'};
+function openRoutes(){ROUTES={list:[],sel:0,busy:false,msg:'',meters:goalMeters(),kind:GOAL.kind,batch:0,setup:!S.orsKey};closeSheet();push('routepick');
+ if(ROUTES.setup){if(!LOC.pos)askLocation(true);return}
  if(!LOC.pos){askLocation(true);ROUTES.busy=true;let n=0;const w=setInterval(()=>{if(LOC.pos||++n>40){clearInterval(w);ROUTES.busy=false;if(LOC.pos)loadRoutes(false);else{ROUTES.msg=ROUTE_ERR.noloc;render()}}},250);render();return}
  loadRoutes(false)}
 async function loadRoutes(fresh){if(ROUTES.busy&&fresh)return;ROUTES.busy=true;ROUTES.msg='';render();
  try{if(navigator.onLine===false)throw Object.assign(new Error(),{code:'offline'});
   const list=await RWRoutes.suggestRoutes({start:LOC.pos,meters:ROUTES.meters,kind:ROUTES.kind,n:3,fresh});
   ROUTES.list=list;ROUTES.sel=0;ROUTES.batch++;ROUTES.msg=!list.length?ROUTE_ERR.none:list.length<3?`Only ${list.length} different route${list.length>1?'s':''} found around here.`:''}
- catch(e){ROUTES.msg=ROUTE_ERR[e.code]||(e instanceof TypeError?ROUTE_ERR.offline:'Couldn’t plan routes right now.');if(fresh===false)ROUTES.list=[]}
+ catch(e){ROUTES.msg=ROUTE_ERR[e.code]??(e instanceof TypeError?ROUTE_ERR.offline:'Couldn’t plan routes right now.');if(fresh===false)ROUTES.list=[];if(e.code==='nokey'||e.code==='key')ROUTES.setup=true}
  ROUTES.busy=false;if(stack.at(-1)?.[0]==='routepick')render()}
+function saveOrsKey(){const v=($('#orskey')?.value||'').trim();if(v.length<20)return toast('That doesn’t look like a full key — copy the whole thing');
+ S.orsKey=v;RWRoutes.config.key=v;RWRoutes._state.cache={};save();ROUTES.setup=false;ROUTES.msg='';
+ if(ROUTES.settings){toast('🗺️ Route suggestions on');return back()}if(LOC.pos)loadRoutes(false);else openRoutes()}
+function routeKeyScreen(){ROUTES={list:[],sel:0,busy:false,msg:'',meters:5000,kind:'loop',batch:0,setup:true,settings:true};push('routepick')}
+function removeOrsKey(){S.orsKey='';RWRoutes.config.key='';RWRoutes._state.cache={};save();ROUTES.list=[];ROUTES.setup=true;ROUTES.msg='';render();toast('Route key removed — route suggestions are off')}
+function keySetup(){return`<div class="card cd-key"><b>Turn on route suggestions <span class="pg-chip">optional</span></b>
+ <p class="t-body">Route suggestions use <b>OpenRouteService</b>, a free routing service. RepWise is free and open source, so everyone uses their own free key: you get <b>2,000 route requests a day</b> (one search uses up to 12), and the key stays on this phone. Everything else — maps, activities, intervals, steps — works without it.</p>
+ <div class="afsec">How to get your free key (about 3 minutes)</div>
+ <ol><li>Open <a href="https://account.heigit.org" target="_blank" rel="noopener">account.heigit.org</a> and tap <b>Sign up</b>. It's free — HeiGIT runs OpenRouteService.</li>
+ <li>Open the email they send you and confirm your address, then <b>log in</b>.</li>
+ <li>In your <b>Dashboard</b>, find <b>API keys</b> (or <b>Request a token</b>), choose the free <b>Standard</b> type, name it “RepWise” and create it.</li>
+ <li>Copy the long key — a mix of letters and numbers — and paste it below.</li></ol>
+ ${ROUTES.msg?`<p class="t-caption" id="routemsg" style="color:var(--accent)">${ROUTES.msg}</p>`:''}
+ <input id="orskey" placeholder="Paste your key" autocomplete="off" autocapitalize="off" spellcheck="false" value="${esc(S.orsKey)}">
+ <button class="btn" style="margin-top:var(--s1)" onclick="saveOrsKey()">${ROUTES.settings?'Save key':'Save key and find routes'}</button>
+ ${S.orsKey?'<button class="aflink" onclick="removeOrsKey()">Remove my key</button>':''}
+ <p class="t-caption" style="margin-top:var(--s1)">You can remove or change the key here anytime. It's only sent to OpenRouteService when you ask for routes.</p></div>`}
 function pickRoute(i){ROUTES.sel=i;document.querySelectorAll('.cd-route').forEach((c,k)=>c.classList.toggle('on',k===i));const m=MAPS.plan;if(m)drawMap('plan',m)}
 const ROUTE_COL=['#2563eb','#0d9488','#9333ea','#ea580c','#64748b'];
 V.routepick=()=>{const R=ROUTES,lbl=r=>Math.abs(r.off)>0.1?` — a bit ${r.off>0?'long':'short'}`:'';
+ if(R.setup)return`<div class="top">${backBtn()}<h1 style="font-size:22px;flex:1;margin-left:var(--s1)">${R.settings?'Route suggestions':'Plan a route'}</h1><span></span></div>${keySetup()}
+ ${R.settings?'':`<button class="btn sec2" style="margin-top:var(--s1)" onclick="stack=[];goActivity()">Start without a route</button>`}`;
  return`<div class="top">${backBtn()}<h1 style="font-size:22px;flex:1;margin-left:var(--s1)">Pick a route</h1><span></span></div>
  <p class="muted" style="margin-top:-6px">${R.kind==='loop'?'Loop':'One way'} · about ${(R.meters/1000).toFixed(1)} km</p>
  <div class="cd-mapwrap" style="margin-top:var(--s1)">${mapEl('plan',300)}${R.busy&&!R.list.length?'<div class="cd-mapmsg">Finding routes…</div>':''}</div>
  ${R.msg?`<p class="t-caption" id="routemsg" style="margin-top:var(--s1)">${R.msg}</p>`:''}
  <div class="cd-routes">${R.list.map((r,i)=>`<button class="cd-route${i===R.sel?' on':''}" onclick="pickRoute(${i})"><i style="background:${ROUTE_COL[i%5]}"></i><span><b>${(r.meters/1000).toFixed(2)} km${lbl(r)}</b><small>≈ ${fmtT(routeTime(r))}${r.ascent!=null?` · ↑ ${Math.round(r.ascent)} m`:''}</small></span></button>`).join('')}</div>
  <button class="btn" style="margin-top:var(--s2)" ${R.list.length&&!R.busy?'':'disabled'} onclick="startWithRoute()">Start with this route</button>
- <div class="flex" style="gap:8px;margin-top:var(--s1)"><button class="btn sec2" id="reroll" style="flex:1" ${R.busy?'disabled':''} onclick="loadRoutes(true)">${R.busy&&R.list.length?'Finding new routes…':'Reroll'}</button><button class="btn sec2" style="flex:1" onclick="stack=[];goActivity()">Start without a route</button></div>`};
+ <div class="flex" style="gap:8px;margin-top:var(--s1)"><button class="btn sec2" id="reroll" style="flex:1" ${R.busy?'disabled':''} onclick="loadRoutes(true)">${R.busy&&R.list.length?'Finding new routes…':'Reroll'}</button><button class="btn sec2" style="flex:1" onclick="stack=[];goActivity()">Start without a route</button></div>
+ <button class="aflink" style="margin-top:var(--s1)" onclick="ROUTES.setup=true;render()">Route key</button>`};
 function startWithRoute(){const r=ROUTES.list[ROUTES.sel];if(!r)return;stack=[];goActivity({goal:GOAL.g,target:GOAL.g==='distance'?GOAL.dist:GOAL.time,meters:ROUTES.meters,kind:ROUTES.kind,pts:r.pts,len:Math.round(r.meters)})}
 // Live progress along the planned route: nearest point (searched forward so loops don't jump to the finish) and off-route timer.
 function setPlan(p){const cum=[0];for(let i=1;i<p.pts.length;i++)cum.push(cum[i-1]+hav(p.pts[i-1],p.pts[i]));RUN.plan=p;RUN.planCum=cum;RUN.planIdx=0;RUN.offSince=null;RUN.offDist=0}
@@ -238,7 +261,8 @@ V.run=()=>{const t=targets(),st=S.steps[today()]||0,km=st*0.00076,kc=Math.round(
  <div class="sec">Activity<small>dedicated cardio</small></div>
  <div class="card"><p class="t-body" style="margin-bottom:12px">A run or walk you start on purpose. GPS maps your route, and interval formats like <b>1:1</b> or <b>3:1</b> switch run / walk for you.</p>
  <button class="btn" onclick="${RUN?"push('runlive')":'startActivity()'}">${RUN?'⏱ Back to your activity':'Start activity'}</button>
- <p class="t-caption" style="margin-top:8px">Steps during an activity still count toward your daily total.</p></div>
+ <p class="t-caption" style="margin-top:8px">Steps during an activity still count toward your daily total.</p>
+ <div class="cd-toggle" style="cursor:pointer" onclick="routeKeyScreen()"><div><b>Route suggestions</b><small>${S.orsKey?'On · uses your own free key':'Off · optional, needs your own free key — tap for how'}</small></div><span class="chev">›</span></div></div>
  <div class="sec">Steps this week</div><div class="card">${chart(...weekSteps(),{color:'#e3262f'})}</div>
  <div class="sec">Recent activities</div>${S.runs.slice(-10).reverse().map(r=>`<div class="card cd-act" style="padding:0;overflow:hidden" onclick="push('actdetail',${r.ts})">${actHead(r)}</div>`).join('')||'<div class="empty">No runs or walks yet. Tap Start activity when you head out.</div>'}`};
 // List rows use the static SVG preview; a real (interactive) map only on the single-activity screen.
@@ -264,6 +288,7 @@ document.head.insertAdjacentHTML('beforeend',`<style>
 .cd-plan{display:flex;align-items:center;justify-content:space-between;background:var(--surface);border-radius:14px;padding:10px 14px;margin-bottom:12px;box-shadow:0 1px 2px #15151f0d}.cd-plan b{font-size:18px;font-variant-numeric:tabular-nums}
 .cd-off{display:none;background:#fef3c7;color:#92400e;font-weight:700;font-size:13px;padding:4px 10px;border-radius:999px}.cd-off.show{display:inline-block}
 .btn[disabled]{opacity:.45;pointer-events:none}
+.cd-key>b{font-size:17px;display:block}.cd-key p{margin-top:6px}.cd-key ol{margin:10px 0 12px 20px;color:var(--ink-2);font-size:14px;line-height:1.6}.cd-key a{color:var(--accent);font-weight:700}
 .cd-mapwrap{position:relative}.cd-mapmsg{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:16px;color:var(--ink-2);font-weight:600;font-size:14px;pointer-events:none;z-index:500}
 .cd-loc{display:flex;align-items:center;gap:12px;background:#eff6ff;border-radius:14px;padding:14px;margin:var(--s2) 0}.cd-loc>div{flex:1}.cd-loc b{display:block}.cd-loc small{color:var(--ink-2);font-size:13px}
 .cd-rank{background:var(--surface);border-radius:16px;padding:14px;margin-top:var(--s2);cursor:pointer;box-shadow:0 1px 2px #15151f0d,0 6px 20px #15151f0a}

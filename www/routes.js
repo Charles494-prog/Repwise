@@ -1,6 +1,7 @@
 // RepWise route suggestions (UMD: used by the app and by Node unit tests).
 // One provider function: suggestRoutes({start, meters, kind, n, exclude}) → [{pts, meters, secs, ascent, seed, off}].
 // Provider: OpenRouteService foot-walking (free plan ≈ 2,000 directions/day, 40/min; round trips up to 100 km).
+// No key is shipped: the app sets config.key from the user's own key (S.orsKey), so nobody shares one quota.
 (function (root) {
   'use strict';
   const config = { provider: 'ors', key: '', base: 'https://api.openrouteservice.org/v2/directions/', profile: 'foot-walking', maxCalls: 12 };
