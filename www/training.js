@@ -135,27 +135,74 @@ function showRankQueue(){if(rqOpen||!S.rankQ.length)return;if(!S.rankPop)return 
  el.innerHTML=`<div class="rq-badge"><img src="${RANK_IMG(top.i)}" alt=""></div><div class="t-caption rq-k">Congratulations!</div><div class="t-display rq-t">You reached ${rankName(top.i)}</div><p class="muted">${label(top)}</p>
   ${Q.length>1?`<div class="rq-list">${Q.slice(1).map(x=>`<div class="rq-row">${x.k==='overall'?rankBadge(x.i,40):`<img src="${MUS_IMG(x.k)}" alt="" width="40" height="40">`}<b>${x.k==='overall'?'Overall':x.k}</b><span>${rankName(x.i)}</span>${rankBadge(x.i,32)}</div>`).join('')}</div>`:''}
   <button class="btn" style="margin-top:var(--s3);width:100%">Nice!</button><button class="aflink rq-off" style="margin-top:var(--s1)">Turn off rank-up pop-ups</button><small class="t-caption">You can turn them back on in Settings.</small>`;
- const close=off=>{rankQDone(off);el.remove();rqOpen=false;if(off)toast('Rank-up pop-ups off — turn them on in Settings')};
+ const close=off=>{rankQDone(off);el.remove();rqOpen=false;if(off)toast('Rank-up pop-ups off — turn them on in Settings');if(S.lossQ)setTimeout(showLossPop,400)};
  el.querySelector('.btn').onclick=()=>close(false);el.querySelector('.rq-off').onclick=()=>close(true);document.body.appendChild(el);vib([20,40,60])}
 window.showRankQueue=showRankQueue;
 const _setRQ=V.settings;V.settings=()=>_setRQ().replace(/(<div class="row" onclick="push\('transfer'\)">)/,`<div class="row" style="cursor:default"><div class="rbody"><b>Rank-up pop-ups</b><small>Celebrate new ranks after a workout or activity</small></div><button class="sw ${S.rankPop?'on':''}" role="switch" aria-checked="${S.rankPop}" aria-label="Rank-up pop-ups" onclick="S.rankPop=!S.rankPop;save();render()"><i></i></button></div>$1`);
 
 // ================= MISSED WORKOUTS: make it up within 2 days, or lose a little XP =================
 // Muscle size and strength hold up well for 2–3 weeks without training (Bosquet et al., 2013; McMaster et al., 2013),
-// so one missed session costs only a little XP of the muscles it trains: 1.5%, at most 60 XP each, never a rank.
+// so one missed session costs only a little XP of the muscles that day trains: 1.5%, at most 60 XP each.
+// Misses in a row cost more each time — 1×, 1.5×, 2×, 2.5× … up to 5× (linear, not exponential); any workout resets it.
+// Losing enough XP can demote a rank; the next time the app opens, a pop-up shows what was lost.
 S.missed??={};S.missedFrom??=today(); // only sessions planned after this update count — no retroactive penalties
-function missedScan(){if(!S.profile||!S.week)return;const W=ensureWeek(),ti=DOW(Date.now()),td=today();let lost=[];
+const missMult=n=>Math.min(5,1+.5*(n-1));
+// how many misses in a row this one is: earlier misses since the last workout before it, plus itself
+function missN(d){const lastW=S.workouts.reduce((a,w)=>{const x=iso(w.ts);return x<d&&x>a?x:a},'');
+ return 1+Object.entries(S.missed).filter(([k,e])=>k<d&&k>lastW&&(e.st==='lost'||e.st==='open')).length}
+// Like ranked games: a loss only empties the current rank down to 0 XP; a muscle already at 0 in its rank gets demoted.
+function missCost(prog,n){const o={},f=missMult(n);for(const m of (PROGS[prog]?.m||[])){const xp=S.xp[m]||0,r=rankOf(xp),c=Math.min(Math.round(60*f),Math.round(xp*.015*f),xp),x=r.cur>0?Math.min(c,r.cur):r.idx>0?c:0;if(x>0)o[m]=x}return o}
+const missTxt=xp=>Object.entries(xp).map(([m,x])=>`${m} −${x}`).join(', ');
+const missDemotes=xp=>Object.entries(xp).filter(([m,x])=>rankOf((S.xp[m]||0)-x).idx<rankOf(S.xp[m]||0).idx).map(([m])=>m);
+function missedScan(){if(!S.profile||!S.week)return;const W=ensureWeek(),ti=DOW(Date.now()),td=today(),ov=xpTotal(),was={...S.xp};let lost=[];
  for(let i=0;i<ti;i++){const d=iso(dayOfWeek(i));if(S.missed[d]||d<S.missedFrom||(S.startDate&&d<S.startDate))continue;if(dayPlan(d).type!=='missed')continue;
   const prog=W.queue[W.pat.slice(0,i).filter(Boolean).length]||W.queue.at(-1);if(!prog)continue;const due=new Date(d+'T12:00');due.setDate(due.getDate()+2);S.missed[d]={prog,due:iso(due),st:'open'}}
- for(const [d,e] of Object.entries(S.missed)){if(e.st!=='open')continue;
+ for(const [d,e] of Object.entries(S.missed).sort(([a],[b])=>a<b?-1:1)){if(e.st!=='open')continue;
   if(S.workouts.some(w=>w.prog===e.prog&&iso(w.ts)>d&&iso(w.ts)<=e.due)){e.st='done';continue}
-  if(td>e.due){e.st='lost';e.xp={};for(const m of (PROGS[e.prog]?.m||[])){const cur=rankOf(S.xp[m]||0).cur,x=Math.min(60,Math.round((S.xp[m]||0)*.015),cur);if(x>0){S.xp[m]-=x;e.xp[m]=x}}
-   if(Object.keys(e.xp).length)lost.push(e)}}
+  if(td>e.due){e.n=missN(d);e.xp=missCost(e.prog,e.n);e.st='lost';for(const [m,x] of Object.entries(e.xp))S.xp[m]-=x;
+   if(Object.keys(e.xp).length)lost.push([d,e])}}
  for(const x of Object.keys(S.missed))if(x<iso(Date.now()-60*864e5))delete S.missed[x];
- if(lost.length){save();const e=lost.at(-1);setTimeout(()=>toast(`Missed ${(PROGS[e.prog]||{}).name}: ${Object.entries(e.xp).map(([m,x])=>`${m} −${x}`).join(', ')} XP. Muscle fades slowly — one session and you're back on track.`),900)}}
+ if(lost.length){lossQueue(lost,was,ov);save();setTimeout(showLossPop,900)}
+ const sig=Object.entries(S.missed).map(([k,e])=>k+e.st).join();if(sig!==missedScan.sig){missedScan.sig=sig;schedNotifs()}}
+// Losses wait in S.lossQ until the user sees them (survives closing the app before the pop-up shows).
+S.lossQ??=null;
+function lossQueue(lost,was,ov){const q=S.lossQ||{items:[],before:{},ov};
+ for(const [,e] of lost)for(const m in e.xp)if(!(m in q.before))q.before[m]=was[m]||0;
+ q.items.push(...lost.map(([d,e])=>({d,prog:e.prog,n:e.n,xp:e.xp})));S.lossQ=q;
+ // after a demotion, reaching the rank again is celebrated again
+ for(const m in q.before){const now=rankOf(S.xp[m]||0).idx;if(S.rankSeenM&&S.rankSeenM[m]>now)S.rankSeenM[m]=now}
+ const o=orank().i;if((S.rankSeen??0)>o)S.rankSeen=o}
+// Ranked-game style result screen: each muscle's badge and XP bar draining, −XP, and DEMOTED when a rank drops.
+function showLossPop(){const q=S.lossQ;if(!q||S.active||(typeof RUN!=='undefined'&&RUN)||OB.active||document.querySelector('.w-over'))return;
+ const R=r=>({i:r.idx??r.i,cur:r.cur,need:r.need}),pct=r=>Math.max(0,Math.min(100,r.cur/r.need*100));
+ const rows=[{k:'Overall',a:R(orank(q.ov)),b:R(orank()),x:q.ov-xpTotal()},...Object.keys(q.before).map(m=>({k:m,a:R(rankOf(q.before[m])),b:R(rankOf(S.xp[m]||0)),x:q.before[m]-(S.xp[m]||0)}))].filter(r=>r.x>0);
+ const dem=rows.filter(r=>r.b.i<r.a.i),top=dem[0],last=q.items.at(-1),next=missMult(last.n+1),zero=rows.filter(r=>r.k!=='Overall'&&r.b.cur===0&&r.b.i>0).map(r=>r.k);
+ const day=d=>new Date(d+'T12:00').toLocaleDateString(undefined,{weekday:'short'}),miss=q.items.map(it=>`${(PROGS[it.prog]||{}).name} (${day(it.d)})`).join(', ');
+ const el=document.createElement('div');el.className='w-over rq lq';el.setAttribute('role','dialog');
+ el.innerHTML=`<div class="rq-badge lq-badge">${top?`<img src="${RANK_IMG(top.b.i)}" alt="">`:`<img src="${RANK_IMG(rows[0]?.b.i||0)}" alt="">`}</div>
+  <div class="t-caption rq-k">${top?'Demoted':'Missed workouts'}</div><div class="t-display rq-t">${top?(()=>{const dm=dem.filter(r=>r.k!=='Overall').map(r=>r.k);return dm.length>2?`${dm.length} muscles were demoted`:dm.length?`${dm.join(' & ')} dropped to ${rankName(dem.find(r=>r.k!=='Overall').b.i)}`:`Overall rank dropped to ${rankName(top.b.i)}`})():'You\'ve lost some progress'}</div>
+  <p class="muted">${top?'You\'ve lost some progress. ':''}Not made up within 2 days: ${miss}.</p>
+  <div class="rq-list">${rows.map((r,j)=>`<div class="lq-row">${r.k==='Overall'?rankBadge(r.b.i,40):`<img src="${MUS_IMG(r.k)}" alt="" width="40" height="40">`}
+   <div><b>${r.k}</b> ${r.b.i<r.a.i?`<span class="lq-dem">DEMOTED</span>`:''}<small>${r.b.i<r.a.i?`${rankName(r.a.i)} → ${rankName(r.b.i)}`:rankName(r.b.i)}</small><div class="lq-bar"><i data-j="${j}" style="width:${pct(r.a)}%"></i></div></div>
+   <span class="lq-x">−${Math.round(r.x)} XP</span></div>`).join('')}</div>
+  <div class="lq-tips">${zero.length?`<span>🚨 <b>${zero.join(', ')}</b> ${zero.length>1?'are':'is'} at 0 XP in ${zero.length>1?'their':'its'} rank — miss another ${(PROGS[last.prog]||{}).name} and ${zero.length>1?'they get':'it gets'} demoted.</span>`:''}<span>⚠️ Misses in a row cost more — the next one costs <b>${next}×</b>.</span><span>💪 Any workout resets it. Make up a missed workout within 2 days to keep your XP.</span>${dem.length?'<span>🏅 Climb back up — getting a rank back is celebrated again.</span>':''}</div>
+  <button class="btn" style="margin-top:var(--s3);width:100%">Get back on track</button><button class="aflink lq-later" style="margin-top:var(--s1)">Close</button>`;
+ const close=g=>{S.lossQ=null;save();el.remove();if(g){stack=[];go('train')}if(S.rankQ?.length)setTimeout(showRankQueue,400)};
+ el.querySelector('.btn').onclick=()=>close(true);el.querySelector('.lq-later').onclick=()=>close(false);document.body.appendChild(el);vib([60,40,60]);
+ // drain each bar; a demoted bar empties, then refills to where the lower rank stands
+ setTimeout(()=>rows.forEach((r,j)=>{const b=el.querySelector(`[data-j="${j}"]`);if(!b)return;if(r.b.i<r.a.i){b.style.width='0%';setTimeout(()=>{b.style.transition='none';b.style.width='100%';b.offsetWidth;b.style.transition='';b.style.width=pct(r.b)+'%'},750)}else b.style.width=pct(r.b)+'%'}),450)}
 function missedCard(){const open=Object.entries(S.missed).filter(([,e])=>e.st==='open'&&today()<=e.due);if(!open.length)return'';
- return open.map(([d,e])=>`<div class="mw-card"><div><b>Missed ${(PROGS[e.prog]||{}).name} · ${new Date(d+'T12:00').toLocaleDateString(undefined,{weekday:'short'})}</b><small>Do it by ${new Date(e.due+'T12:00').toLocaleDateString(undefined,{weekday:'long'})} to keep your ${(PROGS[e.prog]?.m||[]).slice(0,3).join(', ')} XP. Muscle fades slowly — skipping costs only a little XP, never a rank.</small></div><button class="btn sm" onclick="startW('${e.prog}')">Do it now</button></div>`).join('')}
-const _planMW=V.plan;V.plan=()=>{try{missedScan()}catch(e){console.error(e)}const h=_planMW(),c=missedCard();if(!c)return h;const k=h.indexOf('<div class="sec');return k>0?h.slice(0,k)+c+h.slice(k):c+h};
+ return open.map(([d,e])=>{const n=missN(d),cost=missCost(e.prog,n),c=missTxt(cost),dm=missDemotes(cost);return`<div class="mw-card"><div><b>Missed ${(PROGS[e.prog]||{}).name} · ${new Date(d+'T12:00').toLocaleDateString(undefined,{weekday:'short'})}</b><small>Do it by ${new Date(e.due+'T12:00').toLocaleDateString(undefined,{weekday:'long'})} to keep your XP${c?` — skipping costs ${c} XP`:''}${n>1?` (${missMult(n)}×, ${n} missed in a row)`:''}.${dm.length?` <b class="mw-warn">⚠️ ${dm.join(', ')} would be demoted.</b>`:''}</small></div><button class="btn sm" onclick="startW('${e.prog}')">Do it now</button></div>`}).join('')}
+// Phone notifications (Workout & cardio reminders): the evening before the deadline, the deadline morning, and the morning after if XP was lost.
+const _snMW=schedNotifs;schedNotifs=async function(){await _snMW();const L=LN();if(!L||!S.profile||!S.notif.workout)return;
+ try{if((await L.checkPermissions()).display!=='granted')return;const N=[],td=today(),at=(d,h)=>{const t=new Date(d+'T12:00');t.setHours(h,0,0,0);return t},shift=(d,k)=>{const t=new Date(d+'T12:00');t.setDate(t.getDate()+k);return iso(t)};
+  Object.entries(S.missed).filter(([,e])=>e.st==='open'&&e.due>=td).sort(([a],[b])=>a<b?-1:1).slice(0,6).forEach(([d,e],i)=>{const name=(PROGS[e.prog]||{}).name,n=missN(d),c=missTxt(missCost(e.prog,n)),add=(id,t,title,body)=>{if(t>new Date())N.push({id,title,body,schedule:{at:t,allowWhileIdle:true},extra:{go:'plan'}})};
+   add(1300+i,at(shift(e.due,-1),19),`⏳ Make up ${name}`,`You missed it — do it by tomorrow to keep your XP.`);
+   const dm=missDemotes(missCost(e.prog,n));
+   add(1310+i,at(e.due,9),`⚠️ Last day to make up ${name}`,c?`Skip it and you lose ${c} XP${n>1?` (${missMult(n)}× — ${n} missed in a row)`:''}.${dm.length?` ${dm.join(', ')} would be demoted!`:''}`:'Do it today to stay on track.');
+   if(c)add(1320+i,at(shift(e.due,1),8),`📉 XP lost: ${name}`,`${c} XP. Misses in a row cost more — any workout today resets it.`)});
+  if(N.length)await L.schedule({notifications:N})}catch(e){console.warn('missed notif',e)}};
+const _planMW=V.plan;V.plan=()=>{try{missedScan();if(S.lossQ)setTimeout(showLossPop,900)}catch(e){console.error(e)}const h=_planMW(),c=missedCard();if(!c)return h;const k=h.indexOf('<div class="sec');return k>0?h.slice(0,k)+c+h.slice(k):c+h};
 
 // ================= BODY FAT: never show an impossible tape result =================
 // The US Navy tape formula can go negative (or absurdly high) when the waist is measured too high, too tight or in
@@ -255,7 +302,15 @@ document.head.insertAdjacentHTML('beforeend',`<style>
 .rq-list{width:100%;margin-top:var(--s2);display:grid;gap:6px}.rq-row{display:flex;align-items:center;gap:10px;background:var(--fill);border-radius:12px;padding:6px 10px;text-align:left}.rq-row b{flex:1}.rq-row span{color:var(--ink-2);font-size:14px}
 @keyframes rqIn{from{transform:scale(.3) rotate(-12deg);opacity:0}to{transform:none;opacity:1}}
 .mr-card{position:relative;padding-left:62px!important;padding-right:44px!important;min-height:76px}.mr-ic{position:absolute;left:8px;top:50%;transform:translateY(-50%);width:48px;height:48px;object-fit:contain}.mr-b{position:absolute;right:8px;top:8px}
-.mw-card{display:flex;align-items:center;gap:12px;background:#fff7ed;border-radius:14px;padding:12px 14px;margin-top:var(--s2)}.mw-card>div{flex:1}.mw-card b{display:block}.mw-card small{color:#9a3412;font-size:13px}
+.mw-card{display:flex;align-items:center;gap:12px;background:#fff7ed;border-radius:14px;padding:12px 14px;margin-top:var(--s2)}.mw-card>div{flex:1}.mw-card b{display:block}.mw-card small{color:#9a3412;font-size:13px}.mw-card .mw-warn{display:inline;color:#dc2626}
+.lq{justify-content:flex-start;overflow-y:auto;padding-top:max(var(--s3),env(safe-area-inset-top));padding-bottom:max(var(--s3),env(safe-area-inset-bottom))}.lq>:first-child{margin-top:auto}.lq>:last-child{margin-bottom:auto}
+.lq .rq-k{color:#dc2626}.lq-badge img{width:112px;height:112px;animation:lqDrop .8s ease both}.lq .rq-t{font-size:26px}
+.lq-row{display:grid;grid-template-columns:40px 1fr auto;gap:10px;align-items:center;background:var(--fill);border-radius:12px;padding:8px 10px;text-align:left}
+.lq-row small{display:block;color:var(--ink-2);font-size:13px}.lq-bar{height:6px;border-radius:3px;background:#0000001a;margin-top:6px;overflow:hidden}.lq-bar i{display:block;height:100%;background:var(--accent);transition:width .7s ease}
+.lq-x{color:#dc2626;font-weight:800;font-variant-numeric:tabular-nums;font-size:14px}
+.lq-dem{display:inline-block;background:#dc2626;color:#fff;font-size:10px;font-weight:800;letter-spacing:.06em;padding:2px 6px;border-radius:6px;margin-left:4px;vertical-align:2px}
+.lq-tips{width:100%;text-align:left;margin-top:var(--s2);background:#fff7ed;color:#9a3412;border-radius:12px;padding:10px 12px;font-size:14px;display:grid;gap:6px}
+@keyframes lqDrop{0%{transform:translateY(-24px) scale(1.15);opacity:0}55%{transform:translateY(4px);opacity:1}70%{transform:translateX(-6px) rotate(-3deg)}85%{transform:translateX(6px) rotate(3deg)}100%{transform:none}}
 .setline{display:grid;grid-template-columns:52px 1fr auto;gap:8px;align-items:center;padding:10px 14px;border-top:1px solid var(--line);font-variant-numeric:tabular-nums;font-size:14px}
 body.resting #app button[onclick^="addSet"],body.resting #app button[onclick^="mv(1)"],body.resting #app button[onclick*="timerStart"],body.resting #app button[onclick^="pickEx()"]{opacity:.4}
 #rest.nudge{animation:restNudge .4s}

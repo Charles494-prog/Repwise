@@ -111,12 +111,68 @@ test('quests: later checkpoints pay much more, finishing a quest adds a big bonu
   assert.deepEqual(p.errors, []);
 });
 
-test('missed workouts: 2 days to make it up; otherwise only that day\'s muscles lose a little XP and never a rank', async () => {
+test('missed workouts: 2 days to make it up; otherwise only that day\'s muscles lose a little XP', async () => {
   const now = new Date(), mon = new Date(now); mon.setHours(12, 0, 0, 0); mon.setDate(mon.getDate() - ((mon.getDay() + 6) % 7));
   await p.open({ state: baseState({ startDate: '2020-01-01', xp: { Chest: 5000, Back: 5000, Shoulders: 5000, Biceps: 5000, Triceps: 5000, Quads: 5000, Hamstrings: 5000, Glutes: 5000, Calves: 5000, Core: 5000 } }) });
   const r = await p.eval(`const fresh=Object.keys(S.missed).length;const d=iso(Date.now()-6*864e5);S.missed[d]={prog:'push',due:iso(Date.now()-4*864e5),st:'open'};const r0=rankOf(S.xp.Chest).idx;missedScan();const e=S.missed[d];
     S.missed['2099-01-01']={prog:'pull',due:'2099-01-03',st:'open'};stack=[];go('plan');const card=/Missed Pull Day/.test(document.body.innerText)&&/Do it now/.test(document.body.innerText);
-    const all=Object.values(S.missed).reduce((t,x)=>t+((x.xp||{}).Chest||0),0);return {fresh,st:e.st,lost:e.xp,chest:S.xp.Chest,all,rankKept:rankOf(S.xp.Chest).idx===r0,card}`);
-  assert.equal(r.fresh, 0); assert.equal(r.st, 'lost'); assert.ok(r.lost.Chest > 0 && r.lost.Chest <= 60); assert.equal(r.chest, 5000 - r.all); assert.ok(r.rankKept); assert.ok(r.card);
+    const all=Object.values(S.missed).reduce((t,x)=>t+((x.xp||{}).Chest||0),0);return {fresh,st:e.st,lost:e.xp,chest:S.xp.Chest,all,rankKept:rankOf(S.xp.Chest).idx===r0,quads:S.xp.Quads,card}`);
+  assert.equal(r.fresh, 0); assert.equal(r.st, 'lost'); assert.ok(r.lost.Chest > 0 && r.lost.Chest <= 60); assert.equal(r.chest, 5000 - r.all); assert.equal(r.quads, 5000, 'leg muscles untouched by a missed Push Day'); assert.ok(r.card);
+  assert.deepEqual(p.errors, []);
+});
+
+test('missed workouts in a row cost more each time (1×, 1.5×, 2× … linear), any workout resets it, and a pop-up says what was lost', async () => {
+  await p.open({ state: baseState({ startDate: '2020-01-01' }) });
+  const r = await p.eval(`let x=4000;while(rankOf(x).cur<800)x+=100;for(const m of MUSCLES)S.xp[m]=x;S.rankSeenM=rankSnap();S.rankSeen=orank().i;S.rankQ=[];S.workouts=[];S.missed={};
+    const ago=k=>iso(Date.now()-k*864e5);
+    S.missed[ago(12)]={prog:'push',due:ago(10),st:'open'};S.missed[ago(11)]={prog:'push',due:ago(9),st:'open'};S.missed[ago(10)]={prog:'push',due:ago(8),st:'open'};
+    missedScan();const a=[ago(12),ago(11),ago(10)].map(d=>[S.missed[d].n,S.missed[d].xp.Chest]);
+    await new Promise(r=>setTimeout(r,1200));const sheet=document.querySelector('.lq')?.innerText||'';document.querySelector('.lq .lq-later')?.click();
+    S.workouts.push({prog:'legs',ts:Date.now()-7*864e5,sets:[]});S.missed[ago(5)]={prog:'push',due:ago(3),st:'open'};missedScan();
+    return {a,reset:S.missed[ago(5)].n,mult:[1,2,3,4,9,20].map(missMult),sheet}`);
+  assert.deepEqual(r.a, [[1, 60], [2, 90], [3, 120]]);
+  assert.deepEqual(r.mult, [1, 1.5, 2, 2.5, 5, 5]);
+  assert.equal(r.reset, 1, 'a workout in between resets the streak');
+  assert.match(r.sheet, /lost some progress/); assert.match(r.sheet, /Chest[\s\S]*−270 XP/); assert.match(r.sheet, /next one costs 2\.5×/); assert.doesNotMatch(r.sheet, /DEMOTED/);
+  assert.deepEqual(p.errors, []);
+});
+
+test('missed workouts: the Today card shows the cost; phone reminders the evening before, deadline morning and the morning after', async () => {
+  await p.open({ state: baseState({ startDate: '2020-01-01', xp: { Chest: 5000, Shoulders: 5000, Triceps: 5000 } }) });
+  const r = await p.eval(`const N=[];window.Capacitor={Plugins:{LocalNotifications:{checkPermissions:async()=>({display:'granted'}),requestPermissions:async()=>({display:'granted'}),getPending:async()=>({notifications:[]}),cancel:async()=>{},schedule:async o=>N.push(...o.notifications),addListener(){}}}};
+    S.workouts=[];S.notif.workout=true;const d=iso(Date.now()-864e5),due=iso(Date.now()+864e5);S.missed={[d]:{prog:'push',due,st:'open'}};
+    stack=[];go('plan');await schedNotifs();const card=document.querySelector('.mw-card')?.innerText||'';
+    const mine=[...new Map(N.filter(n=>n.id>=1300&&n.id<1330).map(n=>[n.id,n])).values()].map(n=>({id:n.id,t:n.title,b:n.body,h:new Date(n.schedule.at).getHours(),day:iso(n.schedule.at)}));
+    S.notif.workout=false;N.length=0;await schedNotifs();const off=N.filter(n=>n.id>=1300&&n.id<1330).length;delete window.Capacitor;return {card,mine,off,due}`);
+  assert.match(r.card, /skipping costs Chest −\d+/);
+  assert.equal(r.mine.length, 3);
+  const [eve, last, after] = r.mine.sort((a, b) => a.id - b.id);
+  assert.match(eve.t, /Make up Push/); assert.equal(eve.h, 19);
+  assert.match(last.t, /Last day/); assert.match(last.b, /Chest −\d+/); assert.equal(last.day, r.due); assert.equal(last.h, 9);
+  assert.match(after.t, /XP lost/); assert.equal(after.h, 8);
+  assert.equal(r.off, 0, 'the Workout reminders switch turns them off');
+  assert.deepEqual(p.errors, []);
+});
+
+test('missed workouts: a loss only empties the rank to 0 XP (with a warning); missing again at 0 demotes; Leg Day only hits legs', async () => {
+  await p.open({ state: baseState({ startDate: '2020-01-01' }) });
+  const r = await p.eval(`let x=4000;while(rankOf(x).cur!==0)x++;for(const m of MUSCLES)S.xp[m]=x+30;S.rankSeenM=rankSnap();S.rankSeen=orank().i;S.rankQ=[];S.workouts=[];S.missed={};
+    const ago=k=>iso(Date.now()-k*864e5),wait=()=>new Promise(r=>setTimeout(r,1300)),before=rankOf(S.xp.Quads).idx,chest=S.xp.Chest;
+    S.missed[ago(9)]={prog:'legs',due:ago(7),st:'open'};missedScan();await wait();
+    const pop1=document.querySelector('.lq')?.innerText||'',r1=rankOf(S.xp.Quads),q1=!!S.lossQ;document.querySelector('.lq .lq-later').click();
+    S.missed[ago(5)]={prog:'legs',due:ago(3),st:'open'};missedScan();await wait();
+    const pop2=document.querySelector('.lq')?.innerText||'',after=rankOf(S.xp.Quads).idx,seen=S.rankSeenM.Quads;document.querySelector('.lq .btn').click();
+    return {pop1,cur1:r1.cur,idx1:r1.idx,q1,pop2,before,after,seen,cleared:S.lossQ===null,chest:S.xp.Chest===chest,tab:typeof tab!=='undefined'?tab:null}`);
+  // first miss: 30 XP into the rank → down to 0, same rank, warned
+  assert.equal(r.idx1, r.before); assert.equal(r.cur1, 0);
+  assert.match(r.pop1, /lost some progress/); assert.doesNotMatch(r.pop1, /DEMOTED/); assert.match(r.pop1, /Quads[\s\S]*at 0 XP[\s\S]*demoted/);
+  assert.match(r.pop1, /Leg Day/); assert.match(r.pop1, /Hamstrings/); assert.doesNotMatch(r.pop1, /Chest/);
+  // second miss at 0 → demoted
+  assert.equal(r.after, r.before - 1, 'Quads dropped a rank');
+  assert.match(r.pop2, /DEMOTED/); assert.match(r.pop2, /5 muscles were demoted/);
+  assert.equal(r.seen, r.after, 'getting the rank back will show the rank-up pop-up again');
+  assert.ok(r.chest, 'Chest untouched by a missed Leg Day');
+  assert.ok(r.q1 && r.cleared, 'loss waits until seen, then clears');
+  assert.equal(r.tab, 'train', '"Get back on track" opens the Train tab');
   assert.deepEqual(p.errors, []);
 });
