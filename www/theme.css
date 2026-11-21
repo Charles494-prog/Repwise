@@ -71,3 +71,19 @@ nav button.on{color:var(--ink)}
 nav button.on svg{transform:none;fill:currentColor;fill-opacity:.14;stroke-width:2.2}
 nav button.on span{font-weight:700}
 body{padding-bottom:calc(72px + env(safe-area-inset-bottom))}
+
+/* compact density: the app was drawn for ~430dp phones and felt zoomed-in on 360dp ones */
+body{overflow-x:clip}
+:root{--fs-display:38px;--fs-title:20px}
+.top{padding:var(--s2) 0 var(--s1)}
+.top h1,.sm-hero h1{font-size:26px}
+#app .sec,#app .hdr{margin:var(--s4) 0 var(--s1)!important;font-size:16px!important}
+#app .row{padding:12px 14px;gap:12px}
+#app .tile{width:44px;height:44px;border-radius:12px;font-size:22px}
+#app .tile .ic{width:22px;height:22px}
+#app .rbody b{font-size:15px}
+#app .rbody small{font-size:13px}
+#app .card{padding:14px}
+#app .plist .li{padding:12px 0}
+.btn{padding:13px}
+#sheet.af .afli,#sheet.af .afrow,#sheet.af .afing .row2{padding:12px 0}

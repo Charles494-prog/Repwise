@@ -12,7 +12,7 @@ const FREQ={ppl:[3,6,6],ul:[2,4,4],full:[2,4,3],bro:[4,5,4],arnold:[3,6,6],rotat
 // Training days spread so rest days fall in between (Mon = index 0).
 const PATTERN={2:[1,0,0,1,0,0,0],3:[1,0,1,0,1,0,0],4:[1,1,0,1,1,0,0],5:[1,1,1,0,1,1,0],6:[1,1,1,1,1,1,0]};
 S.trainDays??={};
-function buildWeek(mon,split){const [lo,hi,def]=FREQ[split],n=Math.min(hi,Math.max(lo,S.trainDays[split]||def)),pat=PATTERN[n],days=SPLITS[split].days,queue=[];
+function buildWeek(mon,split){const cp=S.plan?.pat?.some(Boolean)&&S.plan.pat,[lo,hi,def]=FREQ[split]||[1,6,3],n=cp?cp.filter(Boolean).length:Math.min(hi,Math.max(lo,S.trainDays[split]||def)),pat=cp?[...cp]:PATTERN[n],days=SPLITS[split].days,queue=[];
  for(let i=0;i<n;i++)queue.push(days[i%days.length]);
  // Cardio: 3 sessions on a cut, otherwise 2 — placed on rest days first, then training days.
  const want=S.profile.goal.includes('cut')?3:2,rest=[0,1,2,3,4,5,6].filter(i=>!pat[i]),train=[2,4,0,5,1,3,6].filter(i=>pat[i]);
@@ -139,7 +139,7 @@ V.notifs=()=>{const row=(k,e,t,s)=>`<div class="row" onclick="S.notif.${k}=!S.no
 
 // ================= DASHBOARD (Plan tab) =================
 function weekStrip(){const W=ensureWeek(),ti=DOW(Date.now());let q=0;const done=weekWorkouts();
- return`<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin:8px 0 4px">${WD.map((n,i)=>{const d=iso(dayOfWeek(i)),wk=S.workouts.find(w=>iso(w.ts)===d&&W.queue.includes(w.prog));
+ return`<div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin:8px 0 4px">${WD.map((n,i)=>{const d=iso(dayOfWeek(i)),wk=S.workouts.find(w=>iso(w.ts)===d&&W.queue.includes(w.prog));
   let ic,lbl;if(wk){ic='✅';lbl=PROGS[wk.prog].name.split(' ')[0]}
   else if(!W.pat[i]){ic='😴';lbl='Rest'}
   else if(i<ti){ic='⚪';lbl='Missed'}

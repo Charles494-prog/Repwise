@@ -249,15 +249,22 @@ function rotateEq(){const a=S.active,ex=a.list[a.idx],ok=equivs(ex).filter(x=>av
 // at any speed, so a km run burns much more than a km walked. Ref: Margaria 1963; Wilkin et al., 2012, J Strength Cond Res.
 const KPK={run:1.0,walk:0.6};
 const actKcal=R=>Math.round(S.profile.weight*(R.d.run/1000*KPK.run+R.d.walk/1000*KPK.walk));
+// GPS: no per-fix timeout (a cold GPS can take >20 s, which used to spam "Timeout expired"), rough fixes still
+// place you on the map, only accurate fixes add distance, and a watch that goes silent for 30 s is restarted.
+function gpsFix(p){if(!RUN||RUN.paused)return;const c=[p.coords.latitude,p.coords.longitude],acc=p.coords.accuracy;RUN.lastFix=Date.now();RUN.acc=Math.round(acc);
+ if(acc>35){if(!RUN.pts.length){RUN.pts.push(c);RUN.gap=true}if(stack.at(-1)?.[0]==='runlive')render();return}
+ const l=RUN.pts.at(-1);if(l&&!RUN.gap){const d=hav(l,c);if(d<3)return;RUN.dist+=d;RUN.d[RUN.mode]+=d}RUN.gap=false;RUN.pts.push(c);if(stack.at(-1)?.[0]==='runlive')render()}
+function gpsErr(e){if(!RUN)return;if(e.code===1){if(!RUN.denied)toast('📡 Location is off for RepWise — allow it in phone Settings → Apps → RepWise → Permissions');RUN.denied=true}}
+function gpsWatch(){if(RUN.watch!=null)navigator.geolocation.clearWatch(RUN.watch);RUN.watch=navigator.geolocation.watchPosition(gpsFix,gpsErr,{enableHighAccuracy:true,maximumAge:3000})}
 function startRun(type='run'){if(!navigator.geolocation)return toast('GPS not available');
- RUN={type,mode:type,ts:Date.now(),pts:[],dist:0,steps:0,paused:false,el:0,lastTick:Date.now(),d:{run:0,walk:0},t:{run:0,walk:0},segs:[]};
+ RUN={type,mode:type,ts:Date.now(),pts:[],dist:0,steps:0,paused:false,el:0,lastTick:Date.now(),lastFix:Date.now(),d:{run:0,walk:0},t:{run:0,walk:0},segs:[]};
  if(!pedo.on)startPedo();
- RUN.watch=navigator.geolocation.watchPosition(p=>{if(!RUN||RUN.paused)return;const c=[p.coords.latitude,p.coords.longitude];if(p.coords.accuracy>35)return;
-  const l=RUN.pts.at(-1);if(l&&!RUN.gap){const d=hav(l,c);if(d<3)return;RUN.dist+=d;RUN.d[RUN.mode]+=d}RUN.gap=false;RUN.pts.push(c);if(stack.at(-1)?.[0]==='runlive')render()},e=>toast('📡 GPS: '+e.message),{enableHighAccuracy:true,maximumAge:0,timeout:20000});
- RUN.timer=setInterval(()=>{const dt=(Date.now()-RUN.lastTick)/1000;if(!RUN.paused){RUN.el+=dt;RUN.t[RUN.mode]+=dt}RUN.lastTick=Date.now();const e=$('#rtime');if(e)e.textContent=fmtT(RUN.el)},1000);stack=[];push('runlive')}
+ gpsWatch();
+ RUN.timer=setInterval(()=>{const dt=(Date.now()-RUN.lastTick)/1000;if(!RUN.paused){RUN.el+=dt;RUN.t[RUN.mode]+=dt}RUN.lastTick=Date.now();const e=$('#rtime');if(e)e.textContent=fmtT(RUN.el);
+  if(!RUN.paused&&!RUN.denied&&Date.now()-RUN.lastFix>30000){RUN.lastFix=Date.now();gpsWatch()}},1000);stack=[];push('runlive')}
 function setMode(m){const R=RUN;if(m==='pause'){R.paused=!R.paused;if(!R.paused)R.gap=true}else{if(R.paused)R.gap=true;R.paused=false;if(R.mode!==m){R.mode=m;R.segs.push(R.pts.length)}}vib(25);render()}
 V.runlive=()=>{const R=RUN;if(!R)return V.run();const b=(m,e,l,c)=>`<button class="btn ${(m==='pause'?R.paused:!R.paused&&R.mode===m)?'':'sec2'}" style="flex:1;padding:18px 4px;font-size:16px;${c&&!(m==='pause'?R.paused:!R.paused&&R.mode===m)?'':c||''}" onclick="setMode('${m}')">${e}<br>${l}</button>`;
- return`<div class="top"><span class="chip">${R.paused?'⏸ Paused':R.mode==='run'?'🏃 Running':'🚶 Walking'}</span><span class="chip" style="color:${R.paused?'var(--warn)':'var(--good)'}">● ${R.paused?'Paused':'Live'}</span></div>
+ return`<div class="top"><span class="chip">${R.paused?'⏸ Paused':R.mode==='run'?'🏃 Running':'🚶 Walking'}</span><span class="chip" style="color:${R.paused?'var(--warn)':'var(--good)'}">● ${R.paused?'Paused':R.acc?`GPS ±${R.acc} m`:'Finding GPS…'}</span></div>
  <div class="map">${routeSVG(R.pts,true)}</div>
  <div class="card" style="margin-top:14px;text-align:center"><div class="muted">Distance</div><div class="big" style="font-size:58px">${(R.dist/1000).toFixed(2)}</div><div class="muted">km</div>
  <div class="runstats"><div><b id="rtime">${fmtT(R.el)}</b><small>TIME</small></div><div><b>${pace(R.el,R.dist)}</b><small>PACE /KM</small></div><div><b>${actKcal(R)}</b><small>KCAL</small></div></div>

@@ -8,6 +8,8 @@
   const r1 = v => Math.round(v * 10) / 10;
   const fmt = t => `P ${Math.round(t.p)} · C ${Math.round(t.c)} · F ${Math.round(t.f)} · fiber ${Math.round(t.fib)} g`;
   const haptic = () => { try { vib(10); } catch (e) {} };
+  // "3 eggs" when the grams are whole pieces, otherwise "150 g"
+  const amtLabel = (ing, g) => { const n = ing.pc && g / ing.pc.g; return n && Math.abs(n - Math.round(n)) < 0.01 ? `${Math.round(n)} ${ing.pc.label}${Math.round(n) !== 1 ? 's' : ''}` : `${r1(g)} g`; };
   const breaded = items => items.some(i => ['flour', 'breadcrumbs', 'wrapper', 'cornstarch'].includes(i.id));
 
   document.head.insertAdjacentHTML('beforeend', `<style>
@@ -114,7 +116,7 @@
   // ---------- search ----------
   function scrSearch() {
     return `${head('Add food', null, `<button class="aflink" style="text-decoration:none;padding:6px 8px" onclick="afCreate('')">Create meal</button>`)}
-    <div class="afsearch">${ic('search')}<input id="afq" placeholder="Search food, dish or my meals" autocomplete="off" oninput="afSearch(this.value)"><label aria-label="Snap a meal">${ic('camera')}<input type="file" accept="image/*" capture="environment" style="display:none" onchange="closeSheet();analyzePhoto(this)"></label></div>
+    <div class="afsearch">${ic('search')}<input id="afq" placeholder="Search food, dish or my meals" autocomplete="off" oninput="afSearch(this.value)"></div>
     <div id="afres"></div>`;
   }
   function recentList() {
@@ -191,7 +193,7 @@
     const ing = F.ING[AF.ingId]; AF.items = [{ id: AF.ingId, g: AF.g }]; const { totals: t } = current();
     const q = [50, 100, 150, 200].map(g => `<button class="${AF.g === g ? 'on' : ''}" onclick="afItemG(${g})">${g} g</button>`).join('') + (ing.pc ? [1, 2, 3].map(n => `<button class="${AF.g === ing.pc.g * n ? 'on' : ''}" onclick="afItemG(${ing.pc.g * n})">${n} ${ing.pc.label}${n > 1 ? 's' : ''}</button>`).join('') : '');
     return `${head(ing.name, "afBack('search')", star('ing:' + ing.id))}
-    ${heroBlock(t, `${r1(AF.g)} g`)}
+    ${heroBlock(t, amtLabel(ing, AF.g) === `${r1(AF.g)} g` ? `${r1(AF.g)} g` : `${amtLabel(ing, AF.g)} · ${r1(AF.g)} g`)}
     <div class="afrow"><span>Amount</span><span class="afstep"><button onclick="afItemG(AF.g-10)">−</button><b>${r1(AF.g)} g</b><button onclick="afItemG(AF.g+10)">+</button></span></div>
     <div class="chips" style="margin-top:var(--s1)">${q}</div>
     ${['meat', 'veg', 'carb'].includes(ing.group) ? cookingBlock() : ''}${fatLine(t)}
@@ -199,7 +201,7 @@
     ${primary(t, 'Add to plate', 'afIngToPlate()', logNow('afIngToPlate(true)'))}`;
   }
   window.afItemG = g => { AF.g = Math.max(1, r1(g)); haptic(); show(); };
-  window.afIngToPlate = now => { const ing = F.ING[AF.ingId], { meal, totals } = current(), it = { name: `${ing.name}${AF.g !== 100 && !ing.pc ? ` (${r1(AF.g)} g)` : ing.pc && AF.g !== ing.pc.g ? ` (${r1(AF.g)} g)` : ''}`, totals, meta: { kind: 'custom', items: meal.items, method: AF.method, oilType: AF.oilType, oilAmt: AF.oilAmt, sat: totals.sat } };
+  window.afIngToPlate = now => { const ing = F.ING[AF.ingId], { meal, totals } = current(), it = { name: ing.name, ing: { id: ing.id, g: AF.g }, totals, meta: { kind: 'custom', ing: { id: ing.id, g: AF.g }, items: meal.items, method: AF.method, oilType: AF.oilType, oilAmt: AF.oilAmt, sat: totals.sat } };
     if (now) return logItems([{ ...it, mult: 1 }], false); addToPlate(it); };
 
   // ---------- cooking / oil / manual ----------
@@ -303,8 +305,13 @@
   // ---------- plate ----------
   function scrPlate() {
     const t = plateTotals();
-    const rows = AF.plate.map((it, i) => `<div class="afing" ontouchstart="afTS(event)" ontouchmove="afTM(event)" ontouchend="afTE(event,${i})"><button class="del" onclick="afPlDel(${i})">Remove</button><div class="row2"><b>${escT(it.name)}</b><button class="gbtn" onclick="afPlEdit(${i})">${it.mult === 0.5 ? '½' : it.mult === 1.5 ? '1½' : it.mult}×</button><span class="afkc">${Math.round(it.totals.kcal * it.mult)}</span></div>
-      ${AF.plEdit === i ? `<div class="afedit" style="position:relative;background:var(--surface)"><div class="chips">${[0.5, 1, 1.5, 2, 3].map(p => `<button class="${it.mult === p ? 'on' : ''}" onclick="afPlMult(${i},${p})">${p === 0.5 ? '½' : p === 1.5 ? '1½' : p}×</button>`).join('')}</div></div>` : ''}</div>`).join('');
+    const multL = p => `${p === 0.5 ? '½' : p === 1.5 ? '1½' : p}×`;
+    const rows = AF.plate.map((it, i) => { const ing = it.ing && F.ING[it.ing.id], g = ing && r1(it.ing.g * it.mult);
+      const chips = ing ? (ing.pc ? [1, 2, 3, 4, 6].map(n => n * ing.pc.g) : [50, 100, 150, 200, 300]).map(x => `<button class="${Math.abs(g - x) < 0.05 ? 'on' : ''}" onclick="afPlAmt(${i},${x})">${amtLabel(ing, x)}</button>`).join('')
+        : [0.5, 1, 1.5, 2, 3].map(p => `<button class="${it.mult === p ? 'on' : ''}" onclick="afPlMult(${i},${p})">${multL(p)}</button>`).join('');
+      const step = ing ? `<div class="afrow" style="border:none;padding:4px 0"><span class="afstep"><button onclick="afPlAmt(${i},${g}-${ing.pc ? ing.pc.g : 10})">−</button><b>${amtLabel(ing, g)}</b><button onclick="afPlAmt(${i},${g}+${ing.pc ? ing.pc.g : 10})">+</button></span><span class="t-caption num">${r1(g)} g</span></div>` : '';
+      return `<div class="afing" ontouchstart="afTS(event)" ontouchmove="afTM(event)" ontouchend="afTE(event,${i})"><button class="del" onclick="afPlDel(${i})">Remove</button><div class="row2"><b>${escT(it.name)}</b><button class="gbtn" onclick="afPlEdit(${i})">${ing ? amtLabel(ing, g) : multL(it.mult)}</button><span class="afkc">${Math.round(it.totals.kcal * it.mult)}</span></div>
+      ${AF.plEdit === i ? `<div class="afedit" style="position:relative;background:var(--surface)">${step}<div class="chips">${chips}</div></div>` : ''}</div>`; }).join('');
     return `${head('Plate', "afBack('search')")}
     <div class="afsticky"><div class="t-display num" style="font-size:40px">${Math.round(t.kcal)}<span class="t-label muted" style="letter-spacing:0"> kcal</span></div><div class="t-caption num">${fmt(t)}</div></div>
     ${rows || '<div class="afnote">Your plate is empty.</div>'}
@@ -314,6 +321,7 @@
   }
   window.afPlEdit = i => { AF.plEdit = AF.plEdit === i ? -1 : i; show(); };
   window.afPlMult = (i, p) => { AF.plate[i].mult = p; haptic(); show(); };
+  window.afPlAmt = (i, g) => { const it = AF.plate[i]; it.mult = Math.max(1, r1(g)) / it.ing.g; haptic(); show(); };
   window.afPlDel = i => { const gone = AF.plate.splice(i, 1)[0]; AF.plEdit = -1; haptic(); toast(`Removed ${esc(gone.name)}`); AF.plate.length ? show() : go('search', 'back'); };
   window.afLogPlate = () => { if (!AF.plate.length) return; const items = AF.plate.splice(0); AF.plEdit = -1; logItems(items, true); };
 
@@ -325,7 +333,8 @@
     if (!fastOK()) { if (fromPlate) AF.plate.unshift(...items); return; }
     let kcal = 0;
     for (const it of items) { const t = F.mul(it.totals, it.mult || 1); kcal += t.kcal;
-      (S.food[viewDate] ??= []).push([it.name + (it.mult && it.mult !== 1 && it.meta?.kind !== 'my' ? ` ×${it.mult}` : ''), Math.round(t.kcal), Math.round(t.p), r1(t.c), r1(t.f), r1(t.fib), { ...it.meta, mult: it.mult || 1 }]); }
+      const ing = it.ing && F.ING[it.ing.id];
+      (S.food[viewDate] ??= []).push([ing ? `${it.name} (${amtLabel(ing, r1(it.ing.g * (it.mult || 1)))})` : it.name + (it.mult && it.mult !== 1 && it.meta?.kind !== 'my' ? ` ×${it.mult}` : ''), Math.round(t.kcal), Math.round(t.p), r1(t.c), r1(t.f), r1(t.fib), { ...it.meta, mult: it.mult || 1 }]); }
     save(); render(); xpFly(`+${Math.round(kcal)} kcal`);
     const name = items.length === 1 ? items[0].name : `${items.length} items`, s = sig(items);
     const isMine = items.length === 1 && items[0].meta?.kind === 'my';
@@ -335,7 +344,7 @@
     if (ask) { AF.pending = { items, s, after }; savePrompt(); } else { closeSheet(); setTimeout(after, 350); }
   }
   function savePrompt() {
-    const { items } = AF.pending, names = items.map(i => i.name.replace(/ ×[\d.]+$/, '').replace(/ \([\d.]+ g\)$/, '').replace(/, (cooked|unsweetened|ripe|raw)$/i, ''));
+    const { items } = AF.pending, names = items.map(i => i.name.replace(/ ×[\d.]+$/, '').replace(/ \(\d[\d.]* [^)]*\)$/, '').replace(/, (cooked|unsweetened|ripe|raw)$/i, ''));
     const def = names.length === 1 ? names[0] : names.slice(0, -1).join(', ') + ' & ' + names.at(-1);
     const miss = items.filter(i => i.draft?.extra).flatMap(i => ['p', 'c', 'f', 'fib'].filter(k => i.draft.extra[k] == null).map(k => ({ i, k })));
     const L = { p: 'protein', c: 'carbs', f: 'fat', fib: 'fiber' };
@@ -360,7 +369,8 @@
   };
   window.afSkipSave = forever => { const P = AF.pending; if (forever) { S.dontAsk.push(P.s); save(); } closeSheet(); setTimeout(P.after, 400); AF.pending = null; };
   window.afRelog = i => { const x = AF.recent[i], m = x[6] || {}; const t = { kcal: x[1], p: x[2], c: x[3] || 0, f: x[4] || 0, sat: m.sat || 0, fib: x[5] || 0 }, mult = m.mult || 1;
-    AF.plate.push({ name: x[0].replace(/ ×[\d.]+$/, ''), totals: F.mul(t, 1 / mult), mult, meta: m }); haptic(); toast(`Added ${esc(x[0])} to plate`); show(); };
+    const ing = m.ing && F.ING[m.ing.id];
+    AF.plate.push({ name: ing ? ing.name : x[0].replace(/ ×[\d.]+$/, ''), ...(ing ? { ing: m.ing } : {}), totals: F.mul(t, 1 / mult), mult, meta: m }); haptic(); toast(`Added ${esc(x[0])} to plate`); show(); };
 
   // ---------- My meals management page ----------
   V.mymeals = () => `<div class="top">${backBtn()}<h1>My meals</h1><button class="aflink" style="text-decoration:none" onclick="foodSheet();afCreate('')">New</button></div>

@@ -147,9 +147,11 @@ const PROGS={
  home:{name:'Fitness at Home',sub:'No equipment needed',e:'🏠',bg:'#ede9fe',ex:['Push-up','Lunge','Australian Row','Plank Hold (sec)','Crunch','Knee Push-up'],m:['Chest','Quads','Core']},
  free:{name:'Free Workout',sub:'Pick any exercise',e:'🎲',bg:'#fce7f3',ex:[],m:[]},
 };
-const RANKS=[['Iron','#9ca3af'],['Bronze','#cd7f32'],['Silver','#a8b0bd'],['Gold','#eab308'],['Platinum','#14b8a6'],['Diamond','#3b82f6'],['Master','#a855f7'],['Grandmaster','#ef4444'],['Legend','#f97316']];
+const RANKS=[['Iron','#9ca3af'],['Bronze','#cd7f32'],['Silver','#a8b0bd'],['Gold','#eab308'],['Platinum','#14b8a6'],['Diamond','#3b82f6'],['Master','#a855f7'],['Grandmaster','#ef4444'],['Legend','#f97316'],['Arnold','#b8860b']];
 const DIVS=['III','II','I'];
-const tierXP=i=>Math.round(300*Math.pow(1.35,i));
+// Each tier's growth rate rises (×1.12 per division in Iron … ×1.44 in Arnold): Iron is quick to leave, the top is a long climb.
+const rankStep=(base,i)=>{let v=base;for(let k=0;k<i;k++)v*=1.12+.035*Math.floor(k/3);return Math.round(v)}
+const tierXP=i=>rankStep(100,i);
 const FOODS={'Rice (1 cup cooked)':[205,4],'Chicken breast (100g)':[165,31],'Egg (1 large)':[72,6],'Banana':[105,1],'Oats (1/2 cup dry)':[150,5],'Whey scoop':[120,24],'Bread slice':[80,3],'Peanut butter (1 tbsp)':[95,4],'Tuna can':[120,26],'Milk (1 cup)':[150,8],'Apple':[95,0],'Pork adobo (1 cup)':[450,30],'Beef (100g)':[250,26],'Greek yogurt (170g)':[100,17],'Sweet potato (medium)':[110,2]};
 const TREES={
  pushup:{name:'20 Push-ups',icon:'💥',steps:[
@@ -310,7 +312,7 @@ const OBSTEPS=[
  {k:'activity',q:'How active are you?',o:[[1.2,'🛋️','Not active','Desk job, little exercise'],[1.375,'🚶','Lightly active','1–3 workouts a week'],[1.55,'🏃','Active','3–5 workouts a week'],[1.725,'⚡','Very active','6–7 workouts a week']]},
  {k:'focus',q:'Pick your quests',s:'Choose as many as you like — you can add, change or raise them anytime.',multi:1},
 ];
-const SLIDES=[['🔒','Your data stays yours','No accounts, no servers, no tracking. Everything lives only on your phone.'],['💸','100% free','No subscriptions, no paywalls, no ads. Every feature is unlocked.'],['🧑‍💻','Source available','Anyone can read and improve the code. Free to use — never for profit.'],['🔬','Backed by science','Your calories, protein and tips come from peer-reviewed research.'],['🎮','Training is a game','Every set earns XP. Rank up each muscle from Iron to Legend.'],['📈','Built for progress','Beat last session by +1 rep or +2.5 kg and get 2× XP.'],['📴','Works offline','Log workouts in the gym with no signal. Move devices with a backup file.']];
+const SLIDES=[['🔒','Your data stays yours','No accounts, no servers, no tracking. Everything lives only on your phone.'],['💸','100% free','No subscriptions, no paywalls, no ads. Every feature is unlocked.'],['🧑‍💻','Source available','Anyone can read and improve the code. Free to use — never for profit.'],['🔬','Backed by science','Your calories, protein and tips come from peer-reviewed research.'],['🎮','Training is a game','Every set earns XP. Rank up each muscle from Iron all the way to Arnold.'],['📈','Built for progress','Beat last session by +1 rep or +2.5 kg and get 2× XP.'],['📴','Works offline','Log workouts in the gym with no signal. Move devices with a backup file.']];
 const SLSTAT=['Calculating your calories…','Estimating body fat…','Building your quests…','Picking your first workout…','Almost ready…','Done! ✨','Done! ✨'];
 let slT=null;function startSlides(){if(slT)return;let i=0;const show=()=>{if(!OB.active){clearInterval(slT);slT=null;return}const el=$('#slide');if(!el)return;
  if(i>=SLIDES.length){clearInterval(slT);slT=null;finishOB();return}const [e,t,s]=SLIDES[i];el.innerHTML=`<div class="anim-push"><div style="font-size:52px">${e}</div><h3 style="font-size:20px;margin:8px 0 6px">${t}</h3><p class="muted">${s}</p></div>`;
@@ -493,7 +495,7 @@ V.meals=()=>{const t=targets(),d=viewDate,f=dayFood(d),k=sum(f,1),p=sum(f,2),lef
  <div class="card" style="text-align:center">${ring(k/t.kcal,'#22c55e',`<div class="big" data-count="${Math.abs(left)}">0</div><div class="muted">${left>=0?'kcal left':'kcal over'}</div>`)}
  <div class="runstats"><div><b>${k}</b><small>EATEN</small></div><div><b>${t.kcal}</b><small>TARGET</small></div><div><b>${t.tdee+((S.burn||{})[d]||0)-k}</b><small>DEFICIT</small></div></div>${(S.burn||{})[d]?`<p class="muted">🏃 Includes ${(S.burn||{})[d]} kcal burned in tracked activities</p>`:''}
  <div style="text-align:left"><small class="muted">Protein ${p} / ${t.protein} g</small><div class="prog"><i style="width:${Math.min(100,p/t.protein*100)}%;background:linear-gradient(90deg,#3b82f6,#14b8a6)"></i></div></div></div>
- <div class="grid2"><label class="btn" style="text-align:center">📸 Snap meal<input type="file" accept="image/*" capture="environment" style="display:none" onchange="analyzePhoto(this)"></label><button class="btn sec2" onclick="foodSheet()">✏️ Add manually</button></div>
+ <button class="btn sec2" onclick="foodSheet()">✏️ Add food</button>
  <div id="aiout"></div>
  <div class="grid2" style="margin-top:10px"><button class="btn sec2" onclick="push('foodsci')">🥗 Smart foods</button><button class="btn sec2" onclick="push('supps')">💊 Supplements</button></div>
  <div class="sec">Logged</div><div class="list">${f.map((x,i)=>`<div class="row" style="cursor:default"><div class="tile" style="background:${PASTEL[i%8]};width:44px;height:44px;font-size:22px">🍽️</div><div class="rbody"><b>${escT(x[0])}</b><small>${x[2]}g protein</small></div><b>${x[1]}</b><button class="iconbtn" style="width:32px;height:32px;font-size:14px;box-shadow:none" onclick="S.food[viewDate].splice(${i},1);save();render()">✕</button></div>`).join('')||'<div class="row muted" style="cursor:default">Nothing logged yet 🍽️</div>'}</div>
@@ -523,7 +525,7 @@ V.challenges=()=>{const qs=questList();
  <div class="list stagger">${qs.map(q=>{const done=q.i>=q.steps.length;return`<div class="row" onclick="push('quest','${q.id}')"><div class="tile" style="background:#fef3c7">${q.icon}</div><div class="rbody"><b>${escT(q.name)} ${done?'🏆':''}</b><small>${done?'Completed!':`Next: ${stepLbl(q.steps[q.i])}`}</small><div class="prog"><i style="width:${q.i/q.steps.length*100}%"></i></div></div><span class="chev">›</span></div>`}).join('')}
  <div class="row" onclick="newQuest()"><div class="tile" style="background:#fce7f3">➕</div><div class="rbody"><b>New challenge</b><small>Skill paths & custom goals</small></div><span class="chev">›</span></div></div>
  <div class="sec">🏆 Muscle Ranks</div><div class="grid2 stagger">${MUSCLES.map(m=>{const r=rankOf(S.xp[m]),d=daysSince(m);return`<div class="stat"><small>${m}</small><b style="font-size:16px;color:${r.color}">${r.name}</b><div class="prog"><i style="width:${r.cur/r.need*100}%;background:${r.color}"></i></div><small style="text-transform:none;font-weight:600">${r.cur}/${r.need} XP${d!=null?` · ${d}d ago`:''}</small></div>`}).join('')}</div>
- <p class="muted" style="margin-top:10px;text-align:center">Iron → Bronze → Silver → Gold → Platinum → Diamond → Master → Grandmaster → Legend</p>
+ <p class="muted" style="margin-top:10px;text-align:center">Iron → Bronze → Silver → Gold → Platinum → Diamond → Master → Grandmaster → Legend → Arnold</p>
  <div class="sec">🏅 Personal Records</div><div class="list">${Object.keys(EX).map(e=>[e,bestSet(e)]).filter(x=>x[1]).map(([e,b])=>`<div class="row" style="cursor:default"><span style="font-size:22px">${EX[e][2]}</span><div class="rbody"><b>${e}</b><small>e1RM ${Math.round(e1rm(b.w,b.r))} kg</small></div><b>${b.w}kg × ${b.r}</b></div>`).join('')||'<div class="row muted" style="cursor:default">Log sets to set PRs.</div>'}</div>`};
 function newQuest(){const avail=Object.keys(TREES).filter(id=>!(id in S.quests));openSheet(`<h3 style="font-size:20px">Pick challenges</h3><p class="muted">Run as many as you want at once.</p>${['Bodyweight','Strength','Endurance'].map(c=>{const ids=avail.filter(id=>TREES[id].cat===c);return ids.length?`<div class="sec" style="margin-top:14px">${({Bodyweight:'🤸',Strength:'🏋️',Endurance:'🏃'})[c]} ${c}</div>`+ids.map(id=>`<div class="opt" onclick="S.quests['${id}']=0;save();this.remove();render();toast('${TREES[id].icon} ${TREES[id].name} started!')"><span class="e">${TREES[id].icon}</span><div><b>${TREES[id].name}</b><small>${TREES[id].steps.length} checkpoints · from ${esc(stepLbl(TREES[id].steps[0]))}</small></div></div>`).join(''):''}).join('')}
  <h3 style="margin-top:14px">🎯 Custom goal</h3><select id="cqe">${Object.keys(EX).map(e=>`<option>${e}</option>`).join('')}</select><div class="flex"><input id="cqs" type="number" placeholder="Current max reps"><input id="cqt" type="number" placeholder="Goal reps"></div><button class="btn" style="margin-top:8px" onclick="addCustom()">Create</button>`)}
@@ -615,7 +617,7 @@ V.transfer=()=>`<div class="top">${backBtn()}<h1>Transfer</h1><span></span></div
  <div class="sec">2. Receive on the new device</div><button class="btn sec2" onclick="importSheet()">📥 Import file or code</button>
  <p class="muted" style="margin:14px 0 30px">Tip: export a backup every week — if you lose your phone, your progress is safe. Your AI key is never included.</p>`;
 V.privacy=()=>`<div class="top">${backBtn()}<h1>Privacy</h1><span></span></div>
- <div class="card"><h3>🔒 What RepWise stores</h3><div class="tip">✅ Your name, body stats, workouts, food log, steps & runs</div><div class="tip">📱 All of it stays <b>only on this device</b> — there is no account server or database</div><div class="tip">🚫 No email, phone number, ads, trackers or analytics</div><div class="tip">📍 GPS routes are saved only on your phone</div><div class="tip">📸 Meal photos are sent to the AI only when you tap “Snap meal” (with your own key) and are not saved</div><div class="tip">🔄 Moving devices = export & import a file/code that you control</div></div>`;
+ <div class="card"><h3>🔒 What RepWise stores</h3><div class="tip">✅ Your name, body stats, workouts, food log, steps & runs</div><div class="tip">📱 All of it stays <b>only on this device</b> — there is no account server or database</div><div class="tip">🚫 No email, phone number, ads, trackers or analytics</div><div class="tip">📍 GPS routes are saved only on your phone</div><div class="tip">🔄 Moving devices = export & import a file/code that you control</div></div>`;
 
 // ================= BOOT ================= (see features.js)
 if(S.pedoOn)setTimeout(startPedo,500);
@@ -633,5 +635,6 @@ window.addEventListener('popstate',()=>{});
 <script src="more.js"></script>
 <script src="qa.js"></script>
 <script src="warm.js"></script>
+<script src="training.js"></script>
 </body>
 </html>

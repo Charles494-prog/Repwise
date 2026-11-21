@@ -54,7 +54,7 @@ async function launch() {
   const page = new Page(ws); page.base = `http://127.0.0.1:${srv.address().port}`;
   await page.send('Runtime.enable'); await page.send('Page.enable');
   await page.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
-  page.close = async () => { try { ws.close(); } catch (e) {} proc.kill('SIGKILL'); srv.close(); fs.rmSync(dir, { recursive: true, force: true }); };
+  page.close = async () => { try { try { ws.close(); } catch (e) {} proc.kill('SIGKILL'); srv.close(); fs.rmSync(dir, { recursive: true, force: true }); } catch (e) {} };
   return page;
 }
 
