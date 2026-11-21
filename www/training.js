@@ -111,6 +111,22 @@ const _sgT=sugg;sugg=function(ex){const s=_sgT(ex);if(!S.active?.deload||!s.w)re
 // Next session's targets come from the last normal session, not the deload.
 const _lsT=lastSets;lastSets=function(ex){for(let i=S.workouts.length-1;i>=0;i--){if(S.workouts[i].deload)continue;const ss=S.workouts[i].sets.filter(s=>s.ex===ex);if(ss.length)return ss}return _lsT(ex)};
 
+// ================= BODYWEIGHT EXERCISES: reps, not weights =================
+// Push-ups, pull-ups, dips, planks… have no weight to pick. First time: as many clean reps as you can, about 10;
+// after that: beat your best reps. Muscle grows across roughly 6–30 reps when sets end near failure, so 10 is a
+// middle target, not a magic number (Schoenfeld et al., 2017 & 2021).
+const BW_RX=/push-up|pull-up|chin-up|muscle-up|\bdips?\b|bench dip|plank|crunch|leg raise|burpee|pistol|handstand|l-sit|dead bug|superman|glute bridge|australian row|bodyweight|sit-up|mountain climber|jumping jack|hollow/i;
+const isBW=ex=>BW_RX.test(ex)||['h','bar'].includes(typeof tierOf==='function'?tierOf(ex):null);
+const _sgBW=sugg;sugg=function(ex){const s=_sgBW(ex);if(!isBW(ex)||isTimed(ex))return s;const ls=lastSets(ex);
+ if(!ls)return{...s,w:0,r:10,text:'First time! Do as many clean reps as you can, stopping 1–2 reps before failure — about <b>10</b> is a good start.'};
+ const added=Math.max(0,...ls.map(x=>x.w||0));if(added)return s;
+ if(/kg ×/.test(s.text)){const best=Math.max(...ls.map(x=>x.r));
+  return best>=25?{...s,w:0,r:best,text:`Last time ${best} reps. That's a lot — make it harder: lower in 3 seconds, or try a harder version (Alternatives).`}
+   :{...s,w:0,r:best+1,text:`Last time ${best} reps. Beat it: <b>${best+1} reps</b>.`}}
+ return s};
+// The weight box becomes optional added weight (vest, backpack) for bodyweight moves.
+const _plBW=V.player;V.player=()=>{let h=_plBW();const a=S.active;if(a&&isBW(a.list[a.idx])&&!isTimed(a.list[a.idx]))h=h.replace(/>Weight \(kg\)</,'>Added weight (kg) · optional<');return h};
+
 // ================= EXERCISE HISTORY: every set + progression graph =================
 // Session score = Σ weight × reps (bodyweight sets count their reps / seconds).
 const sessScore=ss=>ss.reduce((t,s)=>t+(s.w>0?s.w:1)*s.r,0);

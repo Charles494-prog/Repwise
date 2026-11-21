@@ -9,7 +9,8 @@
   const fmt = t => `P ${Math.round(t.p)} · C ${Math.round(t.c)} · F ${Math.round(t.f)} · fiber ${Math.round(t.fib)} g`;
   const haptic = () => { try { vib(10); } catch (e) {} };
   // "3 eggs" when the grams are whole pieces, otherwise "150 g"
-  const amtLabel = (ing, g) => { const n = ing.pc && g / ing.pc.g; return n && Math.abs(n - Math.round(n)) < 0.01 ? `${Math.round(n)} ${ing.pc.label}${Math.round(n) !== 1 ? 's' : ''}` : `${r1(g)} g`; };
+  const unitOf = ing => (ing && ing.unit) || 'g';
+  const amtLabel = (ing, g) => { const n = ing.pc && g / ing.pc.g; return n && Math.abs(n - Math.round(n)) < 0.01 ? `${Math.round(n)} ${ing.pc.label}${Math.round(n) !== 1 ? 's' : ''}` : `${r1(g)} ${unitOf(ing)}`; };
   const breaded = items => items.some(i => ['flour', 'breadcrumbs', 'wrapper', 'cornstarch'].includes(i.id));
 
   document.head.insertAdjacentHTML('beforeend', `<style>
@@ -62,6 +63,17 @@
   .afprim{display:flex;gap:var(--s2);align-items:center}.afprim .btn{flex:1}
   .afmiss{background:var(--fill);border-radius:10px}
   .afmiss input::placeholder{color:var(--accent)}
+  .afgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:var(--s1)}
+  .affield{display:flex;flex-direction:column;gap:4px;margin-top:var(--s1)}.afgrid .affield{margin-top:0}.affield.full{grid-column:1/-1}
+  .affield>span:first-child{font-size:var(--fs-label);font-weight:600;color:var(--ink-2)}
+  .affield .in{display:flex;align-items:center;gap:6px;border:1.5px solid var(--line);border-radius:12px;background:var(--surface);padding:0 12px;height:48px;cursor:text}
+  .affield .in:focus-within{border-color:var(--ink)}.affield.miss .in{border-color:#f3b4b7;background:#fff7f7}
+  .affield .in input{flex:1;min-width:0;border:none!important;background:none!important;font-size:17px;font-weight:600;padding:0!important;margin:0!important;outline:none;box-shadow:none!important;color:var(--ink)}
+  .affield .in em{font-style:normal;color:var(--ink-3);font-size:14px;font-weight:600}
+  .afseg{display:flex;background:var(--fill);border-radius:var(--r-pill);padding:3px;margin-top:var(--s1)}.afseg button{flex:1;border:none;background:none;border-radius:var(--r-pill);padding:8px 0;font-weight:600;color:var(--ink-2);cursor:pointer}.afseg button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px #15151f1a}
+  .afmore{margin-top:var(--s2);border-top:1px solid var(--line);padding-top:var(--s1)}.afmore summary{font-weight:700;cursor:pointer;padding:8px 0}
+  .afwarn{background:#fff7ed;color:#9a3412;border-radius:10px;padding:8px 10px}
+  .afmicro{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;margin-top:var(--s1)}.afmicro div{display:flex;justify-content:space-between;font-size:14px;border-bottom:1px solid var(--line);padding:6px 0}.afmicro b{font-variant-numeric:tabular-nums}
   </style>`);
 
   // ---------- favorites / my meals storage ----------
@@ -78,6 +90,55 @@
   const missingOf = m => { const x = m.extra; if (!x) return []; return ['p', 'c', 'f', 'fib'].filter(k => x[k] == null).map(k => ({ p: 'protein', c: 'carbs', f: 'fat', fib: 'fiber' })[k]); };
   const newId = () => 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
 
+  // ---------- custom ingredients (S.myIngredients) ----------
+  // Saved as entered (per 100 g/ml or per serving); registered into F.ING as per-100 values. Blank = unknown (null), not 0.
+  S.myIngredients ??= [];
+  const MACRO_X = [['sugar', 'Sugar', 'g']];
+  const MICROS = [['na', 'Sodium', 'mg'], ['k', 'Potassium', 'mg'], ['chol', 'Cholesterol', 'mg'], ['ca', 'Calcium', 'mg'], ['fe', 'Iron', 'mg'], ['mg', 'Magnesium', 'mg'], ['zn', 'Zinc', 'mg'], ['va', 'Vitamin A', 'µg'], ['vc', 'Vitamin C', 'mg'], ['vd', 'Vitamin D', 'µg'], ['ve', 'Vitamin E', 'mg'], ['vk', 'Vitamin K', 'µg'], ['b6', 'Vitamin B6', 'mg'], ['b12', 'Vitamin B12', 'µg'], ['fol', 'Folate', 'µg']];
+  const NUT_KEYS = ['kcal', 'p', 'c', 'f', 'sat', 'fib', 'sugar', ...MICROS.map(x => x[0])];
+  const blank = v => v == null || v === '' || Number.isNaN(+v);
+  function regIng(m) { const k = m.ref === 'serving' && m.size > 0 ? 100 / m.size : 1, per = {}; for (const key of NUT_KEYS) per[key] = blank(m.vals?.[key]) ? null : +m.vals[key] * k;
+    F.ING['my_' + m.id] = { id: 'my_' + m.id, name: m.name, alt: 'my ingredient custom ' + m.name, group: 'mine', per100: per, src: 'My ingredient', pc: m.ref === 'serving' && m.size > 0 ? { g: m.size, label: 'serving' } : null, unit: m.unit || 'g', mine: m.id }; }
+  S.myIngredients.forEach(regIng);
+  // Extra nutrients (sugar + micronutrients) for a list of items; partial = some ingredients have no data for it.
+  function nutrientList(items) { const out = [];
+    for (const [k, l, u] of [...MACRO_X, ...MICROS]) { let v = 0, known = 0, missing = 0; for (const it of items) { if (it.oil) continue; const ing = F.ING[it.id]; if (!ing) continue; const x = ing.per100[k]; if (x == null) missing++; else { known++; v += x * it.g / 100; } }
+      if (known) out.push({ k, l, u, v: v >= 10 ? Math.round(v) : r1(v), partial: missing > 0 }); }
+    return out; }
+  const nutrientBlock = items => { const L = nutrientList(items); if (!L.length) return '';
+    return `<div class="afsec">Sugar, vitamins & minerals</div><div class="afmicro">${L.map(x => `<div><span>${x.l}</span><b>${x.partial ? '≥ ' : ''}${x.v} ${x.u}</b></div>`).join('')}</div>${L.some(x => x.partial) ? '<div class="afnote">≥ means some ingredients have no data for it, so the real amount is at least this.</div>' : ''}`; };
+  const fld = (k, label, unit, val, cls = '', on = 'AF_ci') => `<label class="affield ${cls}"><span>${label}</span><span class="in"><input type="number" inputmode="decimal" value="${val ?? ''}" placeholder="—" oninput="${on}('${k}',this.value)">${unit ? `<em>${unit}</em>` : ''}</span></label>`;
+  function ciWarn() { const v = AF.ci.vals, kcal = +v.kcal || 0, have = ['p', 'c', 'f'].filter(k => !blank(v[k])); if (!kcal || !have.length) return '';
+    const est = 4 * (+v.p || 0) + 4 * (+v.c || 0) + 9 * (+v.f || 0);
+    if (est > kcal * 1.25 + 20) return `<div class="afwarn">Protein, carbs and fat add up to about ${Math.round(est)} kcal — more than the ${kcal} kcal you entered. Worth a double-check (you can still save).</div>`;
+    if (have.length === 3 && est < kcal * 0.6 - 20) return `<div class="afwarn">Protein, carbs and fat only add up to about ${Math.round(est)} kcal of the ${kcal} kcal you entered. Worth a double-check (you can still save).</div>`;
+    return ''; }
+  window.afNewIng = (name, ret) => { AF.ci = { id: null, name: (name || '').trim(), ref: '100g', size: null, unit: 'g', vals: {}, ret: ret || AF.screen }; go('mying'); };
+  window.afEditIng = id => { const m = S.myIngredients.find(x => x.id === id); AF.ci = { ...JSON.parse(JSON.stringify(m)), ret: 'item' }; go('mying'); };
+  window.AF_ci = (k, v) => { if (k === 'size') AF.ci.size = blank(v) ? null : +v; else AF.ci.vals[k] = blank(v) ? null : +v; const w = $('#ciwarn'); if (w) w.innerHTML = ciWarn(); };
+  window.AF_ciSet = (k, v) => { AF.ci[k] = v; show(); };
+  function scrMyIng() { const c = AF.ci, v = c.vals, per = c.ref === 'serving' ? `one serving${c.size ? ` (${c.size} ${c.unit})` : ''}` : `100 ${c.unit}`;
+    const back = c.ret === 'ing' ? 'ing' : c.ret === 'item' ? 'item' : 'search';
+    return `${head(c.id ? 'Edit ingredient' : 'Custom ingredient', `afBack('${back}')`)}
+    <label class="affield full"><span>Name</span><span class="in"><input id="ciname" value="${esc(c.name)}" placeholder="e.g. Mom's pandesal" oninput="AF.ci.name=this.value"></span></label>
+    <div class="afsec">Nutrition label is for</div><div class="afseg">${[['100g', `100 ${c.unit}`], ['serving', 'One serving']].map(([k, l]) => `<button class="${c.ref === k ? 'on' : ''}" onclick="AF_ciSet('ref','${k}')">${l}</button>`).join('')}</div>
+    <div class="afgrid">${c.ref === 'serving' ? fld('size', 'Serving size', c.unit, c.size) : ''}<div class="affield${c.ref === 'serving' ? '' : ' full'}"><span>Measured in</span><div class="afseg" style="margin:0">${['g', 'ml'].map(u => `<button class="${c.unit === u ? 'on' : ''}" onclick="AF_ciSet('unit','${u}')">${u}</button>`).join('')}</div></div></div>
+    <div class="afsec">Per ${per}</div><div class="afgrid">${fld('kcal', 'Calories *', 'kcal', v.kcal, 'full')}${fld('p', 'Protein', 'g', v.p)}${fld('c', 'Carbs', 'g', v.c)}${fld('f', 'Fat', 'g', v.f)}${fld('sat', 'Saturated fat', 'g', v.sat)}${fld('fib', 'Fibre', 'g', v.fib)}${fld('sugar', 'Sugar', 'g', v.sugar)}</div>
+    <div id="ciwarn" style="margin-top:var(--s1)">${ciWarn()}</div>
+    <details class="afmore"${MICROS.some(([k]) => !blank(v[k])) ? ' open' : ''}><summary>Vitamins & minerals (optional)</summary><div class="afgrid">${MICROS.map(([k, l, u]) => fld(k, l, u, v[k])).join('')}</div></details>
+    <div class="afnote">Only the name and calories are needed. Leave anything you don't know blank — blank means unknown, not zero.</div>
+    <div class="afbar"><div class="afprim"><button class="btn" onclick="afSaveIng()">${c.id ? 'Save changes' : 'Save ingredient'}</button></div></div>`; }
+  window.afSaveIng = () => { const c = AF.ci, name = (c.name || '').trim();
+    if (!name) return toast('Give your ingredient a name'); if (blank(c.vals.kcal)) return toast('Enter the calories'); if (c.ref === 'serving' && !(c.size > 0)) return toast('Enter the serving size');
+    const rec = { id: c.id || newId(), name, ref: c.ref, size: c.ref === 'serving' ? c.size : null, unit: c.unit, vals: { ...c.vals } };
+    if (c.id) Object.assign(S.myIngredients.find(x => x.id === c.id), rec); else S.myIngredients.push(rec);
+    regIng(rec); save(); haptic(); toast(c.id ? 'Ingredient saved' : `Saved “${esc(name)}” to My ingredients`);
+    if (c.ret === 'ing') return afPickIng('my_' + rec.id); afOpenIng('my_' + rec.id); };
+  window.afDupIng = id => { const m = S.myIngredients.find(x => x.id === id), c = JSON.parse(JSON.stringify(m)); c.id = newId(); c.name = m.name + ' (copy)'; S.myIngredients.push(c); regIng(c); save(); toast('Duplicated'); afOpenIng('my_' + c.id); };
+  window.afDelIng = id => { const m = S.myIngredients.find(x => x.id === id), used = S.myMeals.filter(x => (x.items || []).some(i => i.id === 'my_' + id)).length;
+    if (!confirm(`Delete “${m.name}” from My ingredients?${used ? `\n\nIt's used in ${used} saved meal${used > 1 ? 's' : ''}; those meals will no longer count it.` : ''}\n\nPast logs aren't affected.`)) return;
+    S.myIngredients = S.myIngredients.filter(x => x.id !== id); delete F.ING['my_' + id]; S.favs = S.favs.filter(k => k !== 'ing:my_' + id); save(); toast('Deleted'); AF.q = ''; go('search', 'back'); };
+
   // ---------- plate ----------
   AF.plate ??= [];
   const plateTotals = () => AF.plate.reduce((t, it) => F.add(t, F.mul(it.totals, it.mult)), F.round(F.sumItems([])));
@@ -90,7 +151,7 @@
     for (const d of F.DISHES) { const o = dishDefaults(d), t = dishTotals(d, d.variants[0].id, null, 1, o).totals;
       out.push({ type: 'dish', key: 'dish:' + d.id, id: d.id, name: d.name, alt: d.alt + ' ' + d.variants.map(v => v.name + ' ' + v.alt).join(' '), kcal: t.kcal, serving: d.serving, src: 'Catalog' }); }
     for (const ing of Object.values(F.ING)) { const g = ing.pc ? ing.pc.g : 100;
-      out.push({ type: 'ing', key: 'ing:' + ing.id, id: ing.id, name: ing.name, alt: ing.alt, group: ing.group, kcal: Math.round(ing.per100.kcal * g / 100), serving: ing.pc ? `1 ${ing.pc.label}` : '100 g', src: 'Catalog' }); }
+      out.push({ type: 'ing', key: 'ing:' + ing.id, id: ing.id, name: ing.name, alt: ing.alt, group: ing.group, kcal: Math.round(ing.per100.kcal * g / 100), serving: ing.pc ? `1 ${ing.pc.label}${ing.mine ? ` (${r1(ing.pc.g)} ${unitOf(ing)})` : ''}` : `100 ${unitOf(ing)}`, src: ing.mine ? 'My ingredient' : 'Catalog' }); }
     return out;
   }
   function row(e, label) {
@@ -101,7 +162,7 @@
   // ---------- render ----------
   function show(dir) {
     const sh = $('#sheet'); sh.classList.add('af');
-    const html = ({ search: scrSearch, dish: scrDish, builder: scrBuilder, ing: scrIng, item: scrItem, my: scrMy, plate: scrPlate })[AF.screen]();
+    const html = ({ search: scrSearch, dish: scrDish, builder: scrBuilder, ing: scrIng, item: scrItem, my: scrMy, plate: scrPlate, mying: scrMyIng })[AF.screen]();
     const k = html.indexOf('<div class="afbar">'), body = k >= 0 ? html.slice(0, k) : html;
     let bar = k >= 0 ? html.slice(k) : '';
     if (AF.screen === 'search' && AF.plate.length) { const t = plateTotals(); bar = `<div class="plbar" onclick="afGo('plate')"><div class="t"><b>Plate · ${AF.plate.length} item${AF.plate.length > 1 ? 's' : ''} · ${Math.round(t.kcal)} kcal</b><small>Tap to review</small></div><button onclick="event.stopPropagation();afLogPlate()">Log</button></div>`; }
@@ -115,7 +176,7 @@
 
   // ---------- search ----------
   function scrSearch() {
-    return `${head('Add food', null, `<button class="aflink" style="text-decoration:none;padding:6px 8px" onclick="afCreate('')">Create meal</button>`)}
+    return `${head('Add food', null, `<button class="aflink" style="text-decoration:none;padding:6px 8px" onclick="afNewIng('','search')">+ Ingredient</button><button class="aflink" style="text-decoration:none;padding:6px 8px" onclick="afCreate('')">Create meal</button>`)}
     <div class="afsearch">${ic('search')}<input id="afq" placeholder="Search food, dish or my meals" autocomplete="off" oninput="afSearch(this.value)"></div>
     <div id="afres"></div>`;
   }
@@ -128,25 +189,27 @@
     AF.q = q; const box = $('#afres'); if (!box) return;
     if (AF.screen === 'ing') {
       const all = index().filter(e => e.type === 'ing');
-      if (!q.trim()) { const G = [['meat', 'Meat & fish'], ['veg', 'Vegetables'], ['fruit', 'Fruit'], ['carb', 'Rice & carbs'], ['oil', 'Oils & sauces'], ['other', 'Other']];
-        box.innerHTML = G.map(([g, l]) => `<div class="afgroup">${l}</div>${all.filter(e => e.group === g).map(e => `<div class="afli" onclick="afPickIng('${e.id}')"><b>${escT(e.name)}</b><span>${e.kcal} kcal · ${e.serving}</span></div>`).join('')}`).join(''); return; }
+      const mk = `<div class="afli create" onclick="afNewIng(AF.q,'ing')"><b>${q.trim() ? `Create ingredient “${esc(q.trim())}”` : 'New custom ingredient'}</b><span>${ic('plus')}</span></div>`;
+      if (!q.trim()) { const G = [['mine', 'My ingredients'], ['meat', 'Meat & fish'], ['veg', 'Vegetables'], ['fruit', 'Fruit'], ['carb', 'Rice & carbs'], ['oil', 'Oils & sauces'], ['other', 'Other']];
+        box.innerHTML = mk + G.filter(([g]) => all.some(e => e.group === g)).map(([g, l]) => `<div class="afgroup">${l}</div>${all.filter(e => e.group === g).map(e => `<div class="afli" onclick="afPickIng('${e.id}')"><b>${escT(e.name)}</b><span>${e.kcal} kcal · ${e.serving}</span></div>`).join('')}`).join(''); return; }
       const res = F.search(q, all).slice(0, 30);
-      box.innerHTML = res.map(e => `<div class="afli" onclick="afPickIng('${e.id}')"><b>${escT(e.name)}</b><span>${e.kcal} kcal · ${e.serving}</span></div>`).join('') || `<div class="afnote" style="padding:14px 0">No ingredient matches “${esc(q)}”.</div>`;
+      box.innerHTML = (res.map(e => `<div class="afli" onclick="afPickIng('${e.id}')"><b>${escT(e.name)}${e.src === 'My ingredient' ? '<span class="afsrc">My ingredient</span>' : ''}</b><span>${e.kcal} kcal · ${e.serving}</span></div>`).join('') || `<div class="afnote" style="padding:14px 0">No ingredient matches “${esc(q)}”.</div>`) + mk;
       return;
     }
     const all = index(), rec = recentList();
     if (!q.trim()) {
-      const favs = all.filter(e => isFav(e.key)), mine = all.filter(e => e.type === 'my');
+      const favs = all.filter(e => isFav(e.key)), mine = all.filter(e => e.type === 'my'), myIng = all.filter(e => e.src === 'My ingredient');
       box.innerHTML = (favs.length ? `<div class="afgroup">Favorites</div>${favs.map(e => row(e, true)).join('')}` : '')
         + (mine.length ? `<div class="afgroup">My meals</div>${mine.map(e => row(e)).join('')}` : '')
+        + (myIng.length ? `<div class="afgroup">My ingredients</div>${myIng.map(e => row(e)).join('')}` : '')
         + (rec.length ? `<div class="afgroup">Recent</div>${rec.map(e => row(e)).join('')}` : '')
-        + (!favs.length && !mine.length && !rec.length ? `<div class="afnote" style="padding:var(--s3) 0">Search the catalog — 50+ Filipino dishes and 130 ingredients. Star anything you eat often.</div>` : '');
+        + (!favs.length && !mine.length && !rec.length ? `<div class="afnote" style="padding:var(--s3) 0">Search the catalog — 50+ Filipino dishes and 130 ingredients. Star anything you eat often. Can't find something? Tap <b>+ Ingredient</b> to add your own from its nutrition label.</div>` : '');
       return;
     }
     let res = F.search(q, [...all, ...rec]);
-    const rank = e => (e.type === 'my' ? 2 : 0) + (isFav(e.key) ? 1 : 0);
+    const rank = e => (e.type === 'my' || e.src === 'My ingredient' ? 2 : 0) + (isFav(e.key) ? 1 : 0);
     res = res.map((e, i) => ({ e, i })).sort((a, b) => rank(b.e) - rank(a.e) || a.i - b.i).map(x => x.e).slice(0, 30);
-    box.innerHTML = res.map(e => row(e, true)).join('') + `<div class="afli create" onclick="afCreate(AF.q)"><b>Create “${esc(q.trim())}”</b><span>${ic('plus')}</span></div>`;
+    box.innerHTML = res.map(e => row(e, true)).join('') + `<div class="afli create" onclick="afNewIng(AF.q,'search')"><b>Create ingredient “${esc(q.trim())}”</b><span>${ic('plus')}</span></div><div class="afli create" onclick="afCreate(AF.q)"><b>Create meal “${esc(q.trim())}”</b><span>${ic('plus')}</span></div>`;
   };
 
   // ---------- dish (catalog) ----------
@@ -191,13 +254,15 @@
   window.afOpenIng = id => { const ing = F.ING[id]; Object.assign(AF, { ingId: id, g: ing.pc ? ing.pc.g : 100, method: 'raw', oilType: 'none', oilAmt: null, manual: false, override: null, extra: null }); AF.items = [{ id, g: AF.g }]; go('item'); };
   function scrItem() {
     const ing = F.ING[AF.ingId]; AF.items = [{ id: AF.ingId, g: AF.g }]; const { totals: t } = current();
-    const q = [50, 100, 150, 200].map(g => `<button class="${AF.g === g ? 'on' : ''}" onclick="afItemG(${g})">${g} g</button>`).join('') + (ing.pc ? [1, 2, 3].map(n => `<button class="${AF.g === ing.pc.g * n ? 'on' : ''}" onclick="afItemG(${ing.pc.g * n})">${n} ${ing.pc.label}${n > 1 ? 's' : ''}</button>`).join('') : '');
+    const u = unitOf(ing), q = [50, 100, 150, 200].map(g => `<button class="${AF.g === g ? 'on' : ''}" onclick="afItemG(${g})">${g} ${u}</button>`).join('') + (ing.pc ? [1, 2, 3].map(n => `<button class="${AF.g === ing.pc.g * n ? 'on' : ''}" onclick="afItemG(${ing.pc.g * n})">${n} ${ing.pc.label}${n > 1 ? 's' : ''}</button>`).join('') : '');
     return `${head(ing.name, "afBack('search')", star('ing:' + ing.id))}
-    ${heroBlock(t, amtLabel(ing, AF.g) === `${r1(AF.g)} g` ? `${r1(AF.g)} g` : `${amtLabel(ing, AF.g)} · ${r1(AF.g)} g`)}
-    <div class="afrow"><span>Amount</span><span class="afstep"><button onclick="afItemG(AF.g-10)">−</button><b>${r1(AF.g)} g</b><button onclick="afItemG(AF.g+10)">+</button></span></div>
+    ${heroBlock(t, amtLabel(ing, AF.g) === `${r1(AF.g)} ${u}` ? `${r1(AF.g)} ${u}` : `${amtLabel(ing, AF.g)} · ${r1(AF.g)} ${u}`)}
+    <div class="afrow"><span>Amount</span><span class="afstep"><button onclick="afItemG(AF.g-10)">−</button><b>${r1(AF.g)} ${u}</b><button onclick="afItemG(AF.g+10)">+</button></span></div>
     <div class="chips" style="margin-top:var(--s1)">${q}</div>
     ${['meat', 'veg', 'carb'].includes(ing.group) ? cookingBlock() : ''}${fatLine(t)}
-    <div class="afnote" style="margin-top:var(--s2)">Per 100 g: ${ing.per100.kcal} kcal · ${ing.src}</div>
+    ${nutrientBlock(AF.items)}
+    <div class="afnote" style="margin-top:var(--s2)">Per 100 ${u}: ${Math.round(ing.per100.kcal)} kcal · ${ing.src}${ing.mine && ['p', 'c', 'f', 'sat', 'fib'].some(k => ing.per100[k] == null) ? ` · ${['p', 'c', 'f', 'sat', 'fib'].filter(k => ing.per100[k] == null).map(k => ({ p: 'protein', c: 'carbs', f: 'fat', sat: 'saturated fat', fib: 'fibre' })[k]).join(', ')} unknown (shown as 0)` : ''}</div>
+    ${ing.mine ? `<div style="display:flex;flex-wrap:wrap;gap:0 var(--s3)"><button class="aflink" onclick="afEditIng('${ing.mine}')">Edit</button><button class="aflink" onclick="afDupIng('${ing.mine}')">Duplicate</button><button class="aflink" onclick="afDelIng('${ing.mine}')">Delete</button></div>` : ''}
     ${primary(t, 'Add to plate', 'afIngToPlate()', logNow('afIngToPlate(true)'))}`;
   }
   window.afItemG = g => { AF.g = Math.max(1, r1(g)); haptic(); show(); };
@@ -225,27 +290,27 @@
   function scrBuilder() {
     const { meal, totals: t } = current(), editing = AF.editMy != null;
     const rows = meal.items.map((it, i) => { const ing = F.ING[it.id], k = Math.round(ing.per100.kcal * it.g / 100);
-      if (it.oil) return `<div class="afing"><div class="row2"><b>${ing.name}</b><span class="gbtn" style="background:none">${r1(it.g)} g</span><span class="afkc">${k}</span></div></div>`;
+      if (it.oil) return `<div class="afing"><div class="row2"><b>${ing.name}</b><span class="gbtn" style="background:none">${r1(it.g)} ${unitOf(ing)}</span><span class="afkc">${k}</span></div></div>`;
       const open = AF.edit === i;
-      return `<div class="afing" ontouchstart="afTS(event)" ontouchmove="afTM(event)" ontouchend="afTE(event,${i})"><button class="del" onclick="afDel(${i})">Delete</button><div class="row2"><b>${ing.name}</b><button class="gbtn" onclick="afEdit(${i})">${r1(it.g)} g</button><span class="afkc">${k}</span></div>
-        ${open ? `<div class="afedit" style="background:var(--surface);position:relative"><div class="afrow" style="border:none;padding:4px 0"><span class="afstep"><button onclick="afG(${i},-10)">−</button><b>${r1(it.g)} g</b><button onclick="afG(${i},10)">+</button></span><span class="t-caption">${fmt(F.scale(ing.per100, it.g))}</span></div>
+      return `<div class="afing" ontouchstart="afTS(event)" ontouchmove="afTM(event)" ontouchend="afTE(event,${i})"><button class="del" onclick="afDel(${i})">Delete</button><div class="row2"><b>${escT(ing.name)}</b><button class="gbtn" onclick="afEdit(${i})">${r1(it.g)} ${unitOf(ing)}</button><span class="afkc">${k}</span></div>
+        ${open ? `<div class="afedit" style="background:var(--surface);position:relative"><div class="afrow" style="border:none;padding:4px 0"><span class="afstep"><button onclick="afG(${i},-10)">−</button><b>${r1(it.g)} ${unitOf(ing)}</b><button onclick="afG(${i},10)">+</button></span><span class="t-caption">${fmt(F.scale(ing.per100, it.g))}</span></div>
         <div class="chips">${[50, 100, 150, 200].map(g => `<button onclick="afSetG(${i},${g})">${g} g</button>`).join('')}${ing.pc ? `<button onclick="afSetG(${i},${ing.pc.g})">1 ${ing.pc.label}</button><button onclick="afSetG(${i},${ing.pc.g * 2})">2 ${ing.pc.label}s</button>` : ''}</div></div>` : ''}</div>`; }).join('');
     const ex = AF.extra, exRow = ex ? `<div class="afing"><div class="row2"><b>Other (entered by hand)</b><button class="gbtn" onclick="afExtraEdit()">edit</button><span class="afkc">${Math.round(ex.kcal || 0)}</span></div></div>` : '';
     const manual = AF.manual ? manualFields() : '';
     return `${head(editing ? 'Edit my meal' : AF.adjustedFrom ? 'Adjust ingredients' : 'Create meal', AF.from === 'dish' ? "afBack('dish')" : AF.from === 'my' ? "afBack('my')" : "afBack('search')")}
     <div class="afsticky"><div class="t-display num" id="afk" style="font-size:40px">${Math.round(t.kcal)}</div><div class="t-caption num" id="afm">${fmt(t)}</div></div>
-    <div class="afrow"><span>Name</span><input style="width:62%" value="${esc(AF.name || '')}" placeholder="Meal name" oninput="AF.name=this.value"></div>
+    <label class="affield full"><span>Meal name</span><span class="in"><input value="${esc(AF.name || '')}" placeholder="Any name, e.g. My_Usual_meal_Breast_Chicken" oninput="AF.name=this.value"></span></label>
     ${AF.adjustedFrom ? `<div class="afnote">A copy of ${esc(AF.adjustedFrom)}. The catalog dish stays the same.</div>` : ''}
     ${manual || `<div class="afsec">Ingredients</div>${rows}${exRow}${!rows && !exRow ? '<div class="afnote" style="padding:8px 0">Add the first ingredient, or enter the totals by hand.</div>' : ''}
     <button class="aflink" style="text-decoration:none;display:flex;align-items:center;gap:8px" onclick="afAddIng()">${ic('plus')} Add ingredient</button>
     ${!rows && !exRow ? `<button class="aflink" onclick="afManual()">Enter totals by hand</button>` : ''}
-    ${meal.items.some(i => !i.oil) ? cookingBlock() + fatLine(t) : ''}`}
+    ${meal.items.some(i => !i.oil) ? cookingBlock() + fatLine(t) + nutrientBlock(meal.items) : ''}`}
     ${editing ? primary(t, 'Save changes', 'afSaveMy()') : primary(t, 'Add to plate', 'afBuilderToPlate()', logNow('afBuilderToPlate(true)'))}
     ${!editing && !AF.manual ? '' : ''}`;
   }
   function manualFields() {
-    const o = AF.override, f = (k, l) => `<div class="afrow${o[k] == null && k !== 'kcal' ? ' afmiss' : ''}"><span>${l}</span><input type="number" inputmode="decimal" value="${o[k] ?? ''}" placeholder="${k === 'kcal' ? '0' : 'missing'}" oninput="AF_ov('${k}',this.value)"></div>`;
-    return `<div class="afsec">Totals per serving</div>${f('kcal', 'Calories')}${f('p', 'Protein g')}${f('c', 'Carbs g')}${f('f', 'Fat g')}${f('fib', 'Fiber g')}<div class="afnote">Leave a field empty if you don't know it — the meal is marked incomplete until you fill it.</div>`;
+    const o = AF.override, f = (k, l, u, cls = '') => fld(k, l, u, o[k], cls + (o[k] == null && k !== 'kcal' ? ' miss' : ''), 'AF_ov');
+    return `<div class="afsec">Totals per serving</div><div class="afgrid">${f('kcal', 'Calories', 'kcal', 'full')}${f('p', 'Protein', 'g')}${f('c', 'Carbs', 'g')}${f('f', 'Fat', 'g')}${f('fib', 'Fibre', 'g')}</div><div class="afnote">Leave a field empty if you don't know it — the meal is marked incomplete until you fill it.</div>`;
   }
   window.afManual = () => { AF.manual = true; AF.override = { ...EMPTY, kcal: '' }; show(); };
   window.AF_ov = (k, v) => { AF.override[k] = v === '' ? null : +v; refreshTotals(); };

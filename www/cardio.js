@@ -10,7 +10,7 @@ const TILES={key:'',url:'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}
  fallback:{url:'https://tile.openstreetmap.org/{z}/{x}/{y}.png',maxZoom:19,attribution:'⁠© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}};
 // Maps survive re-renders: each one is cached by key and its element is moved into the new placeholder.
 const MAPS={};
-function mapEl(key,h=200){return`<div class="cmap" data-map="${key}" style="height:${h}px"></div>`}
+function mapEl(key,h=200){return`<div class="cmap" data-map="${key}" style="height:${typeof h==='number'?h+'px':h}"></div>`}
 function dropMap(k){try{MAPS[k]?.ro?.disconnect();MAPS[k]?.map.remove()}catch(e){}delete MAPS[k]}
 // Layers bottom → top: plan (a planned route, dashed), line (the GPS track, red), extra (start / current / end dots).
 function makeMap(el,o={}){const map=L.map(el,{zoomControl:false,attributionControl:true,dragging:o.interactive!==false,touchZoom:o.interactive!==false,doubleClickZoom:o.interactive!==false,scrollWheelZoom:false,boxZoom:false,keyboard:false});
@@ -219,18 +219,20 @@ function ivPaint(){const b=$('#ivbox');if(!b||RUN?.iv?.done){if(RUN?.iv&&stack.a
  if(!b.classList.contains(p.m))return render();$('#ivleft').textContent=fmtT(left);$('#ivbar').style.width=Math.min(100,(RUN.el-(p.end-p.s))/p.s*100)+'%'}
 
 // ================= LIVE ACTIVITY SCREEN =================
+// Map-first live screen (like Strava): the map fills the screen; status, intervals and the planned route float on it;
+// a compact panel at the bottom holds the numbers that matter and the controls.
 V.runlive=()=>{const R=RUN;if(!R)return V.run();const on=m=>m==='pause'?R.paused:!R.paused&&R.mode===m;
- const b=(m,e,l)=>`<button class="btn ${on(m)?'':'sec2'}" style="flex:1;padding:16px 4px;font-size:15px" onclick="setMode('${m}')">${e}<br>${l}</button>`;
- return`<div class="top"><span class="chip">${R.paused?'⏸ Paused':R.mode==='run'?'🏃 Running':'🚶 Walking'}</span><span class="chip" id="lgps" style="color:${R.paused?'var(--warn)':'var(--good)'}">● ${R.paused?'Paused':R.acc?`GPS ±${R.acc} m`:'Finding GPS…'}</span></div>
- ${ivBox()}
- ${R.plan?`<div class="cd-plan"><b id="lplan">${planLeft().toFixed(2)} km to go</b><span class="cd-off${offRoute()?' show':''}" id="loff">Off route</span></div>`:''}
- <div class="cd-mapwrap">${mapEl('live',260)}${R.pts.length?'':'<div class="cd-mapmsg" id="livemsg">📡 Finding your location… outside is best</div>'}<button class="cd-recenter${MAPS.live&&Date.now()<MAPS.live.pauseUntil?' show':''}" id="recenter" aria-label="Recenter map" onclick="recenter()">📍</button></div>
- <div class="card" style="margin-top:12px;text-align:center"><div class="muted">Distance</div><div class="big" style="font-size:54px" id="ldist">${(R.dist/1000).toFixed(2)}</div><div class="muted">km</div>
- <div class="runstats"><div><b id="rtime">${fmtT(R.el)}</b><small>TIME</small></div><div><b id="lpace">${pace(R.el,R.dist)}</b><small>PACE /KM</small></div><div><b id="lkcal">${actKcal(R)}</b><small>KCAL</small></div></div>
- <div class="runstats" style="margin:0"><div><b style="font-size:18px" id="lrun">${(R.d.run/1000).toFixed(2)}</b><small>RUN KM</small></div><div><b style="font-size:18px" id="lwalk">${(R.d.walk/1000).toFixed(2)}</b><small>WALK KM</small></div><div><b style="font-size:18px" id="lsteps">${R.steps}</b><small>STEPS</small></div></div></div>
- <div class="flex" style="gap:8px">${b('run','🏃','Run')}${b('walk','🚶','Walk')}${b('pause',R.paused?'🏃':'⏸',R.paused?'Resume':'Pause')}</div>
- <button class="btn" style="margin-top:10px;background:#111" onclick="stopRun()">■ Finish</button>
- <p class="t-caption" style="text-align:center;margin-top:10px">${R.iv?'Intervals switch run / walk for you. Tap Run or Walk to override.':'Tired? Tap Walk. Ready again? Tap Run.'} Keep the app open while tracking.</p>`};
+ const b=(m,e,l)=>`<button class="rl-btn${on(m)?' on':''}${m==='pause'?' pz':''}" onclick="setMode('${m}')">${e}<span>${l}</span></button>`;
+ return`<div class="rl">
+ <div class="rl-map">${mapEl('live','100%')}${R.pts.length?'':'<div class="cd-mapmsg" id="livemsg">📡 Finding your location… outside is best</div>'}
+  <div class="rl-top"><span class="rl-chip">${R.paused?'⏸ Paused':R.mode==='run'?'🏃 Running':'🚶 Walking'}</span><span class="rl-chip" id="lgps" style="color:${R.paused?'var(--warn)':'var(--good)'}">● ${R.paused?'Paused':R.acc?`GPS ±${R.acc} m`:'Finding GPS…'}</span></div>
+  <div class="rl-float">${ivBox()}${R.plan?`<div class="cd-plan"><b id="lplan">${planLeft().toFixed(2)} km to go</b><span class="cd-off${offRoute()?' show':''}" id="loff">Off route</span></div>`:''}</div>
+  <button class="cd-recenter${MAPS.live&&Date.now()<MAPS.live.pauseUntil?' show':''}" id="recenter" aria-label="Recenter map" onclick="recenter()">📍</button></div>
+ <div class="rl-panel"><div class="grab"></div>
+  <div class="rl-main"><div><b id="ldist">${(R.dist/1000).toFixed(2)}</b><small>km</small></div><div><b id="rtime">${fmtT(R.el)}</b><small>time</small></div><div><b id="lpace">${pace(R.el,R.dist)}</b><small>pace /km</small></div></div>
+  <div class="rl-sub"><span><b id="lkcal">${actKcal(R)}</b> kcal</span><span><b id="lrun">${(R.d.run/1000).toFixed(2)}</b> run km</span><span><b id="lwalk">${(R.d.walk/1000).toFixed(2)}</b> walk km</span><span><b id="lsteps">${R.steps}</b> steps</span></div>
+  <div class="rl-ctrl">${b('run','🏃','Run')}${b('walk','🚶','Walk')}${b('pause',R.paused?'🏃':'⏸',R.paused?'Resume':'Pause')}<button class="rl-btn fin" onclick="stopRun()">■<span>Finish</span></button></div>
+ </div></div>`};
 
 // Finish: save the activity, award cardio + leg XP with overload / PR bonus. Its steps stay in the daily total
 // (counted by automatic steps or the accelerometer) and are recorded as activity steps so step XP skips them.
@@ -288,6 +290,23 @@ document.head.insertAdjacentHTML('beforeend',`<style>
 .cd-plan{display:flex;align-items:center;justify-content:space-between;background:var(--surface);border-radius:14px;padding:10px 14px;margin-bottom:12px;box-shadow:0 1px 2px #15151f0d}.cd-plan b{font-size:18px;font-variant-numeric:tabular-nums}
 .cd-off{display:none;background:#fef3c7;color:#92400e;font-weight:700;font-size:13px;padding:4px 10px;border-radius:999px}.cd-off.show{display:inline-block}
 .btn[disabled]{opacity:.45;pointer-events:none}
+.rl{position:fixed;inset:0;display:flex;flex-direction:column;background:#eef0f3;z-index:5}
+.rl-map{position:relative;flex:1;min-height:0}.rl-map .cmap{border-radius:0;height:100%!important}
+.rl-top{position:absolute;top:calc(10px + env(safe-area-inset-top));left:12px;right:12px;display:flex;justify-content:space-between;z-index:600;pointer-events:none}
+.rl-chip{background:#fff;border-radius:999px;padding:7px 12px;font-weight:700;font-size:14px;box-shadow:0 2px 8px #0002}
+.rl-float{position:absolute;top:calc(56px + env(safe-area-inset-top));left:12px;right:12px;z-index:600;display:grid;gap:8px}
+.rl-float .cd-iv{margin:0;padding:10px 14px;box-shadow:0 4px 14px #0003}.rl-float .cd-iv b{font-size:17px}.rl-float .cd-iv-row span{font-size:24px}
+.rl-float .cd-plan{margin:0;box-shadow:0 2px 8px #0002}
+.rl .cd-recenter{bottom:16px}
+.rl-panel{flex:none;background:var(--surface);border-radius:20px 20px 0 0;margin-top:-18px;position:relative;z-index:700;box-shadow:0 -6px 24px #15151f1f;padding:6px 16px calc(14px + env(safe-area-inset-bottom))}
+.rl-panel .grab{margin:2px auto 8px}
+.rl-main{display:grid;grid-template-columns:1.25fr 1fr 1fr;align-items:end;text-align:center}
+.rl-main b{display:block;font-size:30px;font-weight:900;font-variant-numeric:tabular-nums;letter-spacing:-.02em;line-height:1.1}.rl-main div:first-child b{font-size:40px}
+.rl-main small{font-size:12px;color:var(--ink-2);font-weight:600}
+.rl-sub{display:flex;justify-content:space-between;gap:6px;margin:10px 0 12px;padding-top:10px;border-top:1px solid var(--line);font-size:12px;color:var(--ink-2)}.rl-sub b{color:var(--ink);font-size:14px;font-variant-numeric:tabular-nums}
+.rl-ctrl{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.rl-btn{border:1.5px solid var(--line);background:var(--surface);border-radius:14px;padding:8px 0 6px;font-size:18px;color:var(--ink);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}.rl-btn span{font-size:12px;font-weight:700}
+.rl-btn.on{background:var(--accent);border-color:var(--accent);color:#fff}.rl-btn.fin{background:#15151f;border-color:#15151f;color:#fff}
 .cd-key>b{font-size:17px;display:block}.cd-key p{margin-top:6px}.cd-key ol{margin:10px 0 12px 20px;color:var(--ink-2);font-size:14px;line-height:1.6}.cd-key a{color:var(--accent);font-weight:700}
 .cd-mapwrap{position:relative}.cd-mapmsg{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:16px;color:var(--ink-2);font-weight:600;font-size:14px;pointer-events:none;z-index:500}
 .cd-loc{display:flex;align-items:center;gap:12px;background:#eff6ff;border-radius:14px;padding:14px;margin:var(--s2) 0}.cd-loc>div{flex:1}.cd-loc b{display:block}.cd-loc small{color:var(--ink-2);font-size:13px}
