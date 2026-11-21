@@ -11,6 +11,7 @@
   .pg-empty{display:flex;justify-content:space-between;align-items:center;min-height:48px;color:var(--ink-2);font-size:var(--fs-label);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
   .pg-empty button{background:none;border:none;font-weight:700;color:var(--ink);font-size:var(--fs-label);padding:8px 0;cursor:pointer}
   .pg-i{background:none;border:1px solid var(--line);border-radius:50%;width:22px;height:22px;font-size:12px;font-weight:700;color:var(--ink-2);cursor:pointer;margin-left:6px;line-height:1}
+  .pg-warn{background:#fff7ed;color:#9a3412;border-radius:10px;padding:10px 12px;margin-top:var(--s2);font-size:14px}
   .pg-hdr{display:flex;align-items:center;justify-content:space-between;font-size:17px;font-weight:700;margin:var(--s4) 0 var(--s1)}
   .pg-card{background:var(--surface);border-radius:16px;padding:4px var(--s2) 12px;box-shadow:0 1px 2px #15151f0d,0 6px 20px #15151f0a}
   .pg-card .pg-line:last-of-type{border-bottom:none}
@@ -84,19 +85,24 @@
 
   function composition() {
     const p = S.profile, b = bodyFat(), lean = p.weight * (1 - b.bf / 100), est = !(p.waist && p.neck && (p.sex === 'm' || p.hip));
-    const bl = S.bfLog || [];
+    const bl = (S.bfLog || []).filter(x => x[1] >= 3 && x[1] <= 65);
     let chart = '';
-    if (bl.length >= 3) {
-      const W = 340, H = 48, v = bl.slice(-30), lo = Math.min(...v.map(x => x[1])) - .2, hi = Math.max(...v.map(x => x[1])) + .2, t0 = v[0][0], t1 = Math.max(v.at(-1)[0], t0 + D);
-      const X = t => 4 + (t - t0) / (t1 - t0) * (W - 8), Y = y => 4 + (hi - y) / (hi - lo) * (H - 8);
-      const dv = v.at(-1)[1] - v[0][1];chart = `<div class="t-label" style="display:flex;justify-content:space-between;margin-top:var(--s3)"><span>Body fat trend</span><span class="muted num">${dv > 0 ? '+' : dv < 0 ? '−' : ''}${Math.abs(dv).toFixed(1)}% since ${fmtD(new Date(v[0][0]))}</span></div><svg viewBox="0 0 ${W} ${H}" style="width:100%;margin-top:var(--s1)"><path d="${v.map((x, i) => `${i ? 'L' : 'M'}${X(x[0]).toFixed(1)},${Y(x[1]).toFixed(1)}`).join(' ')}" fill="none" stroke="var(--ink)" stroke-width="2"/></svg>`;
+    if (bl.length >= 2) {
+      const W = 340, H = 90, v = bl.slice(-30), lo = Math.min(...v.map(x => x[1])) - .5, hi = Math.max(...v.map(x => x[1])) + .5, t0 = v[0][0], t1 = Math.max(v.at(-1)[0], t0 + D);
+      const X = t => 30 + (t - t0) / (t1 - t0) * (W - 44), Y = y => 10 + (hi - y) / (hi - lo) * (H - 28);
+      const dv = v.at(-1)[1] - v[0][1], line = v.map((x, i) => `${i ? 'L' : 'M'}${X(x[0]).toFixed(1)},${Y(x[1]).toFixed(1)}`).join(' ');
+      chart = `<div class="t-label" style="display:flex;justify-content:space-between;margin-top:var(--s3)"><span>Body fat over time</span><span class="num" style="color:${dv < 0 ? 'var(--ok)' : dv > 0 ? 'var(--accent)' : 'var(--ink-2)'}">${dv > 0 ? '+' : dv < 0 ? '−' : ''}${Math.abs(dv).toFixed(1)}% since ${fmtD(new Date(v[0][0]))}</span></div>
+        <svg viewBox="0 0 ${W} ${H}" style="width:100%;margin-top:var(--s1)">${[hi - .5, lo + .5].map(y => `<line x1="30" x2="${W - 8}" y1="${Y(y)}" y2="${Y(y)}" stroke="var(--line)"/><text x="24" y="${Y(y) + 3}" text-anchor="end" font-size="10" fill="var(--ink-3)">${y.toFixed(1)}%</text>`).join('')}
+        <path d="${line}" fill="none" stroke="#f59e0b" stroke-width="2.5" stroke-linejoin="round"/>${v.map(x => `<circle cx="${X(x[0])}" cy="${Y(x[1])}" r="3.5" fill="#fff" stroke="#f59e0b" stroke-width="2"/>`).join('')}
+        <text x="30" y="${H - 2}" font-size="10" fill="var(--ink-3)">${fmtD(new Date(t0))}</text><text x="${W - 8}" y="${H - 2}" text-anchor="end" font-size="10" fill="var(--ink-3)">${fmtD(new Date(t1))}</text></svg>
+        <p class="t-caption">Each dot is a body-fat reading from your measurements.</p>`;
     }
     return `<div class="pg-hdr">Body composition</div>
       <div class="pg-cbar"><i class="lean" style="width:${100 - b.bf}%"></i><i class="fat" style="width:${b.bf}%"></i></div>
       <div class="pg-clegend num"><span><i style="background:var(--ink)"></i>Lean ${lean.toFixed(1)} kg</span><span><i style="background:#f59e0b"></i>Fat ${(p.weight - lean).toFixed(1)} kg</span></div>
       <div class="pg-tiles"><div><small>Body fat</small><b>${b.bf.toFixed(1)}%</b>${est ? `<button class="pg-est" onclick="pgInfo('bf')">est.</button>` : ''}</div>
       <div><small>BMI</small><b>${b.bmi.toFixed(1)}</b>${(([l, c]) => `<span class="pg-chip ${c}">${l}</span>`)(b.bmi < 18.5 ? ['underweight', 'warn'] : b.bmi < 25 ? ['healthy', 'ok'] : b.bmi < 30 ? ['overweight', 'warn'] : ['obese', 'bad'])}</div></div>
-      ${est ? `<button class="pg-link" onclick="measSheet()">Add waist & neck for a better estimate</button>` : ''}${chart}`;
+      ${b.badTape ? `<div class="pg-warn">Your waist / neck numbers give an impossible body fat, so they're ignored. Re-measure in cm: waist at the navel, neck just below the Adam's apple. <button class="pg-link" style="padding:0" onclick="measSheet()">Re-measure</button></div>` : est ? `<button class="pg-link" onclick="measSheet()">Add waist & neck for a better estimate</button>` : ''}${chart || (bl.length === 1 ? '<p class="t-caption" style="margin-top:var(--s2)">Body fat trend appears after measurements on 2 different days.</p>' : '')}`;
   }
 
   function goals() {

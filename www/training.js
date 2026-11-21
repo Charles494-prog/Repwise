@@ -111,6 +111,19 @@ const _sgT=sugg;sugg=function(ex){const s=_sgT(ex);if(!S.active?.deload||!s.w)re
 // Next session's targets come from the last normal session, not the deload.
 const _lsT=lastSets;lastSets=function(ex){for(let i=S.workouts.length-1;i>=0;i--){if(S.workouts[i].deload)continue;const ss=S.workouts[i].sets.filter(s=>s.ex===ex);if(ss.length)return ss}return _lsT(ex)};
 
+// ================= BODY FAT: never show an impossible tape result =================
+// The US Navy tape formula can go negative (or absurdly high) when the waist is measured too high, too tight or in
+// inches. Then fall back to the BMI/build estimate and say why, instead of showing "-10%".
+const BF_OK=v=>v>=3&&v<=65;
+const _bfT=bodyFat;bodyFat=function(){const r=_bfT();if(!r||BF_OK(r.bf)||!/Navy/.test(r.method||''))return r;const p=S.profile,w=p.waist;p.waist=null;const e=_bfT();p.waist=w;
+ return{...e,badTape:true,method:'Estimated — your waist/neck numbers give an impossible result, so they were ignored. Re-measure in cm: waist at the navel, neck just below the Adam’s apple.'}};
+// One-time cleanup: drop impossible values already saved, and undo a body-fat goal they falsely "reached".
+if(S.bfLog?.some(x=>!BF_OK(x[1]))){S.bfLog=S.bfLog.filter(x=>BF_OK(x[1]));if(S.goals?.bf?.done&&bodyFat()&&bodyFat().bf>S.goals.bf.target)S.goals.bf.done=null;save()}
+const _smT=saveMeas2;saveMeas2=function(){const w=+$('#mw2')?.value,n=+$('#mn2')?.value;
+ if(w&&(w<45||w>200))return toast('Waist looks off — measure at the navel, in cm (e.g. 85)');if(n&&(n<20||n>70))return toast('Neck looks off — measure just below the Adam’s apple, in cm (e.g. 38)');
+ if(w&&n&&w-n<15)return toast('Waist should be well bigger than neck — measure the waist at the navel, in cm');_smT()};
+measSheet=measSheet2;
+
 // ================= BODYWEIGHT EXERCISES: reps, not weights =================
 // Push-ups, pull-ups, dips, planks… have no weight to pick. First time: as many clean reps as you can, about 10;
 // after that: beat your best reps. Muscle grows across roughly 6–30 reps when sets end near failure, so 10 is a

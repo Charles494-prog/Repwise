@@ -38,9 +38,11 @@ class Page {
     await this.send('Emulation.setTimezoneOverride', { timezoneId: tz || '' }).catch(() => {});
     await this.send('Runtime.evaluate', { expression: 'sessionStorage.clear()' }).catch(() => {});
     this.errors = [];
-    await this.send('Page.navigate', { url: this.base + '/index.html' }); await sleep(900);
+    await this.send('Page.navigate', { url: this.base + '/index.html' }); await sleep(600); await this.ready();
   }
-  async reload() { await this.send('Page.reload'); await sleep(900); }
+  async reload() { await this.send('Page.reload'); await sleep(600); await this.ready(); }
+  // Wait until every app script has run (a fixed delay was flaky as the app grew).
+  async ready() { for (let i = 0; i < 50; i++) { const r = await this.send('Runtime.evaluate', { expression: "typeof V!=='undefined'&&!!V.train&&typeof afSearch==='function'&&typeof startActivity==='function'", returnByValue: true }).catch(() => null); if (r?.result?.value) break; await sleep(100); } await sleep(150); }
   async shot(file) { const r = await this.send('Page.captureScreenshot', { format: 'png' }); fs.writeFileSync(file, Buffer.from(r.data, 'base64')); }
 }
 

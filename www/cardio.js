@@ -128,16 +128,18 @@ function ivSheet(){const f=IVS.f,cus=f==='custom',total=f==='free'?0:Math.round(
  <div class="afsec">Goal</div>${goalBox()}
  <div class="afsec">Format</div><p class="t-caption" style="margin:-4px 0 var(--s1)">Intervals switch between run and walk for you with a buzz.</p>
  <div class="cd-fmts">${FORMATS.map(([k,n,d])=>`<button class="${f===k?'on':''}" onclick="ivPick('${k}')"><b>${n}</b><small>${d}</small></button>`).join('')}</div>
- ${f==='free'?'':`${cus?step('run','Run',30,' min',30,1800)+step('walk','Walk / rest',30,' min',30,900):''}${step('rounds','Rounds',1,'',1,40)}
+ ${f==='free'?'':`${cus?step('run','Run',30,' min',30,1800)+step('walk','Walk / rest',30,' min',30,900):''}${GOAL.g==='free'?step('rounds','Rounds',1,'',1,40):`<p class="t-caption" style="margin-top:var(--s1)">Repeats ${IVS.run/60} min run + ${IVS.walk/60} min walk until you reach your ${GOAL.g==='distance'?'distance':'time'} goal.</p>`}
   <div class="afrow"><span>5 min warm-up walk</span><button class="sw ${IVS.warm?'on':''}" role="switch" aria-checked="${IVS.warm}" onclick="IVS.warm=!IVS.warm;$('#sheet').innerHTML='<div class=&quot;grab&quot;></div>'+ivSheet()"><i></i></button></div>
-  <p class="t-caption" style="margin-top:6px">${IVS.rounds} × (${IVS.run/60} min run + ${IVS.walk/60} min walk)${IVS.warm?' + warm-up':''} · about ${total} min</p>`}
+  ${GOAL.g==='free'?`<p class="t-caption" style="margin-top:6px">${IVS.rounds} × (${IVS.run/60} min run + ${IVS.walk/60} min walk)${IVS.warm?' + warm-up':''} · about ${total} min</p>`:''}`}
  <p class="t-caption" style="margin-top:var(--s1)">Steps you take during the activity count toward your daily steps too.</p>
  ${GOAL.g==='free'?`<button class="btn" style="margin-top:var(--s2)" onclick="goActivity()">Start</button>`:`${S.orsKey?'':'<p class="t-caption" style="margin-top:var(--s1)">Route suggestions need your own free key — a one-time setup.</p>'}<button class="btn" style="margin-top:var(--s2)" onclick="openRoutes()">Find routes</button><button class="btn sec2" style="margin-top:var(--s1)" onclick="goActivity()">Start without a route</button>`}`}
 function ivPick(k){const F=FORMATS.find(x=>x[0]===k);IVS.f=k;if(k!=='custom'&&k!=='free'){IVS.run=F[3];IVS.walk=F[4];IVS.rounds=F[5]}$('#sheet').innerHTML='<div class="grab"></div>'+ivSheet()}
 function ivSet(k,d,min,max){IVS[k]=Math.max(min,Math.min(max,IVS[k]+d));$('#sheet').innerHTML='<div class="grab"></div>'+ivSheet()}
 async function goActivity(plan){closeSheet();await syncSteps();const c0=await chipRead();
- const free=IVS.f==='free',ph=[];if(!free){if(IVS.warm)ph.push(['walk',300,'Warm-up']);for(let i=1;i<=IVS.rounds;i++){ph.push(['run',IVS.run,`Round ${i}/${IVS.rounds}`]);ph.push(['walk',IVS.walk,`Round ${i}/${IVS.rounds}`])}}
- startRun(free?'run':ph[0][0]);if(!RUN)return;if(c0!=null)RUN.chip={start:c0,last:c0,acc:0};if(plan)setPlan(plan);RUN.uiT=setInterval(()=>{liveStats();if(RUN?.chip&&Math.floor(RUN.el)%10===0)chipTick()},1000);
+ // With a distance / time goal the run:walk pattern simply repeats until the goal (rounds don't matter).
+ const free=IVS.f==='free',ph=[],goal=GOAL.g!=='free'?{g:GOAL.g,target:GOAL.g==='distance'?GOAL.dist:GOAL.time}:null,n=goal?200:IVS.rounds;
+ if(!free){if(IVS.warm)ph.push(['walk',300,'Warm-up']);for(let i=1;i<=n;i++){const l=goal?`Interval ${i} · until goal`:`Round ${i}/${IVS.rounds}`;ph.push(['run',IVS.run,l]);ph.push(['walk',IVS.walk,l])}}
+ startRun(free?'run':ph[0][0]);if(!RUN)return;if(c0!=null)RUN.chip={start:c0,last:c0,acc:0};if(plan)setPlan(plan);if(goal)RUN.goal={...goal,hit:false};RUN.uiT=setInterval(()=>{liveStats();if(RUN?.chip&&Math.floor(RUN.el)%10===0)chipTick()},1000);
  if(free)return;let t=0;RUN.iv={f:IVS.f,ph:ph.map(([m,s,l])=>({m,s,l,end:t+=s})),i:0,done:false};RUN.ivT=setInterval(ivTick,500)}
 // ================= PLAN A ROUTE =================
 // Route suggestions are opt-in: each user adds their own free OpenRouteService key (2,000 requests/day each), kept on the phone.
@@ -206,7 +208,11 @@ function liveUpdate(){planTrack();if(stack.at(-1)?.[0]!=='runlive')return;const 
 function liveStats(){const R=RUN;if(!R||stack.at(-1)?.[0]!=='runlive')return;const set=(id,v)=>{const e=$('#'+id);if(e&&e.textContent!==String(v))e.textContent=v};
  set('ldist',(R.dist/1000).toFixed(2));set('lpace',pace(R.el,R.dist));set('lkcal',actKcal(R));set('lrun',(R.d.run/1000).toFixed(2));set('lwalk',(R.d.walk/1000).toFixed(2));set('lsteps',R.steps);
  set('lgps',`● ${R.paused?'Paused':R.acc?`GPS ±${R.acc} m`:'Finding GPS…'}`);
- if(R.plan){set('lplan',`${planLeft().toFixed(2)} km to go`);$('#loff')?.classList.toggle('show',offRoute())}}
+ if(R.plan){set('lplan',`${planLeft().toFixed(2)} km to go`);$('#loff')?.classList.toggle('show',offRoute())}
+ if(R.goal){const p=goalPct();set('lgoal',goalTxt());const b=$('#lgoalbar');if(b)b.style.width=p*100+'%';
+  if(p>=1&&!R.goal.hit){R.goal.hit=true;vib([300,100,300,100,500]);say('Goal reached. Great work.');toast('🎯 Goal reached — keep going or tap Finish');$('#lgoalrow')?.classList.add('hit')}}}
+const goalPct=()=>{const g=RUN?.goal;return g?Math.min(1,(g.g==='distance'?RUN.dist:RUN.el)/g.target):0};
+const goalTxt=()=>{const g=RUN.goal;return g.g==='distance'?`${(RUN.dist/1000).toFixed(2)} / ${(g.target/1000).toFixed(1)} km`:`${fmtT(RUN.el)} / ${fmtT(g.target)}`};
 function say(t){try{const u=new SpeechSynthesisUtterance(t);u.rate=1.05;speechSynthesis.cancel();speechSynthesis.speak(u)}catch(e){}}
 function ivTick(){const R=RUN;if(!R?.iv){clearInterval(R?.ivT);return}const I=R.iv,t=R.el;if(I.done)return;
  let i=I.ph.findIndex(p=>t<p.end);if(i<0){I.done=true;vib([300,100,300,100,300]);say('Intervals complete. Great work.');toast('🏆 Intervals done — keep going or tap Finish');ivPaint();return}
@@ -229,6 +235,7 @@ V.runlive=()=>{const R=RUN;if(!R)return V.run();const on=m=>m==='pause'?R.paused
   <div class="rl-float">${ivBox()}${R.plan?`<div class="cd-plan"><b id="lplan">${planLeft().toFixed(2)} km to go</b><span class="cd-off${offRoute()?' show':''}" id="loff">Off route</span></div>`:''}</div>
   <button class="cd-recenter${MAPS.live&&Date.now()<MAPS.live.pauseUntil?' show':''}" id="recenter" aria-label="Recenter map" onclick="recenter()">📍</button></div>
  <div class="rl-panel"><div class="grab"></div>
+  ${R.goal?`<div class="rl-goal${R.goal.hit?' hit':''}" id="lgoalrow"><span>🎯 Goal</span><b id="lgoal">${goalTxt()}</b><div class="bar"><i id="lgoalbar" style="width:${goalPct()*100}%"></i></div></div>`:''}
   <div class="rl-main"><div><b id="ldist">${(R.dist/1000).toFixed(2)}</b><small>km</small></div><div><b id="rtime">${fmtT(R.el)}</b><small>time</small></div><div><b id="lpace">${pace(R.el,R.dist)}</b><small>pace /km</small></div></div>
   <div class="rl-sub"><span><b id="lkcal">${actKcal(R)}</b> kcal</span><span><b id="lrun">${(R.d.run/1000).toFixed(2)}</b> run km</span><span><b id="lwalk">${(R.d.walk/1000).toFixed(2)}</b> walk km</span><span><b id="lsteps">${R.steps}</b> steps</span></div>
   <div class="rl-ctrl">${b('run','🏃','Run')}${b('walk','🚶','Walk')}${b('pause',R.paused?'🏃':'⏸',R.paused?'Resume':'Pause')}<button class="rl-btn fin" onclick="stopRun()">■<span>Finish</span></button></div>
@@ -240,7 +247,7 @@ stopRun=async function(){const R=RUN;if(!R)return;navigator.geolocation.clearWat
  if(R.chip){await R.chipP;await chipTick(R)}if(R.pedoMine&&pedo.on)stopPedo();
  if(R.dist<20&&!confirm('Very short activity. Save anyway?')){RUN=null;dropMap('live');syncSteps();go('train');return}
  RUN=null;dropMap('live');const type=R.d.run>20&&R.d.walk>20?'mix':R.d.run>=R.d.walk?'run':'walk',kcal=actKcal(R),d=today();
- const r={type,ts:R.ts,pts:R.pts,dist:Math.round(R.dist),time:Math.round(R.el),steps:R.steps,d:{run:Math.round(R.d.run),walk:Math.round(R.d.walk)},t:{run:Math.round(R.t.run),walk:Math.round(R.t.walk)},kcal,...(R.iv?{fmt:R.iv.f}:{}),...(R.plan?{plan:{goal:R.plan.goal,target:R.plan.target,kind:R.plan.kind,pts:R.plan.pts,len:R.plan.len}}:{})};
+ const r={type,ts:R.ts,pts:R.pts,dist:Math.round(R.dist),time:Math.round(R.el),steps:R.steps,d:{run:Math.round(R.d.run),walk:Math.round(R.d.walk)},t:{run:Math.round(R.t.run),walk:Math.round(R.t.walk)},kcal,...(R.iv?{fmt:R.iv.f}:{}),...(R.plan?{plan:{goal:R.plan.goal,target:R.plan.target,kind:R.plan.kind,pts:R.plan.pts,len:R.plan.len}}:{}),...(R.goal?{goal:{g:R.goal.g,target:R.goal.target,hit:R.goal.hit}}:{})};
  // Automatic steps off: the activity's chip steps still belong in today's total.
  if(R.chip&&!S.autoSteps)S.steps[d]=(S.steps[d]||0)+R.steps;S.actSteps[d]=(S.actSteps[d]||0)+R.steps;
  for(const x of Object.keys(S.actSteps))if(x<iso(Date.now()-60*864e5))delete S.actSteps[x];
@@ -265,16 +272,56 @@ V.run=()=>{const t=targets(),st=S.steps[today()]||0,km=st*0.00076,kc=Math.round(
  <button class="btn" onclick="${RUN?"push('runlive')":'startActivity()'}">${RUN?'⏱ Back to your activity':'Start activity'}</button>
  <p class="t-caption" style="margin-top:8px">Steps during an activity still count toward your daily total.</p>
  <div class="cd-toggle" style="cursor:pointer" onclick="routeKeyScreen()"><div><b>Route suggestions</b><small>${S.orsKey?'On · uses your own free key':'Off · optional, needs your own free key — tap for how'}</small></div><span class="chev">›</span></div></div>
- <div class="sec">Steps this week</div><div class="card">${chart(...weekSteps(),{color:'#e3262f'})}</div>
+ <div class="sec">Steps<small>all time ${stepsAll().toLocaleString()}</small></div><div class="card">${stepStats()}</div>
  <div class="sec">Recent activities</div>${S.runs.slice(-10).reverse().map(r=>`<div class="card cd-act" style="padding:0;overflow:hidden" onclick="push('actdetail',${r.ts})">${actHead(r)}</div>`).join('')||'<div class="empty">No runs or walks yet. Tap Start activity when you head out.</div>'}`};
 // List rows use the static SVG preview; a real (interactive) map only on the single-activity screen.
-function actHead(r,map){return`${map?mapEl('run:'+r.ts,260):`<div class="map" style="height:150px;border-radius:0">${routeSVG(r.pts)}</div>`}<div style="padding:14px"><b>${runLbl(r)}</b>${r.fmt?` <span class="pg-chip">${r.fmt}</span>`:''} <span class="muted">· ${new Date(r.ts).toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})}</span>${r.xp?` <span class="muted">· +${r.xp} XP</span>`:''}<div class="runstats" style="margin:8px 0 0"><div><b>${(r.dist/1000).toFixed(2)}</b><small>KM</small></div><div><b>${pace(r.time,r.dist)}</b><small>/KM</small></div><div><b>${fmtT(r.time)}</b><small>TIME</small></div><div><b>${runKcal(r)}</b><small>KCAL</small></div></div></div>`}
+function actHead(r,map){return`${map?mapEl('run:'+r.ts,260):staticMap(r.pts)}<div style="padding:14px"><b>${runLbl(r)}</b>${r.fmt?` <span class="pg-chip">${r.fmt}</span>`:''} <span class="muted">· ${new Date(r.ts).toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})}</span>${r.xp?` <span class="muted">· +${r.xp} XP</span>`:''}<div class="runstats" style="margin:8px 0 0"><div><b>${(r.dist/1000).toFixed(2)}</b><small>KM</small></div><div><b>${pace(r.time,r.dist)}</b><small>/KM</small></div><div><b>${fmtT(r.time)}</b><small>TIME</small></div><div><b>${runKcal(r)}</b><small>KCAL</small></div></div></div>`}
 V.actdetail=ts=>{const r=S.runs.find(x=>x.ts===ts);if(!r)return`<div class="top">${backBtn()}<span></span></div><div class="empty">Activity not found.</div>`;
  return`<div class="top">${backBtn()}<h1 style="font-size:22px;flex:1;margin-left:var(--s1)">${new Date(r.ts).toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'})}</h1><span></span></div>
  <div class="card" style="padding:0;overflow:hidden">${r.pts.length>1?actHead(r,true):actHead(r)}</div>
  <div class="card"><div class="runstats" style="margin:0"><div><b>${(r.d?.run/1000||0).toFixed(2)}</b><small>RUN KM</small></div><div><b>${(r.d?.walk/1000||0).toFixed(2)}</b><small>WALK KM</small></div><div><b>${(r.steps||0).toLocaleString()}</b><small>STEPS</small></div></div>
+ ${r.pts.length>1?`<button class="btn sec2" style="margin-top:var(--s1)" id="replaybtn" onclick="replayRun(${r.ts})">▷ Replay route</button>`:''}
+ ${r.goal?`<p class="t-body" style="margin-top:var(--s1)">🎯 Goal: ${r.goal.g==='distance'?`${(r.goal.target/1000).toFixed(1)} km`:fmtT(r.goal.target)} — ${r.goal.hit?'reached ✓':'not reached this time'}</p>`:''}
  <p class="t-caption" style="margin-top:8px">These steps are part of that day's step total.</p></div>
  ${r.plan?`<div class="card" id="planvs"><b>Planned vs actual</b><p class="t-body" style="margin-top:4px">${r.plan.kind==='loop'?'Loop':'One way'} · ${(r.plan.len/1000).toFixed(2)} km planned · ${(r.dist/1000).toFixed(2)} km done (${r.dist>=r.plan.len?'+':''}${((r.dist-r.plan.len)/1000).toFixed(2)} km)</p><p class="t-caption">Goal: ${r.plan.goal==='time'?`${Math.round(r.plan.target/60)} min`:`${(r.plan.target/1000).toFixed(1)} km`}. Dashed line on the map = planned route.</p></div>`:''}`};
+
+// ================= STEP STATS: all time, with ranges and grouping =================
+// Week → by day · Month → by day or week · Year → by day, week or month · All time → by year.
+const STEPG={week:['day'],month:['day','week'],year:['day','week','month'],all:['year']};let STV={r:'week',g:'day'};
+const stepsAll=()=>Object.values(S.steps).reduce((a,b)=>a+(+b||0),0);
+function stepSet(k,v){STV[k]=v;if(k==='r')STV.g=STEPG[v][0];render()}
+function stepBuckets(){const now=new Date();now.setHours(12,0,0,0);const D=864e5,days=[];let start;
+ if(STV.r==='week'){start=new Date(monday()+'T12:00')}else if(STV.r==='month'){start=new Date(now.getFullYear(),now.getMonth(),1,12)}else if(STV.r==='year'){start=new Date(now.getFullYear(),0,1,12)}
+ else{const first=Object.keys(S.steps).filter(k=>S.steps[k]>0).sort()[0];start=first?new Date(first+'T12:00'):now}
+ for(let d=new Date(start);d<=now;d=new Date(d.getTime()+D))days.push(d);
+ const key=d=>STV.g==='day'?iso(d):STV.g==='week'?monday(d):STV.g==='month'?iso(d).slice(0,7):String(d.getFullYear()),B=new Map();
+ for(const d of days){const k=key(d);B.set(k,(B.get(k)||0)+(+S.steps[iso(d)]||0))}
+ const lbl=k=>STV.g==='day'?(STV.r==='week'?new Date(k+'T12:00').toLocaleDateString(undefined,{weekday:'short'}):String(+k.slice(8))):STV.g==='week'?new Date(k+'T12:00').toLocaleDateString(undefined,{month:'short',day:'numeric'}):STV.g==='month'?new Date(k+'-01T12:00').toLocaleDateString(undefined,{month:'short'}):k;
+ return{keys:[...B.keys()],vals:[...B.values()],lbl,days:days.length}}
+function stepBars(vals,labels){const W=340,H=150,n=vals.length,mx=Math.max(1,...vals),bw=(W-8)/n,every=Math.ceil(n/8);
+ return`<svg viewBox="0 0 ${W} ${H+16}" style="width:100%">${vals.map((v,i)=>{const h=v/mx*(H-16),x=4+i*bw;return`<rect x="${x+bw*.12}" y="${H-h}" width="${Math.max(1,bw*.76)}" height="${Math.max(v?2:0,h)}" rx="${Math.min(4,bw/4)}" fill="#e3262f" opacity="${i===n-1?1:.75}"><title>${labels[i]}: ${v.toLocaleString()} steps</title></rect>${i%every===0||i===n-1&&n<=12?`<text x="${x+bw/2}" y="${H+12}" font-size="9" text-anchor="middle" fill="var(--ink-3)">${labels[i]}</text>`:''}`}).join('')}
+ <text x="4" y="10" font-size="9" fill="var(--ink-3)">${mx>=1000?Math.round(mx/1000)+'k':mx}</text></svg>`}
+function stepStats(){const B=stepBuckets(),tot=B.vals.reduce((a,b)=>a+b,0),seg=(k,opts,cls='')=>`<div class="st-seg ${cls}">${opts.map(([v,l])=>`<button class="${STV[k]===v?'on':''}" onclick="stepSet('${k}','${v}')">${l}</button>`).join('')}</div>`;
+ const G={day:'Each day',week:'Each week',month:'Each month',year:'Each year'};
+ return`${seg('r',[['week','Week'],['month','Month'],['year','Year'],['all','All time']])}${STEPG[STV.r].length>1?seg('g',STEPG[STV.r].map(g=>[g,G[g]]),'sm'):''}
+ <div class="st-sum"><div><b>${tot.toLocaleString()}</b><small>${{week:'this week',month:'this month',year:'this year',all:'all time'}[STV.r]}</small></div><div style="text-align:right"><b>${Math.round(tot/Math.max(1,B.days)).toLocaleString()}</b><small>per day</small></div></div>
+ ${tot?stepBars(B.vals,B.keys.map(B.lbl)):'<p class="t-caption" style="text-align:center;padding:18px 0">No steps in this range yet.</p>'}`}
+
+// ================= ROUTE THUMBNAILS + REPLAY =================
+// A light static map (map tiles positioned by hand + the route as SVG): looks like Strava's cards, no live map per row.
+const merc=(la,lo,z)=>{const s=256*2**z,x=(lo+180)/360*s,r=la*Math.PI/180;return[x,(1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*s]};
+function staticMap(pts,H=150){if(pts.length<2)return`<div class="map" style="height:${H}px;border-radius:0">${routeSVG(pts)}</div>`;const Wd=360,pad=22;
+ let z=17;for(;z>3;z--){const p=pts.map(q=>merc(q[0],q[1],z)),xs=p.map(q=>q[0]),ys=p.map(q=>q[1]);if(Math.max(...xs)-Math.min(...xs)<=Wd-pad*2&&Math.max(...ys)-Math.min(...ys)<=H-pad*2)break}
+ const P=pts.map(q=>merc(q[0],q[1],z)),xs=P.map(q=>q[0]),ys=P.map(q=>q[1]),cx=(Math.min(...xs)+Math.max(...xs))/2,cy=(Math.min(...ys)+Math.max(...ys))/2,L0=cx-Wd/2,T0=cy-H/2,n=2**z;
+ const t=TILES.key?TILES:TILES.fallback,url=(x,y)=>t.url.replace('{s}','abcd'[(x+y)%4]).replace('{z}',z).replace('{x}',((x%n)+n)%n).replace('{y}',y).replace('{r}','').replace('{key}',TILES.key);
+ let tiles='';for(let x=Math.floor(L0/256);x<=Math.floor((L0+Wd)/256);x++)for(let y=Math.floor(T0/256);y<=Math.floor((T0+H)/256);y++)if(y>=0&&y<n)tiles+=`<img src="${url(x,y)}" alt="" style="left:${(x*256-L0)/Wd*100}%;top:${(y*256-T0)/H*100}%;width:${25600/Wd}%;height:${25600/H}%">`;
+ const d=P.map((q,i)=>`${i?'L':'M'}${(q[0]-L0).toFixed(1)},${(q[1]-T0).toFixed(1)}`).join(''),s=P[0],e=P.at(-1);
+ return`<div class="smap${TILES.key?'':' cmap-fb'}" style="aspect-ratio:${Wd}/${H}"><div class="smap-tiles">${tiles}</div><svg viewBox="0 0 ${Wd} ${H}" preserveAspectRatio="none"><path d="${d}" fill="none" stroke="#fff" stroke-width="7" stroke-linejoin="round" stroke-linecap="round" opacity=".8"/><path d="${d}" fill="none" stroke="#e3262f" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${s[0]-L0}" cy="${s[1]-T0}" r="5" fill="#16a34a" stroke="#fff" stroke-width="2"/><circle cx="${e[0]-L0}" cy="${e[1]-T0}" r="5" fill="#e3262f" stroke="#fff" stroke-width="2"/></svg><span class="smap-at">\u2060© OpenStreetMap${TILES.key?' \u2060© CARTO':''}</span></div>`}
+// Replay: the route draws itself in order with a moving dot (about 8 s, whatever the length).
+function replayRun(ts){const m=MAPS['run:'+ts],r=S.runs.find(x=>x.ts===ts);if(!m||!r||r.pts.length<2)return;clearInterval(m.rp);const pts=r.pts,N=pts.length,dur=8000,t0=Date.now();
+ m.extra.clearLayers();const dot=L.circleMarker(pts[0],{radius:8,color:'#fff',weight:3,fillColor:'#2563eb',fillOpacity:1}).addTo(m.extra);dotOn(m,pts[0],'#16a34a');
+ const b=$('#replaybtn');if(b)b.textContent='Replaying…';m.rp=setInterval(()=>{const k=Math.min(N,Math.max(2,Math.round((Date.now()-t0)/dur*N)));m.line.setLatLngs(pts.slice(0,k));dot.setLatLng(pts[k-1]);
+  if(k>=N){clearInterval(m.rp);drawMap('run:'+ts,m);const b2=$('#replaybtn');if(b2)b2.textContent='▷ Replay route'}},40)}
 
 const _rdC=render;render=function(...a){const x=_rdC.apply(this,a);try{mountMaps()}catch(e){console.error(e)}return x};
 
@@ -290,6 +337,12 @@ document.head.insertAdjacentHTML('beforeend',`<style>
 .cd-plan{display:flex;align-items:center;justify-content:space-between;background:var(--surface);border-radius:14px;padding:10px 14px;margin-bottom:12px;box-shadow:0 1px 2px #15151f0d}.cd-plan b{font-size:18px;font-variant-numeric:tabular-nums}
 .cd-off{display:none;background:#fef3c7;color:#92400e;font-weight:700;font-size:13px;padding:4px 10px;border-radius:999px}.cd-off.show{display:inline-block}
 .btn[disabled]{opacity:.45;pointer-events:none}
+.smap{position:relative;width:100%;overflow:hidden;background:#eef0f3}.smap-tiles{position:absolute;inset:0}.smap img{position:absolute;max-width:none}.cmap-fb .smap-tiles{filter:grayscale(1) brightness(1.08) contrast(.85)}.smap svg{position:absolute;inset:0;width:100%;height:100%}
+.smap-at{position:absolute;right:4px;bottom:2px;font-size:8px;color:#555;background:#ffffffb0;padding:0 3px;border-radius:3px}
+.rl-goal{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:2px 10px;margin:0 0 10px}.rl-goal span{font-size:13px;font-weight:700;color:var(--ink-2)}.rl-goal b{text-align:right;font-variant-numeric:tabular-nums}.rl-goal .bar{grid-column:1/-1;height:6px}.rl-goal.hit .bar i{background:var(--ok)}
+.st-seg{display:flex;background:var(--fill);border-radius:999px;padding:3px;margin-bottom:8px}.st-seg button{flex:1;border:none;background:none;border-radius:999px;padding:7px 0;font-weight:600;font-size:13px;color:var(--ink-2);cursor:pointer}.st-seg button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px #15151f1a}
+.st-seg.sm button{padding:5px 0;font-size:12px}
+.st-sum{display:flex;justify-content:space-between;margin:6px 0 4px}.st-sum b{display:block;font-size:22px;font-weight:800;font-variant-numeric:tabular-nums}.st-sum small{font-size:12px;color:var(--ink-2)}
 .rl{position:fixed;inset:0;display:flex;flex-direction:column;background:#eef0f3;z-index:5}
 .rl-map{position:relative;flex:1;min-height:0}.rl-map .cmap{border-radius:0;height:100%!important}
 .rl-top{position:absolute;top:calc(10px + env(safe-area-inset-top));left:12px;right:12px;display:flex;justify-content:space-between;z-index:600;pointer-events:none}
