@@ -1,12 +1,15 @@
 # Builds the iOS app on a macOS runner (no Mac needed locally).
 # Artifacts: a Simulator build (RepWise-simulator.zip) and an unsigned device build (RepWise-unsigned.ipa)
 # that can be signed with your own Apple ID (e.g. Sideloadly / AltStore) or re-signed in Xcode.
-name: iOS build
+name: Build & release
 on:
   push:
     branches: [main]
-    paths: ['www/**', 'ios/**', 'package.json', 'package-lock.json', 'capacitor.config.json', '.github/workflows/ios.yml']
+    paths: ['www/**', 'ios/**', 'apk/**', 'package.json', 'package-lock.json', 'capacitor.config.json', '.github/workflows/ios.yml']
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -38,3 +41,21 @@ jobs:
           path: |
             RepWise-simulator.zip
             RepWise-unsigned.ipa
+      # Rolling "latest" release so the website's download links never change:
+      # /releases/latest/download/RepWise.apk and /releases/latest/download/RepWise-unsigned.ipa
+      - name: Publish to the latest release
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: RepWise (latest build)
+          make_latest: true
+          body: |
+            Latest RepWise build from `${{ github.sha }}`.
+            - **RepWise.apk** — Android: open on your phone and install (allow installs from your browser when asked).
+            - **RepWise-unsigned.ipa** — iPhone: sign and install with your Apple ID using Sideloadly or AltStore.
+            - **RepWise-simulator.zip** — iOS Simulator build for testing on a Mac.
+          files: |
+            apk/RepWise.apk
+            RepWise-unsigned.ipa
+            RepWise-simulator.zip
