@@ -1,5 +1,13 @@
 apply plugin: 'com.android.application'
 
+// Release signing key: from CI environment variables, or a local keystore.properties that is never committed
+// (C:/Users/<you>/RepWise-signing/keystore.properties, or android/keystore.properties).
+def rw = [file: System.getenv('RW_KEYSTORE'), store: System.getenv('RW_STORE_PASS'), alias: System.getenv('RW_KEY_ALIAS'), key: System.getenv('RW_KEY_PASS')]
+if (!rw.file) {
+    def kp = [rootProject.file('keystore.properties'), new File(System.getProperty('user.home'), 'RepWise-signing/keystore.properties')].find { it.exists() }
+    if (kp) { def p = new Properties(); kp.withInputStream { p.load(it) }; rw = [file: p.storeFile, store: p.storePassword, alias: p.keyAlias, key: p.keyPassword] }
+}
+
 android {
     namespace = "com.gymquest.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -7,8 +15,9 @@ android {
         applicationId "com.gymquest.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        // CI passes the run number so every published build is an upgrade over the last one.
+        versionCode((System.getenv('RW_VERSION_CODE') ?: '1') as int)
+        versionName "1.0." + (System.getenv('RW_VERSION_CODE') ?: '0')
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -19,8 +28,14 @@ android {
     applicationVariants.all { variant ->
         variant.outputs.all { outputFileName = "RepWise.apk" }
     }
+    signingConfigs {
+        release {
+            if (rw.file) { storeFile file(rw.file); storePassword rw.store; keyAlias rw.alias; keyPassword rw.key }
+        }
+    }
     buildTypes {
         release {
+            if (rw.file) signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

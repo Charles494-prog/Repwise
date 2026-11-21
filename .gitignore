@@ -3,3 +3,9 @@ android/app/build
 android/.gradle
 android/build
 android/.kotlin
+
+# Release signing (never commit)
+*.jks
+*.keystore
+keystore.properties
+RW_KEYSTORE_B64.txt
