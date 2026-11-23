@@ -4,6 +4,8 @@
  /* colour */
  --ink:#15151f;--ink-2:#6b6b78;--ink-3:#a3a3ae;--line:#e9e9ee;--bg:#f7f7f8;--surface:#fff;--fill:#efeff2;
  --accent:#e3262f;--ok:#16a34a;
+ --on-accent:#fff;--accent-2:#a50f17;--accent-soft:#e3262f14;--warn:#b45309;--danger:#dc2626;--shadow-c:#15151f14;--scrim:#00000066;--r-btn:16px;--r-chip:999px;
+ --font-display:inherit;--fw-display:800;--tt-display:none;--ls-display:-.02em;
  /* type scale: display · title · body · label · caption */
  --fs-display:44px;--fs-title:22px;--fs-body:16px;--fs-label:14px;--fs-caption:12px;
  /* 8pt spacing */
@@ -45,7 +47,7 @@ html,body{background:var(--bg);color:var(--ink);font-size:var(--fs-body)}
 /* segmented control (neutral) */
 .seg{display:flex;background:var(--fill);border-radius:var(--r-pill);padding:3px;margin-bottom:var(--s2)}
 .seg button{flex:1;border:none;background:none;border-radius:var(--r-pill);padding:7px 0;font-size:var(--fs-label);font-weight:600;color:var(--ink-2);cursor:pointer}
-.seg button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px #15151f1a}
+.seg button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px var(--shadow-c)}
 
 /* plain list with dividers (no container) */
 .plist{border-top:1px solid var(--line)}
@@ -64,7 +66,7 @@ html,body{background:var(--bg);color:var(--ink);font-size:var(--fs-body)}
 #toast.show{opacity:1}
 
 /* bottom navigation: light, neutral; active = filled icon + label in ink */
-nav{background:rgba(255,255,255,.94);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--line);box-shadow:none;padding:8px 0 calc(8px + env(safe-area-inset-bottom))}
+nav{background:color-mix(in srgb,var(--surface) 94%,transparent);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--line);box-shadow:none;padding:8px 0 calc(8px + env(safe-area-inset-bottom))}
 nav button{color:var(--ink-3);font-size:11px;font-weight:600;gap:4px}
 nav button svg{width:24px;height:24px;stroke-width:1.75;transition:none}
 nav button.on{color:var(--ink)}
