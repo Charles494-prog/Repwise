@@ -25,7 +25,7 @@
   .rk-lad.lock{opacity:.4}.rk-lad b{font-weight:600}.rk-lad small{margin-left:auto;color:var(--ink-2);font-size:var(--fs-caption)}
   .rk-lad.cur b{font-weight:800}
   .rk-pill{display:flex;align-items:center;gap:6px;margin-top:4px;font-size:var(--fs-label);font-weight:600;color:var(--ink-2)}
-  #xpt{position:fixed;left:50%;bottom:calc(88px + env(safe-area-inset-bottom));transform:translate(-50%,12px);background:var(--ink);color:#fff;border-radius:var(--r-pill);padding:9px 16px;font-size:var(--fs-label);font-weight:700;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:45;white-space:nowrap}
+  #xpt{position:fixed;left:50%;bottom:calc(88px + env(safe-area-inset-bottom));transform:translate(-50%,12px);background:var(--ink);color:var(--on-accent);border-radius:var(--r-pill);padding:9px 16px;font-size:var(--fs-label);font-weight:700;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:45;white-space:nowrap}
   body.full #xpt{bottom:calc(24px + env(safe-area-inset-bottom))}
   #xpt.show{opacity:1;transform:translate(-50%,0)}
   .w-over{position:fixed;inset:0;z-index:60;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:var(--s4);animation:wfade .25s ease}
@@ -36,7 +36,7 @@
   @keyframes wpop{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:none}}
   @keyframes wring{from{opacity:1;transform:scale(.8)}to{opacity:0;transform:scale(1.25)}}
   .setrow.pr-hit{animation:prhit .7s ease}
-  @keyframes prhit{0%{background:transparent}25%{background:#fdecec;transform:scale(1.02)}100%{background:transparent;transform:none}}
+  @keyframes prhit{0%{background:transparent}25%{background:var(--accent-soft);transform:scale(1.02)}100%{background:transparent;transform:none}}
   .w-empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:var(--s3) var(--s2);color:var(--ink-2);font-size:var(--fs-label);line-height:1.4;white-space:normal}
   .w-empty svg{width:56px;height:56px;stroke:var(--ink-3);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
   .sm-hero{text-align:center;padding:var(--s5) 0 var(--s2)}
@@ -178,7 +178,7 @@
   // ================= PROFILE: badge + level next to the name =================
   const _more = V.more; V.more = () => { const r = orank(), L = level();
     return _more().replace('<h1>More</h1>', `<h1>${T('Profile', 'Profile')}</h1>`)
-      .replace(/<div class="card flex"><div class="tile" style="background:#fdeced;flex:none">[^<]*<\/div><div><b style="font-size:18px">Level \d+ athlete<\/b>/,
+      .replace(/<div class="card flex"><div class="tile" style="background:var(--accent-soft);flex:none">[^<]*<\/div><div><b style="font-size:18px">Level \d+ athlete<\/b>/,
         `<div class="card flex" onclick="push('rank')" style="cursor:pointer"><div class="tile" style="background:var(--fill);flex:none">${rankBadge(r.i, 40)}</div><div><b style="font-size:18px">${escT(S.profile.name || 'You')}</b><span class="rk-pill">${r.name} · Level ${L.lvl}</span>`); };
 
   // ================= TRAIN → QUESTS: entry to the rank screen =================

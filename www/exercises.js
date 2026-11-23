@@ -89,7 +89,7 @@ const liveGroups=()=>S.exGroups.filter(g=>!g.deleted);
 function groupMuscles(ex){const o={};for(const e of ex){const d=EX[e];if(!d)continue;d[0].forEach(m=>o[m]=Math.max(o[m]||0,1));d[1].forEach(m=>o[m]=Math.max(o[m]||0,.5))}return o}
 // Older screens print program names without escaping, so group names never carry HTML characters.
 const cleanName=n=>String(n||'').replace(/[<>"'`\\]/g,'').trim();
-function regGroup(g){g.name=cleanName(g.name)||'My group';PROGS[GKEY(g)]={name:g.name,e:g.e||'🧩',bg:'#e0e7ff',group:g.id,
+function regGroup(g){g.name=cleanName(g.name)||'My group';PROGS[GKEY(g)]={name:g.name,e:g.e||'🧩',bg:'var(--tile-7)',group:g.id,
  get sub(){const m=Object.entries(groupMuscles(g.ex)).filter(([,v])=>v===1).map(([k])=>k);return m.length?m.join(', '):'My group'},
  get ex(){return g.ex.filter(e=>EX[e])},get m(){return Object.entries(groupMuscles(g.ex)).filter(([,v])=>v===1).map(([k])=>k)}}}
 S.exGroups.forEach(regGroup);
@@ -115,7 +115,7 @@ V.groupedit=id=>{const g=S.exGroups.find(x=>x.id===id);if(!GRP||GRP._for!==(id||
 function grpMove(i,d){const a=GRP.ex;[a[i],a[i+d]]=[a[i+d],a[i]];render()}
 function grpPick(){const all=Object.keys(EX).filter(e=>!exHidden(e)&&!/\(km\)$/.test(e)).sort((a,b)=>isMyEx(b)-isMyEx(a)||a.localeCompare(b));
  openSheet(`<h3 class="t-title">Add exercises</h3><input placeholder="🔍 Search" oninput="document.querySelectorAll('#sheet .gprow').forEach(r=>r.style.display=r.dataset.n.includes(this.value.toLowerCase())?'':'none')">
- <div class="row" onclick="closeSheet();setTimeout(()=>exEditor(null,'group'),300)"><div class="tile" style="background:#fce7f3;width:40px;height:40px;font-size:20px">➕</div><div class="rbody"><b>Create custom exercise</b><small>When it isn't in the list</small></div></div>
+ <div class="row" onclick="closeSheet();setTimeout(()=>exEditor(null,'group'),300)"><div class="tile" style="background:var(--tile-6);width:40px;height:40px;font-size:20px">➕</div><div class="rbody"><b>Create custom exercise</b><small>When it isn't in the list</small></div></div>
  ${all.map(e=>`<label class="row gprow" data-n="${esc(e.toLowerCase())}"><span style="font-size:22px">${EX[e][2]}</span><div class="rbody"><b>${escT(e)}</b><small>${esc(EX[e][0].join(', '))}${isMyEx(e)?' · custom':''}</small></div><input type="checkbox" style="width:22px;height:22px;margin:0" data-e="${esc(e)}" ${GRP.ex.includes(e)?'checked':''} onchange="grpTog(this.dataset.e,this.checked)"></label>`).join('')}
  <div class="sticky" style="position:sticky;bottom:0"><button class="btn" onclick="closeSheet();render()">Done</button></div>`)}
 function grpTog(e,on){GRP.ex=on?[...new Set([...GRP.ex,e])]:GRP.ex.filter(x=>x!==e);render()}
@@ -154,16 +154,16 @@ V.mylib=()=>{const mine=Object.keys(S.customEx).sort(),G=liveGroups();
  ${mine.length?`<div class="list">${mine.map(e=>`<div class="row" data-e="${esc(e)}" onclick="exEditor(this.dataset.e,'list')"><span style="font-size:24px">${EX[e][2]}</span><div class="rbody"><b>${escT(e)}</b><small>${esc(tsum(e))}</small></div><span class="chev">›</span></div>`).join('')}</div>`
   :`<div class="empty">Create exercises that aren't in the list and choose exactly which muscles they train.</div>`}<div style="height:var(--s4)"></div>`};
 const _wkG=V.workouts;V.workouts=()=>{const h=_wkG(),G=liveGroups(),k='<div class="sec">History</div>';
- const card=`<div class="sec">My groups <small onclick="push('mylib')" style="cursor:pointer;color:var(--accent)">Manage</small></div><div class="list">${G.map(g=>`<div class="row" onclick="push('prog','${GKEY(g)}')"><div class="tile" style="background:#e0e7ff">${g.e||'🧩'}</div><div class="rbody"><b>${escT(g.name)}</b><small>${g.ex.length} exercises · ${esc(PROGS[GKEY(g)].sub)}</small></div><span class="chev">›</span></div>`).join('')}
-  <div class="row" onclick="push('mylib')"><div class="tile" style="background:#fce7f3">➕</div><div class="rbody"><b>${G.length?'Exercises & groups':'Create a group or exercise'}</b><small>${Object.keys(S.customEx).length} custom exercise${Object.keys(S.customEx).length===1?'':'s'} · ${G.length} group${G.length===1?'':'s'}</small></div><span class="chev">›</span></div></div>`;
+ const card=`<div class="sec">My groups <small onclick="push('mylib')" style="cursor:pointer;color:var(--accent)">Manage</small></div><div class="list">${G.map(g=>`<div class="row" onclick="push('prog','${GKEY(g)}')"><div class="tile" style="background:var(--tile-7)">${g.e||'🧩'}</div><div class="rbody"><b>${escT(g.name)}</b><small>${g.ex.length} exercises · ${esc(PROGS[GKEY(g)].sub)}</small></div><span class="chev">›</span></div>`).join('')}
+  <div class="row" onclick="push('mylib')"><div class="tile" style="background:var(--tile-6)">➕</div><div class="rbody"><b>${G.length?'Exercises & groups':'Create a group or exercise'}</b><small>${Object.keys(S.customEx).length} custom exercise${Object.keys(S.customEx).length===1?'':'s'} · ${G.length} group${G.length===1?'':'s'}</small></div><span class="chev">›</span></div></div>`;
  return h.includes(k)?h.replace(k,card+k):h+card};
 
 document.head.insertAdjacentHTML('beforeend',`<style>
 .exemo{display:flex;flex-wrap:wrap;gap:6px;margin-top:var(--s1)}.exemo button{width:40px;height:40px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface);font-size:20px;cursor:pointer}.exemo button.on{border-color:var(--ink);background:var(--fill)}
 .exms{display:grid;gap:6px}.exm-r{display:flex;gap:6px}.exm-t{flex:1;display:flex;justify-content:space-between;align-items:center;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;padding:10px 12px;cursor:pointer;text-align:left;font-size:15px}
 .exm-t em,.exm-s em{font-style:normal;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;border-radius:6px;padding:2px 6px}
-.exm-t.st-p,.exm-s .st-p{background:var(--ink);border-color:var(--ink);color:#fff}.st-p em{background:#ffffff26}
-.exm-t.st-s,.exm-s .st-s{background:#eef2ff;border-color:#6366f1;color:#3730a3}.st-s em{background:#6366f126}
+.exm-t.st-p,.exm-s .st-p{background:var(--ink);border-color:var(--ink);color:var(--on-accent)}.st-p em{background:var(--surface)}
+.exm-t.st-s,.exm-s .st-s{background:color-mix(in srgb,var(--accent-2) 14%,var(--surface));border-color:var(--accent-2);color:var(--accent-2)}.st-s em{background:var(--accent-2)}
 .exm-t.st-sub{border-color:var(--ink);border-style:dashed}.exm-t.st-sub em{background:var(--fill);color:var(--ink-2)}
 .exm-x{width:44px;flex:none;border:1.5px solid var(--line);background:var(--surface);border-radius:12px;cursor:pointer;color:var(--ink-2);font-size:16px}.exm-x.on{transform:rotate(180deg)}
 .exm-s{display:flex;flex-wrap:wrap;gap:6px;padding:6px 0 4px 10px}.exm-s button{display:flex;gap:6px;align-items:center;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:7px 12px;font-size:13px;cursor:pointer}

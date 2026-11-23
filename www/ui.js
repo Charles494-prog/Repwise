@@ -131,7 +131,7 @@ async function schedWalkRemind(){const L=LN(),R=S.walkRemind;if(!L||!R||R.at<=Da
 function walkTimer(){clearTimeout(walkT);walkT=null;const R=S.walkRemind;if(R&&R.at>Date.now())walkT=setTimeout(walkDue,R.at-Date.now())}
 function walkLater(){closeSheet();S.walkRemind={at:Date.now()+600000,id:WALK_NID};save();schedWalkRemind();walkTimer();toast('We\'ll remind you in 10 minutes')}
 function walkDue(){const R=S.walkRemind;if(!R)return;
- if(document.visibilityState==='hidden')return; // app in the background: the notification takes over
+ if(document.visibilityState==='hidden')return; // app in the background:the notification takes over
  S.walkRemind=null;save();try{LN()?.cancel({notifications:[{id:R.id}]})}catch(e){}
  Pop.show('walkdue',()=>openSheet(`<div class="wp" role="dialog" aria-label="Walk reminder"><h3 class="t-title" style="margin-bottom:var(--s1)">Time for your 10-minute walk</h3>
  <p class="t-body">A brisk walk now still blunts the blood-sugar spike from your meal.</p>
@@ -148,7 +148,7 @@ document.head.insertAdjacentHTML('beforeend',`<style>
 .wp .wp-foot{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:var(--s1);margin-top:var(--s1)}.wp .wp-off{color:var(--ink-2);text-decoration:none}
 </style>`);
 // Settings › Reminders: the after-meal walk pop-up toggle
-const _vnWalk=V.notifs;V.notifs=()=>_vnWalk()+`<div class="sec">In the app</div><div class="list"><div class="row" id="walkpop-row" onclick="S.notif.walkPop=!S.notif.walkPop;save();render()"><span style="font-size:22px">🚶</span><div class="rbody"><b>After-meal walk pop-up</b><small>After you log a meal: start a brisk 10-minute walk, or get reminded in 10 min</small></div><span class="chip" style="background:${S.notif.walkPop?'var(--good)':'#e5e5ec'};color:${S.notif.walkPop?'#fff':'inherit'}">${S.notif.walkPop?'ON':'OFF'}</span></div></div>`;
+const _vnWalk=V.notifs;V.notifs=()=>_vnWalk()+`<div class="sec">In the app</div><div class="list"><div class="row" id="walkpop-row" onclick="S.notif.walkPop=!S.notif.walkPop;save();render()"><span style="font-size:22px">🚶</span><div class="rbody"><b>After-meal walk pop-up</b><small>After you log a meal: start a brisk 10-minute walk, or get reminded in 10 min</small></div><span class="chip" style="background:${S.notif.walkPop?'var(--good)':'var(--fill)'};color:${S.notif.walkPop?'var(--on-accent)':'inherit'}">${S.notif.walkPop?'ON':'OFF'}</span></div></div>`;
 const _af17=addFood;addFood=function(){const n=$('#fn')?.value.trim(),before=dayFood(viewDate).length;_af17();const f=dayFood(viewDate);if(f.length>before&&viewDate===today()){const x=f.at(-1);setTimeout(()=>afterMeal(x[0],x[1]),350)}};
 // Water lives on the Nutrition screen too (slim bar + quick add), right under protein
 const _meals17=V.meals;V.meals=()=>{const t=targets(),w=S.water[viewDate]||0;

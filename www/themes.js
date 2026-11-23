@@ -66,6 +66,7 @@
     return { '--bg': c.bg, '--surface': c.surface, '--fill': c.fill, '--ink': c.ink, '--ink-2': c.ink2, '--ink-3': c.ink3, '--line': c.line,
       '--accent': c.accent, '--on-accent': c.onAccent, '--accent-2': c.accent2, '--ok': c.ok, '--warn': c.warn, '--danger': c.danger,
       '--accent-soft': c.accent + '22', '--r-card': t.shape.card, '--r-btn': t.shape.button, '--r-chip': t.shape.chip,
+      ...Object.fromEntries([['accent',16],['accent2',18],['ok',18],['warn',18],['accent2',26],['accent',24],['accent2',10],['ok',26]].map(([k,p],i)=>['--tile-'+(i+1),`color-mix(in srgb,${c[k]} ${mode==='dark'?p+6:p}%,${c.surface})`])),
       '--shadow-c': mode === 'dark' ? '#00000066' : '#15151f14', '--scrim': mode === 'dark' ? '#000000b3' : '#00000066',
       '--font-display': t.font.display, '--fw-display': String(t.font.weight), '--tt-display': t.font.transform, '--ls-display': t.font.tracking }; }
   const API = { THEMES, ORDER, lum, contrast, vars };

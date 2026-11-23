@@ -11,28 +11,28 @@
   .pg-empty{display:flex;justify-content:space-between;align-items:center;min-height:48px;color:var(--ink-2);font-size:var(--fs-label);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
   .pg-empty button{background:none;border:none;font-weight:700;color:var(--ink);font-size:var(--fs-label);padding:8px 0;cursor:pointer}
   .pg-i{background:none;border:1px solid var(--line);border-radius:50%;width:22px;height:22px;font-size:12px;font-weight:700;color:var(--ink-2);cursor:pointer;margin-left:6px;line-height:1}
-  .pg-warn{background:#fff7ed;color:#9a3412;border-radius:10px;padding:10px 12px;margin-top:var(--s2);font-size:14px}
+  .pg-warn{background:color-mix(in srgb,var(--warn) 14%,var(--surface));color:var(--warn);border-radius:10px;padding:10px 12px;margin-top:var(--s2);font-size:14px}
   .pg-hdr{display:flex;align-items:center;justify-content:space-between;font-size:17px;font-weight:700;margin:var(--s4) 0 var(--s1)}
-  .pg-card{background:var(--surface);border-radius:16px;padding:4px var(--s2) 12px;box-shadow:0 1px 2px #15151f0d,0 6px 20px #15151f0a}
+  .pg-card{background:var(--surface);border-radius:16px;padding:4px var(--s2) 12px;box-shadow:0 1px 2px var(--shadow-c),0 6px 20px var(--shadow-c)}
   .pg-card .pg-line:last-of-type{border-bottom:none}
   .pg-card .pg-empty{border:none;flex-direction:column;justify-content:center;gap:var(--s1);padding:var(--s2) 0 var(--s1);text-align:center}
-  .pg-card .pg-empty button{background:var(--ink);color:#fff;border-radius:var(--r-pill);padding:9px 20px}
-  .pg-heroc{margin-top:var(--s2);border-radius:20px;padding:20px;color:#fff;background:radial-gradient(120% 100% at 100% 0%,#5b1218 0%,#15151f 62%);box-shadow:0 12px 30px #15151f40}
-  .pg-hl{font-size:13px;font-weight:600;color:#ffffffa8}
-  .pg-hn{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;margin-top:4px}.pg-hn .num{font-size:52px;font-weight:800;letter-spacing:-.03em;line-height:1}.pg-hn small{font-size:20px;color:#ffffffa8;font-weight:600}
-  .pg-trend{margin-left:auto;align-self:center;font-size:13px;font-weight:700;padding:5px 10px;border-radius:var(--r-pill);background:#ffffff1f;white-space:nowrap}
-  .pg-trend.ok{background:#16a34a40;color:#86efac}.pg-trend.bad{background:#e3262f40;color:#fca5a5}
-  .pg-hg{margin-top:10px;font-size:14px;color:#ffffffc0}.pg-hg .pg-link{color:#fff}
-  .pg-hbar{height:10px;border-radius:5px;background:#ffffff1f;margin-top:16px;overflow:hidden}.pg-hbar i{display:block;height:100%;border-radius:5px;background:linear-gradient(90deg,#e3262f,#ff6b6b)}
-  .pg-hscale{display:flex;justify-content:space-between;font-size:12px;color:#ffffff99;margin-top:6px;font-variant-numeric:tabular-nums}
-  .pg-hstats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid #ffffff1a}
-  .pg-hstats b{display:block;font-size:16px;font-weight:800;font-variant-numeric:tabular-nums}.pg-hstats small{font-size:11px;color:#ffffff99}
+  .pg-card .pg-empty button{background:var(--ink);color:var(--on-accent);border-radius:var(--r-pill);padding:9px 20px}
+  .pg-heroc{margin-top:var(--s2);border-radius:20px;padding:20px;color:var(--on-accent);background:radial-gradient(120% 100% at 100% 0%,var(--accent) 0%,var(--accent-2) 62%);box-shadow:0 12px 30px var(--shadow-c)}
+  .pg-hl{font-size:13px;font-weight:600;color:var(--on-accent)}
+  .pg-hn{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;margin-top:4px}.pg-hn .num{font-size:52px;font-weight:800;letter-spacing:-.03em;line-height:1}.pg-hn small{font-size:20px;color:var(--on-accent);font-weight:600}
+  .pg-trend{margin-left:auto;align-self:center;font-size:13px;font-weight:700;padding:5px 10px;border-radius:var(--r-pill);background:var(--surface);white-space:nowrap}
+  .pg-trend.ok{background:var(--ok);color:var(--ok)}.pg-trend.bad{background:var(--accent);color:var(--accent)}
+  .pg-hg{margin-top:10px;font-size:14px;color:var(--on-accent)}.pg-hg .pg-link{color:var(--on-accent)}
+  .pg-hbar{height:10px;border-radius:5px;background:var(--surface);margin-top:16px;overflow:hidden}.pg-hbar i{display:block;height:100%;border-radius:5px;background:linear-gradient(90deg,var(--accent),var(--accent))}
+  .pg-hscale{display:flex;justify-content:space-between;font-size:12px;color:var(--on-accent);margin-top:6px;font-variant-numeric:tabular-nums}
+  .pg-hstats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--surface)}
+  .pg-hstats b{display:block;font-size:16px;font-weight:800;font-variant-numeric:tabular-nums}.pg-hstats small{font-size:11px;color:var(--on-accent)}
   .pg-tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0 4px}
   .pg-tiles>div{background:var(--fill);border-radius:12px;padding:12px}
   .pg-tiles small{display:block;font-size:12px;color:var(--ink-2);font-weight:600;margin-bottom:2px}.pg-tiles b{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums}
   .pg-chip{display:inline-block;margin-left:6px;font-size:11px;font-weight:700;padding:2px 8px;border-radius:var(--r-pill);background:var(--surface);color:var(--ink-2);vertical-align:middle}
-  .pg-chip.ok{background:#dcfce7;color:#15803d}.pg-chip.warn{background:#fef3c7;color:#b45309}.pg-chip.bad{background:#fee2e2;color:#b91c1c}
-  .pg-cbar{display:flex;height:12px;border-radius:6px;overflow:hidden;margin-top:14px;gap:2px}.pg-cbar .lean{background:var(--ink)}.pg-cbar .fat{background:#f59e0b}
+  .pg-chip.ok{background:var(--tile-3);color:var(--ok)}.pg-chip.warn{background:var(--tile-4);color:var(--warn)}.pg-chip.bad{background:var(--accent-soft);color:var(--accent)}
+  .pg-cbar{display:flex;height:12px;border-radius:6px;overflow:hidden;margin-top:14px;gap:2px}.pg-cbar .lean{background:var(--ink)}.pg-cbar .fat{background:var(--warn)}
   .pg-clegend{display:flex;justify-content:space-between;font-size:13px;margin-top:8px;color:var(--ink-2)}.pg-clegend i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px}
   .pg-gbar{height:6px;border-radius:3px;background:var(--fill);margin:-4px 0 12px;overflow:hidden}.pg-gbar i{display:block;height:100%;border-radius:3px;background:var(--ok)}
   .pg-legend{display:flex;gap:14px;align-items:center;font-size:12px;color:var(--ink-2)}.pg-legend i{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ink-3);margin-right:5px;vertical-align:1px}.pg-legend i.ln{width:14px;height:3px;border-radius:2px;background:var(--accent)}
@@ -93,13 +93,13 @@
       const dv = v.at(-1)[1] - v[0][1], line = v.map((x, i) => `${i ? 'L' : 'M'}${X(x[0]).toFixed(1)},${Y(x[1]).toFixed(1)}`).join(' ');
       chart = `<div class="t-label" style="display:flex;justify-content:space-between;margin-top:var(--s3)"><span>Body fat over time</span><span class="num" style="color:${dv < 0 ? 'var(--ok)' : dv > 0 ? 'var(--accent)' : 'var(--ink-2)'}">${dv > 0 ? '+' : dv < 0 ? '−' : ''}${Math.abs(dv).toFixed(1)}% since ${fmtD(new Date(v[0][0]))}</span></div>
         <svg viewBox="0 0 ${W} ${H}" style="width:100%;margin-top:var(--s1)">${[hi - .5, lo + .5].map(y => `<line x1="30" x2="${W - 8}" y1="${Y(y)}" y2="${Y(y)}" stroke="var(--line)"/><text x="24" y="${Y(y) + 3}" text-anchor="end" font-size="10" fill="var(--ink-3)">${y.toFixed(1)}%</text>`).join('')}
-        <path d="${line}" fill="none" stroke="#f59e0b" stroke-width="2.5" stroke-linejoin="round"/>${v.map(x => `<circle cx="${X(x[0])}" cy="${Y(x[1])}" r="3.5" fill="#fff" stroke="#f59e0b" stroke-width="2"/>`).join('')}
+        <path d="${line}" fill="none" stroke="var(--warn)" stroke-width="2.5" stroke-linejoin="round"/>${v.map(x => `<circle cx="${X(x[0])}" cy="${Y(x[1])}" r="3.5" fill="var(--surface)" stroke="var(--warn)" stroke-width="2"/>`).join('')}
         <text x="30" y="${H - 2}" font-size="10" fill="var(--ink-3)">${fmtD(new Date(t0))}</text><text x="${W - 8}" y="${H - 2}" text-anchor="end" font-size="10" fill="var(--ink-3)">${fmtD(new Date(t1))}</text></svg>
         <p class="t-caption">Each dot is a body-fat reading from your measurements.</p>`;
     }
     return `<div class="pg-hdr">Body composition</div>
       <div class="pg-cbar"><i class="lean" style="width:${100 - b.bf}%"></i><i class="fat" style="width:${b.bf}%"></i></div>
-      <div class="pg-clegend num"><span><i style="background:var(--ink)"></i>Lean ${lean.toFixed(1)} kg</span><span><i style="background:#f59e0b"></i>Fat ${(p.weight - lean).toFixed(1)} kg</span></div>
+      <div class="pg-clegend num"><span><i style="background:var(--ink)"></i>Lean ${lean.toFixed(1)} kg</span><span><i style="background:var(--warn)"></i>Fat ${(p.weight - lean).toFixed(1)} kg</span></div>
       <div class="pg-tiles"><div><small>Body fat</small><b>${b.bf.toFixed(1)}%</b>${est ? `<button class="pg-est" onclick="pgInfo('bf')">est.</button>` : ''}</div>
       <div><small>BMI</small><b>${b.bmi.toFixed(1)}</b>${(([l, c]) => `<span class="pg-chip ${c}">${l}</span>`)(b.bmi < 18.5 ? ['underweight', 'warn'] : b.bmi < 25 ? ['healthy', 'ok'] : b.bmi < 30 ? ['overweight', 'warn'] : ['obese', 'bad'])}</div></div>
       ${b.badTape ? `<div class="pg-warn">Your waist / neck numbers give an impossible body fat, so they're ignored. Re-measure in cm: waist at the navel, neck just below the Adam's apple. <button class="pg-link" style="padding:0" onclick="measSheet()">Re-measure</button></div>` : est ? `<button class="pg-link" onclick="measSheet()">Add waist & neck for a better estimate</button>` : ''}${chart || (bl.length === 1 ? '<p class="t-caption" style="margin-top:var(--s2)">Body fat trend appears after measurements on 2 different days.</p>' : '')}`;

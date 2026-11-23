@@ -5,6 +5,7 @@
  --ink:#15151f;--ink-2:#6b6b78;--ink-3:#a3a3ae;--line:#e9e9ee;--bg:#f7f7f8;--surface:#fff;--fill:#efeff2;
  --accent:#e3262f;--ok:#16a34a;
  --on-accent:#fff;--accent-2:#a50f17;--accent-soft:#e3262f14;--warn:#b45309;--danger:#dc2626;--shadow-c:#15151f14;--scrim:#00000066;--r-btn:16px;--r-chip:999px;
+ --tile-1:#ffe4e6;--tile-2:#e0f2fe;--tile-3:#dcfce7;--tile-4:#fef3c7;--tile-5:#ede9fe;--tile-6:#fce7f3;--tile-7:#e0e7ff;--tile-8:#ccfbf1;
  --font-display:inherit;--fw-display:800;--tt-display:none;--ls-display:-.02em;
  /* type scale: display · title · body · label · caption */
  --fs-display:44px;--fs-title:22px;--fs-body:16px;--fs-label:14px;--fs-caption:12px;

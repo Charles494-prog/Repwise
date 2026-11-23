@@ -16,7 +16,7 @@ function dropMap(k){try{MAPS[k]?.ro?.disconnect();MAPS[k]?.map.remove()}catch(e)
 function makeMap(el,o={}){const map=L.map(el,{zoomControl:false,attributionControl:true,dragging:o.interactive!==false,touchZoom:o.interactive!==false,doubleClickZoom:o.interactive!==false,scrollWheelZoom:false,boxZoom:false,keyboard:false});
  map.attributionControl.setPrefix(false);const t=TILES.key?TILES:TILES.fallback;
  L.tileLayer(t.url,{key:TILES.key,subdomains:TILES.subdomains,maxZoom:t.maxZoom,attribution:t.attribution,detectRetina:false}).addTo(map);if(!TILES.key)el.classList.add('cmap-fb');
- const m={el,map,plan:L.layerGroup().addTo(map),line:L.polyline([],{color:'#e3262f',weight:5,lineCap:'round',lineJoin:'round'}).addTo(map),extra:L.layerGroup().addTo(map),fit:false,pauseUntil:0};
+ const m={el,map,plan:L.layerGroup().addTo(map),line:L.polyline([],{color:'var(--accent)',weight:5,lineCap:'round',lineJoin:'round'}).addTo(map),extra:L.layerGroup().addTo(map),fit:false,pauseUntil:0};
  // Size can be 0 while a screen or sheet animates in: re-measure whenever the element actually gets a size.
  if(window.ResizeObserver){m.ro=new ResizeObserver(()=>{if(el.offsetWidth&&el.offsetHeight)map.invalidateSize({pan:false})});m.ro.observe(el)}
  if(o.onUser)['pointerdown','touchstart','wheel'].forEach(ev=>el.addEventListener(ev,()=>o.onUser(m),{passive:true}));
@@ -25,14 +25,14 @@ function mountMaps(){if(!window.L)return;document.querySelectorAll('#app [data-m
  if(m&&m.el!==ph){m.el.style.height=ph.style.height;ph.replaceWith(m.el)}
  if(!m)m=MAPS[key]=makeMap(ph,key==='live'?{zoom:17,onUser:followPause}:{zoom:key==='today'?16:13});
  drawMap(key,m);requestAnimationFrame(()=>m.el.offsetWidth&&m.map.invalidateSize({pan:false}))})}
-const dotOn=(m,p,c,r=7)=>L.circleMarker(p,{radius:r,color:'#fff',weight:3,fillColor:c,fillOpacity:1,interactive:false}).addTo(m.extra);
+const dotOn=(m,p,c,r=7)=>L.circleMarker(p,{radius:r,color:'var(--on-accent)',weight:3,fillColor:c,fillOpacity:1,interactive:false}).addTo(m.extra);
 function drawMap(key,m){const runs=key==='today'?S.runs.filter(r=>iso(r.ts)===today()):[],pts=key==='live'?(RUN?.pts||[]):key.startsWith('run:')?(S.runs.find(r=>String(r.ts)===key.slice(4))?.pts||[]):[];
  m.extra.clearLayers();
- if(key==='today'){runs.forEach(r=>{if(r.pts.length>1)L.polyline(r.pts,{color:'#e3262f',weight:4,opacity:.8,interactive:false}).addTo(m.extra)});
+ if(key==='today'){runs.forEach(r=>{if(r.pts.length>1)L.polyline(r.pts,{color:'var(--accent)',weight:4,opacity:.8,interactive:false}).addTo(m.extra)});
   if(LOC.pos){dotOn(m,LOC.pos,'#2563eb',8);if(!m.fit){m.map.setView(LOC.pos,16);m.fit=true}}return}
  if(key==='plan')return drawPicker(m);
  const plan=key==='live'?RUN?.plan:S.runs.find(r=>String(r.ts)===key.slice(4))?.plan;
- if(plan&&!m.planOn){L.polyline(plan.pts,{color:'#2563eb',weight:5,opacity:.45,dashArray:'8 10',interactive:false}).addTo(m.plan);m.planOn=true}
+ if(plan&&!m.planOn){L.polyline(plan.pts,{color:'var(--accent-2)',weight:5,opacity:.45,dashArray:'8 10',interactive:false}).addTo(m.plan);m.planOn=true}
  m.line.setLatLngs(pts);if(!pts.length){if(plan&&!m.fit){m.map.fitBounds(L.latLngBounds(plan.pts),{padding:[24,24]});m.fit=key!=='live'}else if(LOC.pos&&!m.fit)m.map.setView(LOC.pos,16);return}
  dotOn(m,pts[0],'#16a34a');dotOn(m,pts.at(-1),key==='live'?'#2563eb':'#e3262f',8);
  if(key==='live')follow(m,pts.at(-1));
@@ -225,7 +225,7 @@ function ivTick(){const R=RUN;if(!R?.iv){clearInterval(R?.ivT);return}const I=R.
 function ivBox(){const I=RUN?.iv;if(!I)return'';if(I.done)return`<div class="cd-iv done"><b>🏆 Intervals complete</b><small>${I.ph.filter(p=>p.l!=='Warm-up').length/2} rounds done · keep going or Finish</small></div>`;
  const p=I.ph[I.i],start=p.end-p.s,left=Math.max(0,Math.ceil(p.end-RUN.el)),nx=I.ph[I.i+1];
  return`<div class="cd-iv ${p.m}" id="ivbox"><div class="cd-iv-row"><b>${p.m==='run'?'🏃 RUN':'🚶 WALK'}</b><span class="num" id="ivleft">${fmtT(left)}</span></div><small>${p.l}${nx?` · next: ${nx.m==='run'?'run':'walk'} ${fmtT(nx.s)}`:' · last one!'}</small>
- <div class="bar" style="margin-top:8px;background:#ffffff33"><i id="ivbar" style="width:${Math.min(100,(RUN.el-start)/p.s*100)}%;background:#fff"></i></div></div>`}
+ <div class="bar" style="margin-top:8px;background:var(--surface)"><i id="ivbar" style="width:${Math.min(100,(RUN.el-start)/p.s*100)}%;background:var(--surface)"></i></div></div>`}
 function ivPaint(){const b=$('#ivbox');if(!b||RUN?.iv?.done){if(RUN?.iv&&stack.at(-1)?.[0]==='runlive')render();return}const p=RUN.iv.ph[RUN.iv.i],left=Math.max(0,Math.ceil(p.end-RUN.el));
  if(!b.classList.contains(p.m))return render();$('#ivleft').textContent=fmtT(left);$('#ivbar').style.width=Math.min(100,(RUN.el-(p.end-p.s))/p.s*100)+'%'}
 
@@ -304,7 +304,7 @@ function stepBuckets(){const now=new Date();now.setHours(12,0,0,0);const D=864e5
  const lbl=k=>STV.g==='day'?(STV.r==='week'?new Date(k+'T12:00').toLocaleDateString(undefined,{weekday:'short'}):String(+k.slice(8))):STV.g==='week'?new Date(k+'T12:00').toLocaleDateString(undefined,{month:'short',day:'numeric'}):STV.g==='month'?new Date(k+'-01T12:00').toLocaleDateString(undefined,{month:'short'}):k;
  return{keys:[...B.keys()],vals:[...B.values()],lbl,days:days.length}}
 function stepBars(vals,labels){const W=340,H=150,n=vals.length,mx=Math.max(1,...vals),bw=(W-8)/n,every=Math.ceil(n/8);
- return`<svg viewBox="0 0 ${W} ${H+16}" style="width:100%">${vals.map((v,i)=>{const h=v/mx*(H-16),x=4+i*bw;return`<rect x="${x+bw*.12}" y="${H-h}" width="${Math.max(1,bw*.76)}" height="${Math.max(v?2:0,h)}" rx="${Math.min(4,bw/4)}" fill="#e3262f" opacity="${i===n-1?1:.75}"><title>${labels[i]}: ${v.toLocaleString()} steps</title></rect>${i%every===0||i===n-1&&n<=12?`<text x="${x+bw/2}" y="${H+12}" font-size="9" text-anchor="middle" fill="var(--ink-3)">${labels[i]}</text>`:''}`}).join('')}
+ return`<svg viewBox="0 0 ${W} ${H+16}" style="width:100%">${vals.map((v,i)=>{const h=v/mx*(H-16),x=4+i*bw;return`<rect x="${x+bw*.12}" y="${H-h}" width="${Math.max(1,bw*.76)}" height="${Math.max(v?2:0,h)}" rx="${Math.min(4,bw/4)}" fill="var(--accent)" opacity="${i===n-1?1:.75}"><title>${labels[i]}: ${v.toLocaleString()} steps</title></rect>${i%every===0||i===n-1&&n<=12?`<text x="${x+bw/2}" y="${H+12}" font-size="9" text-anchor="middle" fill="var(--ink-3)">${labels[i]}</text>`:''}`}).join('')}
  <text x="4" y="10" font-size="9" fill="var(--ink-3)">${mx>=1000?Math.round(mx/1000)+'k':mx}</text></svg>`}
 function stepStats(){const B=stepBuckets(),tot=B.vals.reduce((a,b)=>a+b,0),seg=(k,opts,cls='')=>`<div class="st-seg ${cls}">${opts.map(([v,l])=>`<button class="${STV[k]===v?'on':''}" onclick="stepSet('${k}','${v}')">${l}</button>`).join('')}</div>`;
  const G={day:'Each day',week:'Each week',month:'Each month',year:'Each year'};
@@ -321,43 +321,43 @@ function staticMap(pts,H=150){if(pts.length<2)return`<div class="map" style="hei
  const t=TILES.key?TILES:TILES.fallback,url=(x,y)=>t.url.replace('{s}','abcd'[(x+y)%4]).replace('{z}',z).replace('{x}',((x%n)+n)%n).replace('{y}',y).replace('{r}','').replace('{key}',TILES.key);
  let tiles='';for(let x=Math.floor(L0/256);x<=Math.floor((L0+Wd)/256);x++)for(let y=Math.floor(T0/256);y<=Math.floor((T0+H)/256);y++)if(y>=0&&y<n)tiles+=`<img src="${url(x,y)}" alt="" style="left:${(x*256-L0)/Wd*100}%;top:${(y*256-T0)/H*100}%;width:${25600/Wd}%;height:${25600/H}%">`;
  const d=P.map((q,i)=>`${i?'L':'M'}${(q[0]-L0).toFixed(1)},${(q[1]-T0).toFixed(1)}`).join(''),s=P[0],e=P.at(-1);
- return`<div class="smap${TILES.key?'':' cmap-fb'}" style="aspect-ratio:${Wd}/${H}"><div class="smap-tiles">${tiles}</div><svg viewBox="0 0 ${Wd} ${H}" preserveAspectRatio="none"><path d="${d}" fill="none" stroke="#fff" stroke-width="7" stroke-linejoin="round" stroke-linecap="round" opacity=".8"/><path d="${d}" fill="none" stroke="#e3262f" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${s[0]-L0}" cy="${s[1]-T0}" r="5" fill="#16a34a" stroke="#fff" stroke-width="2"/><circle cx="${e[0]-L0}" cy="${e[1]-T0}" r="5" fill="#e3262f" stroke="#fff" stroke-width="2"/></svg><span class="smap-at">\u2060© OpenStreetMap${TILES.key?' \u2060© CARTO':''}</span></div>`}
+ return`<div class="smap${TILES.key?'':' cmap-fb'}" style="aspect-ratio:${Wd}/${H}"><div class="smap-tiles">${tiles}</div><svg viewBox="0 0 ${Wd} ${H}" preserveAspectRatio="none"><path d="${d}" fill="none" stroke="var(--surface)" stroke-width="7" stroke-linejoin="round" stroke-linecap="round" opacity=".8"/><path d="${d}" fill="none" stroke="var(--accent)" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${s[0]-L0}" cy="${s[1]-T0}" r="5" fill="var(--ok)" stroke="var(--surface)" stroke-width="2"/><circle cx="${e[0]-L0}" cy="${e[1]-T0}" r="5" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/></svg><span class="smap-at">\u2060© OpenStreetMap${TILES.key?' \u2060© CARTO':''}</span></div>`}
 // Replay: the route draws itself in order with a moving dot (about 8 s, whatever the length).
 function replayRun(ts){const m=MAPS['run:'+ts],r=S.runs.find(x=>x.ts===ts);if(!m||!r||r.pts.length<2)return;clearInterval(m.rp);const pts=r.pts,N=pts.length,dur=8000,t0=Date.now();
- m.extra.clearLayers();const dot=L.circleMarker(pts[0],{radius:8,color:'#fff',weight:3,fillColor:'#2563eb',fillOpacity:1}).addTo(m.extra);dotOn(m,pts[0],'#16a34a');
+ m.extra.clearLayers();const dot=L.circleMarker(pts[0],{radius:8,color:'var(--on-accent)',weight:3,fillColor:'var(--accent-2)',fillOpacity:1}).addTo(m.extra);dotOn(m,pts[0],'#16a34a');
  const b=$('#replaybtn');if(b)b.textContent='Replaying…';m.rp=setInterval(()=>{const k=Math.min(N,Math.max(2,Math.round((Date.now()-t0)/dur*N)));m.line.setLatLngs(pts.slice(0,k));dot.setLatLng(pts[k-1]);
   if(k>=N){clearInterval(m.rp);drawMap('run:'+ts,m);const b2=$('#replaybtn');if(b2)b2.textContent='▷ Replay route'}},40)}
 
 const _rdC=render;render=function(...a){const x=_rdC.apply(this,a);try{mountMaps()}catch(e){console.error(e)}return x};
 
 document.head.insertAdjacentHTML('beforeend',`<style>
-.cmap{width:100%;border-radius:14px;overflow:hidden;background:#eef0f3;z-index:0}
+.cmap{width:100%;border-radius:14px;overflow:hidden;background:var(--fill);z-index:0}
 .cmap-fb .leaflet-tile-pane{filter:grayscale(1) brightness(1.08) contrast(.85)}
-.cmap .leaflet-control-attribution{font-size:9px;background:#ffffffcc}
-.cd-recenter{position:absolute;right:10px;bottom:28px;z-index:600;width:40px;height:40px;border-radius:50%;border:none;background:#fff;box-shadow:0 2px 8px #0003;font-size:18px;display:none;cursor:pointer}.cd-recenter.show{display:grid;place-items:center}
+.cmap .leaflet-control-attribution{font-size:9px;background:var(--surface)}
+.cd-recenter{position:absolute;right:10px;bottom:28px;z-index:600;width:40px;height:40px;border-radius:50%;border:none;background:var(--surface);box-shadow:0 2px 8px var(--shadow-c);font-size:18px;display:none;cursor:pointer}.cd-recenter.show{display:grid;place-items:center}
 .cd-act{cursor:pointer}.cd-act:active{opacity:.8}
-.cd-seg{display:flex;background:var(--fill);border-radius:var(--r-pill);padding:3px}.cd-seg button{flex:1;border:none;background:none;border-radius:var(--r-pill);padding:8px 0;font-weight:600;color:var(--ink-2);cursor:pointer}.cd-seg button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px #15151f1a}
-.cd-net{display:flex;gap:10px;align-items:flex-start;background:#eff6ff;color:#1e3a8a;border-radius:12px;padding:10px 12px;margin-top:var(--s2);font-size:14px;line-height:1.4}.cd-net.off{background:#fff7ed;color:#9a3412}.cd-netchip{display:inline-block;font-size:12px;font-weight:700;background:#eff6ff;color:#1e3a8a;border-radius:999px;padding:1px 8px}
+.cd-seg{display:flex;background:var(--fill);border-radius:var(--r-pill);padding:3px}.cd-seg button{flex:1;border:none;background:none;border-radius:var(--r-pill);padding:8px 0;font-weight:600;color:var(--ink-2);cursor:pointer}.cd-seg button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px var(--shadow-c)}
+.cd-net{display:flex;gap:10px;align-items:flex-start;background:color-mix(in srgb,var(--accent-2) 14%,var(--surface));color:var(--accent-2);border-radius:12px;padding:10px 12px;margin-top:var(--s2);font-size:14px;line-height:1.4}.cd-net.off{background:color-mix(in srgb,var(--warn) 14%,var(--surface));color:var(--warn)}.cd-netchip{display:inline-block;font-size:12px;font-weight:700;background:color-mix(in srgb,var(--accent-2) 14%,var(--surface));color:var(--accent-2);border-radius:999px;padding:1px 8px}
 .cd-routes{display:grid;gap:8px;margin-top:var(--s2)}.cd-route{display:flex;align-items:center;gap:12px;text-align:left;border:1.5px solid var(--line);background:var(--surface);border-radius:12px;padding:12px;cursor:pointer;color:var(--ink)}
 .cd-route i{width:14px;height:14px;border-radius:50%;flex:none}.cd-route b{display:block;font-size:16px}.cd-route small{color:var(--ink-2);font-size:13px}.cd-route.on{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
-.cd-plan{display:flex;align-items:center;justify-content:space-between;background:var(--surface);border-radius:14px;padding:10px 14px;margin-bottom:12px;box-shadow:0 1px 2px #15151f0d}.cd-plan b{font-size:18px;font-variant-numeric:tabular-nums}
-.cd-off{display:none;background:#fef3c7;color:#92400e;font-weight:700;font-size:13px;padding:4px 10px;border-radius:999px}.cd-off.show{display:inline-block}
+.cd-plan{display:flex;align-items:center;justify-content:space-between;background:var(--surface);border-radius:14px;padding:10px 14px;margin-bottom:12px;box-shadow:0 1px 2px var(--shadow-c)}.cd-plan b{font-size:18px;font-variant-numeric:tabular-nums}
+.cd-off{display:none;background:var(--tile-4);color:var(--warn);font-weight:700;font-size:13px;padding:4px 10px;border-radius:999px}.cd-off.show{display:inline-block}
 .btn[disabled]{opacity:.45;pointer-events:none}
-.smap{position:relative;width:100%;overflow:hidden;background:#eef0f3}.smap-tiles{position:absolute;inset:0}.smap img{position:absolute;max-width:none}.cmap-fb .smap-tiles{filter:grayscale(1) brightness(1.08) contrast(.85)}.smap svg{position:absolute;inset:0;width:100%;height:100%}
-.smap-at{position:absolute;right:4px;bottom:2px;font-size:8px;color:#555;background:#ffffffb0;padding:0 3px;border-radius:3px}
+.smap{position:relative;width:100%;overflow:hidden;background:var(--fill)}.smap-tiles{position:absolute;inset:0}.smap img{position:absolute;max-width:none}.cmap-fb .smap-tiles{filter:grayscale(1) brightness(1.08) contrast(.85)}.smap svg{position:absolute;inset:0;width:100%;height:100%}
+.smap-at{position:absolute;right:4px;bottom:2px;font-size:8px;color:var(--ink);background:var(--surface);padding:0 3px;border-radius:3px}
 .rl-goal{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:2px 10px;margin:0 0 10px}.rl-goal span{font-size:13px;font-weight:700;color:var(--ink-2)}.rl-goal b{text-align:right;font-variant-numeric:tabular-nums}.rl-goal .bar{grid-column:1/-1;height:6px}.rl-goal.hit .bar i{background:var(--ok)}
-.st-seg{display:flex;background:var(--fill);border-radius:999px;padding:3px;margin-bottom:8px}.st-seg button{flex:1;border:none;background:none;border-radius:999px;padding:7px 0;font-weight:600;font-size:13px;color:var(--ink-2);cursor:pointer}.st-seg button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px #15151f1a}
+.st-seg{display:flex;background:var(--fill);border-radius:999px;padding:3px;margin-bottom:8px}.st-seg button{flex:1;border:none;background:none;border-radius:999px;padding:7px 0;font-weight:600;font-size:13px;color:var(--ink-2);cursor:pointer}.st-seg button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px var(--shadow-c)}
 .st-seg.sm button{padding:5px 0;font-size:12px}
 .st-sum{display:flex;justify-content:space-between;margin:6px 0 4px}.st-sum b{display:block;font-size:22px;font-weight:800;font-variant-numeric:tabular-nums}.st-sum small{font-size:12px;color:var(--ink-2)}
-.rl{position:fixed;inset:0;display:flex;flex-direction:column;background:#eef0f3;z-index:5}
+.rl{position:fixed;inset:0;display:flex;flex-direction:column;background:var(--fill);z-index:5}
 .rl-map{position:relative;flex:1;min-height:0}.rl-map .cmap{border-radius:0;height:100%!important}
 .rl-top{position:absolute;top:calc(10px + env(safe-area-inset-top));left:12px;right:12px;display:flex;justify-content:space-between;z-index:600;pointer-events:none}
-.rl-chip{background:#fff;border-radius:999px;padding:7px 12px;font-weight:700;font-size:14px;box-shadow:0 2px 8px #0002}
+.rl-chip{background:var(--surface);border-radius:999px;padding:7px 12px;font-weight:700;font-size:14px;box-shadow:0 2px 8px var(--shadow-c)}
 .rl-float{position:absolute;top:calc(56px + env(safe-area-inset-top));left:12px;right:12px;z-index:600;display:grid;gap:8px}
-.rl-float .cd-iv{margin:0;padding:10px 14px;box-shadow:0 4px 14px #0003}.rl-float .cd-iv b{font-size:17px}.rl-float .cd-iv-row span{font-size:24px}
-.rl-float .cd-plan{margin:0;box-shadow:0 2px 8px #0002}
+.rl-float .cd-iv{margin:0;padding:10px 14px;box-shadow:0 4px 14px var(--shadow-c)}.rl-float .cd-iv b{font-size:17px}.rl-float .cd-iv-row span{font-size:24px}
+.rl-float .cd-plan{margin:0;box-shadow:0 2px 8px var(--shadow-c)}
 .rl .cd-recenter{bottom:16px}
-.rl-panel{flex:none;background:var(--surface);border-radius:20px 20px 0 0;margin-top:-18px;position:relative;z-index:700;box-shadow:0 -6px 24px #15151f1f;padding:6px 16px calc(14px + env(safe-area-inset-bottom))}
+.rl-panel{flex:none;background:var(--surface);border-radius:20px 20px 0 0;margin-top:-18px;position:relative;z-index:700;box-shadow:0 -6px 24px var(--shadow-c);padding:6px 16px calc(14px + env(safe-area-inset-bottom))}
 .rl-panel .grab{margin:2px auto 8px}
 .rl-main{display:grid;grid-template-columns:1.25fr 1fr 1fr;align-items:end;text-align:center}
 .rl-main b{display:block;font-size:30px;font-weight:900;font-variant-numeric:tabular-nums;letter-spacing:-.02em;line-height:1.1}.rl-main div:first-child b{font-size:40px}
@@ -365,19 +365,19 @@ document.head.insertAdjacentHTML('beforeend',`<style>
 .rl-sub{display:flex;justify-content:space-between;gap:6px;margin:10px 0 12px;padding-top:10px;border-top:1px solid var(--line);font-size:12px;color:var(--ink-2)}.rl-sub b{color:var(--ink);font-size:14px;font-variant-numeric:tabular-nums}
 .rl-ctrl{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .rl-btn{border:1.5px solid var(--line);background:var(--surface);border-radius:14px;padding:8px 0 6px;font-size:18px;color:var(--ink);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}.rl-btn span{font-size:12px;font-weight:700}
-.rl-btn.on{background:var(--accent);border-color:var(--accent);color:#fff}.rl-btn.fin{background:#15151f;border-color:#15151f;color:#fff}
+.rl-btn.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}.rl-btn.fin{background:var(--accent-2);border-color:var(--accent-2);color:var(--on-accent)}
 .cd-key>b{font-size:17px;display:block}.cd-key p{margin-top:6px}.cd-key ol{margin:10px 0 12px 20px;color:var(--ink-2);font-size:14px;line-height:1.6}.cd-key a{color:var(--accent);font-weight:700}
 .cd-mapwrap{position:relative}.cd-mapmsg{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:16px;color:var(--ink-2);font-weight:600;font-size:14px;pointer-events:none;z-index:500}
-.cd-loc{display:flex;align-items:center;gap:12px;background:#eff6ff;border-radius:14px;padding:14px;margin:var(--s2) 0}.cd-loc>div{flex:1}.cd-loc b{display:block}.cd-loc small{color:var(--ink-2);font-size:13px}
-.cd-rank{background:var(--surface);border-radius:16px;padding:14px;margin-top:var(--s2);cursor:pointer;box-shadow:0 1px 2px #15151f0d,0 6px 20px #15151f0a}
+.cd-loc{display:flex;align-items:center;gap:12px;background:color-mix(in srgb,var(--accent-2) 14%,var(--surface));border-radius:14px;padding:14px;margin:var(--s2) 0}.cd-loc>div{flex:1}.cd-loc b{display:block}.cd-loc small{color:var(--ink-2);font-size:13px}
+.cd-rank{background:var(--surface);border-radius:16px;padding:14px;margin-top:var(--s2);cursor:pointer;box-shadow:0 1px 2px var(--shadow-c),0 6px 20px var(--shadow-c)}
 .cd-rk-top{display:flex;align-items:center;gap:12px}.cd-rank small{color:var(--ink-2);font-size:12px}.cd-rank b{display:block;font-size:18px}
 .cd-toggle,.cd-state{display:flex;align-items:center;gap:12px;padding:12px 0 0;margin-top:12px;border-top:1px solid var(--line)}.cd-toggle>div,.cd-state{flex:1}.cd-state{flex-direction:column;align-items:flex-start;gap:2px}
 .cd-toggle b,.cd-state b{display:block;font-size:15px}.cd-toggle small,.cd-state small{color:var(--ink-2);font-size:13px}
-.sw{flex:none;width:52px;height:32px;border-radius:16px;border:none;background:#d4d4dc;position:relative;cursor:pointer;transition:background .2s}.sw i{position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:50%;background:#fff;box-shadow:0 1px 3px #0003;transition:transform .2s}
+.sw{flex:none;width:52px;height:32px;border-radius:16px;border:none;background:var(--line);position:relative;cursor:pointer;transition:background .2s}.sw i{position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:50%;background:var(--surface);box-shadow:0 1px 3px var(--shadow-c);transition:transform .2s}
 .sw.on{background:var(--ok)}.sw.on i{transform:translateX(20px)}
 .cd-fmts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:var(--s1)}
 .cd-fmts button{text-align:left;border:1.5px solid var(--line);background:var(--surface);border-radius:12px;padding:10px 12px;cursor:pointer;color:var(--ink)}.cd-fmts b{display:block;font-size:17px}.cd-fmts small{font-size:12px;color:var(--ink-2)}
-.cd-fmts button.on{border-color:var(--ink);background:var(--ink);color:#fff}.cd-fmts button.on small{color:#fffb}
-.cd-iv{border-radius:16px;padding:14px 16px;color:#fff;margin-bottom:12px;background:#16a34a}.cd-iv.run{background:linear-gradient(135deg,#e3262f,#f97316)}.cd-iv.done{background:var(--ink)}
+.cd-fmts button.on{border-color:var(--ink);background:var(--ink);color:var(--on-accent)}.cd-fmts button.on small{color:var(--on-accent)}
+.cd-iv{border-radius:16px;padding:14px 16px;color:var(--on-accent);margin-bottom:12px;background:var(--ok)}.cd-iv.run{background:linear-gradient(135deg,var(--accent),var(--warn))}.cd-iv.done{background:var(--ink)}
 .cd-iv-row{display:flex;justify-content:space-between;align-items:baseline}.cd-iv b{font-size:20px;font-weight:900}.cd-iv-row span{font-size:30px;font-weight:900}.cd-iv small{opacity:.9;font-size:13px;display:block}
 </style>`);
