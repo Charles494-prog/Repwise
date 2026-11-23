@@ -64,17 +64,31 @@ addSet=function(){_addSet();const a=S.active;if(!a||!a.sets.length)return;const 
  for(const m of EX[ex][0]){const n=a.sets.filter(s=>EX[s.ex]&&EX[s.ex][0].includes(m)).length;
   if(n===11&&!a.warned[m]){a.warned[m]=1;save();setTimeout(()=>toast(`🧪 ${n} sets for <b>${m}</b> today — past ~10, extra sets add little growth and a lot of fatigue. Consider moving on.`),2400)}}};
 
-// ================= SPLIT SWITCHING (only between weeks) =================
+// ================= ROUTINES (split switching: now or from next Monday) =================
 V.splits=()=>{const W=ensureWeek(),dc=doneCount(),locked=dc>0,[lo,hi,def]=FREQ[S.nextSplit||S.split],n=S.trainDays[S.nextSplit||S.split]||def;
  return`<div class="top">${backBtn()}<h1>Workout style</h1><span></span></div>
  <div class="card"><b>This week: ${SPLITS[W.split].name}</b><br><small class="muted">${dc}/${W.n} sessions done${S.nextSplit?` · next week: <b>${SPLITS[S.nextSplit].name}</b>`:''}</small>
- ${locked?`<p class="tip" style="margin-top:8px">🔒 You've started this week's plan. A new style starts <b>next Monday</b> so you can finish what you started.</p>`:''}</div>
+ <p class="t-caption" style="margin-top:8px">Your workout style sets the weekly schedule. To train something else just for today, use <b>Change today's workout</b> on the Train tab.${locked||DOW(Date.now())?' Changing style mid-week? You choose whether it starts now or next Monday.':''}</p></div>
  ${Object.entries(SPLITS).map(([k,sp])=>{const on=(S.nextSplit||S.split)===k;return`<div class="opt ${on?'on':''}" onclick="pickSplit('${k}')"><span class="e">${PROGS[sp.days[0]].e}</span><div><b>${sp.name}</b><small>${sp.d}<br>${sp.days.map(d=>PROGS[d].name).join(' → ')} · ${FREQ[k][0]}–${FREQ[k][1]} days/wk</small></div></div>`}).join('')}
  <div class="sec">📅 Training days per week</div><div class="flex" style="gap:6px">${Array.from({length:hi-lo+1},(_,i)=>lo+i).map(x=>`<button class="btn sm ${x===n?'':'sec2'}" style="flex:1" onclick="setDays(${x})">${x}</button>`).join('')}</div>
  <p class="muted" style="margin-top:6px">Rest days are placed in between automatically. ${locked?'Changes apply next week.':''}</p>
  ${sciCard(['📅','Which split is best?','When total weekly sets are equal, splits build similar muscle. Training each muscle at least 2×/week has a small edge — pick the one you will actually stick to.','Schoenfeld et al., 2016 & 2019 meta-analyses, Sports Med'])}`};
-function pickSplit(k){if(doneCount()>0){S.nextSplit=k===S.split?undefined:k;if(!S.nextSplit)delete S.nextSplit;save();render();return toast(k===S.split?'Keeping your current style':`🗓️ ${SPLITS[k].name} starts next Monday`)}
- S.split=k;delete S.nextSplit;S.week=buildWeek(monday(),k);save();render();toast(`🗓️ ${SPLITS[k].name} — this week's plan is ready`)}
+// Mid-week (a session done, or not Monday) the user picks: rebuild the rest of this week now, or start next Monday.
+function pickSplit(k){if(!SPLITS[k])return;
+ if(k===S.split){if(S.nextSplit){delete S.nextSplit;save();render();return toast('Keeping your current workout style')}return toast('That is already your workout style')}
+ if(doneCount()===0&&DOW(Date.now())===0)return applySplitNow(k);
+ openSheet(`<h3 class="t-title">Switch to ${esc(SPLITS[k].name)}?</h3><p class="t-caption" style="margin:4px 0 var(--s2)">You're part-way through this week${doneCount()?` (${doneCount()} session${doneCount()>1?'s':''} done)`:''}. When should the new routine start?</p>
+  <button class="btn" onclick="closeSheet();applySplitNow('${k}')">Apply now (rebuild the rest of this week)</button>
+  <button class="btn sec2" style="margin-top:var(--s1)" onclick="closeSheet();splitNextWeek('${k}')">Start next week (from Monday)</button>
+  <p class="t-caption" style="margin-top:var(--s1)">Days you've already trained stay as they are.</p>`)}
+function splitNextWeek(k){S.nextSplit=k;save();render();toast(`🗓️ ${SPLITS[k].name} starts next Monday`)}
+// Rebuild today (if not trained yet) and the days after it with the new routine, starting from its first session.
+function applySplitNow(k){const old=S.week,ti=DOW(Date.now());S.split=k;delete S.nextSplit;const W=buildWeek(monday(),k);
+ if(old&&old.mon===W.mon&&old.days&&(doneCount()>0||ti>0)){const done=i=>S.workouts.some(w=>iso(w.ts)===iso(dayOfWeek(i))&&(w.sets||[]).length),start=done(ti)?ti+1:ti,days=SPLITS[k].days;let q=0;
+  W.days=W.pat.map((v,i)=>i<start?old.days[i]:v?{prog:days[q++%days.length],st:'planned'}:null);
+  W.pat=W.days.map(x=>x?1:0);W.n=Math.max(1,W.days.filter((x,i)=>x&&(i>=start||done(i)||x.st==='covered')).length);
+  Object.assign(W,{cardio:old.cardio,notes:[...(old.notes||[]),`Workout style changed to ${SPLITS[k].name}`].slice(-4),seen:old.seen||{}})}
+ S.week=W;save();render();toast(`🗓️ ${SPLITS[k].name} — ${ti?'the rest of this week is rebuilt':"this week's plan is ready"}`)}
 function setDays(x){const k=S.nextSplit||S.split;S.trainDays[k]=x;if(doneCount()===0&&!S.nextSplit)S.week=buildWeek(monday(),S.split);save();render()}
 
 // ================= FASTING: warn + analyse what eating does now =================

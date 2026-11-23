@@ -94,24 +94,71 @@ function placePending(choice){const W=ensureWeek(),pendBefore=JSON.stringify(W.p
  if(!r.changes.length){W.pending.unshift(c);render();return toast('That day isn’t free any more — pick again')}
  W.days=r.days;const e=logChange(W,before,r.changes,`${shortName(c.prog)} from ${WD[c.from]}`,pendBefore);if(e)S.planNote=e.id;save();render();toast(r.changes.map(changeText).join(' · '))}
 
-// ================= CHANGE TODAY'S WORKOUT =================
-function swapOptions(){const seen=new Set(),out=[];
- for(const g of S.exGroups.filter(g=>!g.deleted))out.push(['g_'+g.id,'My groups']);
- for(const sp of Object.values(SPLITS))for(const k of sp.days)if(!seen.has(k)){seen.add(k);out.push([k,'Workouts'])}
- out.push(['home','Other'],['free','Other']);return out}
-// What would change if you trained k today (previewed with the program's muscles).
-function previewSwap(k){const W=ensureWeek(),ti=DOW(Date.now()),x=W.days[ti];if(x?.prog===k)return[];
- return RP.reschedule({days:W.days,ti,did:k==='free'?[]:musc(k),history:planHistory(),musc,recoveryH:S.balance.recoveryH}).changes.map(changeText)}
-function changeToday(){const W=ensureWeek(),p=dayPlan(),L=weekLoad();let grp='';
- openSheet(`<h3 class="t-title">Change today's workout</h3><p class="t-caption" style="margin:4px 0 var(--s1)">${p.type==='workout'&&!p.done?`Planned: <b>${esc(progName(p.prog))}</b>. `:''}Pick what you'll actually do — the rest of the week adjusts after you finish, based on the muscles you train.</p>
- ${swapOptions().map(([k,g])=>{const P=PROGS[k];if(!P)return'';const wn=RP.warnings(L,musc(k),S.balance),head=g!==grp?`<div class="afsec">${g}</div>`:'';grp=g;
-  return`${head}<div class="row" onclick="swapPick('${k}')"><div class="tile" style="background:${P.bg};width:42px;height:42px;font-size:20px">${P.e}</div><div class="rbody"><b>${escT(P.name)}${p.prog===k&&!p.done?' · planned':''}</b><small>${esc(P.sub||'')}${wn.length?` · <span class="wp-warn">⚠️ ${wn.map(x=>x.m).join(', ')} ${wn[0].kind==='freq'?`${wn[0].sessions}× this week`:'high volume'}</span>`:''}</small></div><span class="chev">›</span></div>`}).join('')}`)}
-function swapPick(k){const ch=previewSwap(k),wn=RP.warnings(weekLoad(),musc(k),S.balance),P=PROGS[k];
- openSheet(`<h3 class="t-title">${esc(P.name)} today?</h3>
- ${ch.length?`<div class="wp-ch"><div class="wp-ch-h"><b>📅 What changes in your week</b><small>Applied after you finish — you can undo it.</small></div>${ch.map(l=>`<div class="wp-ch-l">• ${esc(l)}</div>`).join('')}</div>`:'<p class="t-caption" style="margin-top:var(--s1)">Nothing else in your week needs to change.</p>'}
+// ================= CHANGE TODAY'S WORKOUT: today's focus =================
+// Pick a focus for today only: Push, Pull, Legs or any muscle areas (multi-select). Routines are never listed here —
+// they're chosen in Workout style. The focus is stored as S.todayFocus = {date, areas} and ignored on any other day, so
+// tomorrow is the routine's schedule again. The workout runs as program 'f_<areas>' (rules in focus.js, RWFocus).
+// The rest of the week adjusts automatically like after any other workout (afterWorkout): sessions whose muscles were
+// trained are covered or moved, and later sessions drop exercises for muscles already trained. The sheet previews it.
+const RFo=window.RWFocus;
+for(const [n,p,s,e,fam,tier] of RFo.NEW_EX){if(!EX[n])EX[n]=[p,s,e];let i=FAM.findIndex(f=>f[0]===fam);if(i<0){FAM.push([fam,[]]);i=FAM.length-1}
+ if(!FAM[i][1].some(x=>x[0]===n)){FAM[i][1].push([n,tier]);(FAM_OF[n]??=[]).push(i)}}
+// Forearms get their own muscle parts so the focus picker (and the "Muscle parts this hits" card) can cover both sides.
+if(typeof HEADS!=='undefined'&&!HEADS.Forearms)HEADS.Forearms={src:'Wrist flexor and extensor groups (standard anatomy); balanced forearm work is commonly advised for elbow health',p:[
+ ['Flexors (grip)','Palm side of the forearm: curls the wrist and closes the hand. Builds grip for pulls and deadlifts.',"Wrist Curl, Farmer's Walk, Dead Hang"],
+ ['Extensors','Back of the forearm: lifts the wrist and hand. Balances the flexors.','Reverse Curl, Reverse Wrist Curl']]};
+if(typeof HRULES!=='undefined')HRULES.push([/front raise/i,'Shoulders','Front delt'],[/shrug/i,'Back','Upper back & traps (thickness)'],[/reverse-grip pushdown|close-grip dumbbell press/i,'Triceps','Medial head'],
+ [/overhead backpack ext/i,'Triceps','Long head'],[/high-to-low/i,'Chest','Lower (costal)'],[/bent-knee calf|seated calf/i,'Calves','Soleus'],[/woodchop|russian twist|side plank|bicycle/i,'Core','Deep core & obliques'],
+ [/(?<!reverse )wrist curl|farmer|dead hang/i,'Forearms','Flexors (grip)'],[/reverse wrist curl|reverse curl/i,'Forearms','Extensors']);
+delete S.focusAdjust;
+const focusToday=()=>{const f=S.todayFocus;return f&&f.date===today()&&RFo.valid(f.areas).length?RFo.valid(f.areas):null};
+if(S.todayFocus&&!focusToday())delete S.todayFocus;
+// Every head / region of each chosen muscle gets at least one exercise (equipment-aware); that beats the session cap.
+function focusPlan(areas,keep=[]){return RFo.buildPlan(areas,{avail,has:n=>!!EX[n]&&!(typeof exHidden==='function'&&exHidden(n)),count:SESS_EX[S.plan?.len]||6,keep,defs:EX,custom:Object.keys(S.customEx||{})})}
+function focusList(areas,keep=[]){return focusPlan(areas,keep).map(x=>x.ex)}
+// Each focus is its own program so past workouts keep their name ("Focus: Biceps + Side delts").
+function regFocus(areas){const A=RFo.valid(areas),k=RFo.key(A);if(!PROGS[k])PROGS[k]={name:'Focus: '+RFo.label(A),get sub(){return`Today's focus · ${A.map(a=>RFo.AREA[a].label).join(', ')}`},e:'🎯',bg:'var(--fill)',focus:A,
+ m:MUSCLES.filter(m=>RFo.parents(A).includes(m)),get ex(){return focusList(A)}};return k}
+for(const k of [...S.workouts.map(w=>w.prog),S.active?.prog]){const A=RFo.fromKey(k);if(A?.length)PROGS[k]??=PROGS[regFocus(A)]}
+if(focusToday())regFocus(focusToday());
+// The generated list is already fitted to equipment and session length.
+const _plF=planList;planList=function(k){const A=RFo.fromKey(k);return A?focusList(A):_plF(k)};
+// Today's plan shows the focus; any other day (and a finished day) shows the routine.
+const _dpF=dayPlan;dayPlan=function(d=today()){const p=_dpF(d),f=d===today()&&focusToday();if(!f||p.done||p.type==='past')return p;return{type:'workout',prog:regFocus(f),done:false,drop:[],focus:true}};
+
+let FOC=null;
+function changeToday(){const f=focusToday();FOC={areas:f?[...f]:[]};focDraw()}
+function focDraw(){const rp=_dpF(today()),planned=rp.type==='workout'&&!rp.done?rp.prog:null,A=RFo.valid(FOC.areas),a=S.active;
+ const logged=a?[...new Set(a.sets.map(s=>s.ex))]:[],P=A.length?focusPlan(A,logged):[],L=P.map(x=>x.ex),G=typeof liveGroups==='function'?liveGroups():[];
+ const wn=A.length&&!a?RP.warnings(weekLoad(),RFo.parents(A),S.balance):[];
+ const ch=A.length?RP.reschedule({days:ensureWeek().days,ti:DOW(Date.now()),did:RFo.parents(A),history:planHistory(),musc,recoveryH:S.balance.recoveryH}).changes.map(changeText):[];
+ const opts=RFo.pickerOptions(),pre=RFo.presetOf(A);
+ openSheet(`<div id="focsheet"><h3 class="t-title">Change today's workout</h3>
+ <p class="t-caption" style="margin:4px 0 var(--s1)">${planned?`Planned today: <b>${esc(progName(planned))}</b>. `:''}Pick a focus for <b>today only</b> — your routine stays the same; the rest of this week adjusts around what you train.</p>
+ <div class="afsec">Quick pick</div>
+ <div class="fc-pre">${opts.filter(o=>o.type==='preset').map(o=>`<button class="${pre===o.id?'on':''}" data-preset="${o.id}" onclick="focPreset('${o.id}')"><b>${o.label}</b><small>${planned===o.id?'planned today':o.areas.map(x=>RFo.AREA[x].label).join(', ')}</small></button>`).join('')}</div>
+ <div class="afsec">Or pick muscle areas <small style="font-weight:400">— tap as many as you like</small></div>
+ ${RFo.GROUPS.map(g=>`<div class="fc-g"><small>${g}</small><div class="fc-chips">${opts.filter(o=>o.type==='area'&&o.group===g).map(o=>`<button class="${A.includes(o.id)?'on':''}" aria-pressed="${A.includes(o.id)}" data-area="${o.id}" onclick="focTog('${o.id}')">${o.label}</button>`).join('')}</div></div>`).join('')}
+ ${A.length?`<div class="fc-prev"><b>${esc(RFo.label(A))} · ${L.length} exercise${L.length===1?'':'s'}</b><small class="fc-sub">Every part of each muscle is covered.</small><ol>${P.map(({ex:e,label:r})=>`<li>${EX[e]?.[2]||'💪'} ${escT(e)}${r?` <small class="fc-reg">· ${esc(r)}</small>`:''}${logged.includes(e)?' <small>· logged</small>':''}</li>`).join('')}</ol></div>`
+  :'<p class="t-caption" style="margin-top:var(--s1)">Pick Push, Pull, Legs or any muscle areas to see your workout.</p>'}
  ${wn.length?balanceBox(wn):''}
- <button class="btn" style="margin-top:var(--s2)" onclick="closeSheet();BAL_OK=true;startW('${k}')">Start ${esc(P.name)}</button>
- <button class="btn sec2" style="margin-top:var(--s1)" onclick="changeToday()">Pick something else</button>`)}
+ ${A.length&&!ch.length?'<p class="t-caption" style="margin-top:var(--s1)">Nothing else in your week needs to change.</p>':''}${ch.length?`<div class="wp-ch"><div class="wp-ch-h"><b>📅 What changes in your week</b><small>Applied automatically after you finish — you can undo it.</small></div>${ch.map(l=>`<div class="wp-ch-l">• ${esc(l)}</div>`).join('')}</div>`:''}
+ <button class="btn" id="focgo" style="margin-top:var(--s2)" ${A.length?'':'disabled'} onclick="focGo()">${a?"Update today's workout":A.length?`Start ${esc(RFo.label(A))}`:'Start'}</button>
+ ${focusToday()&&!a?`<button class="btn sec2" style="margin-top:var(--s1)" onclick="focClear()">Back to the planned workout</button>`:''}
+ ${G.length?`<div class="afsec fc-my">My groups <small style="font-weight:400">— ${a?'add to today':'use one for today'}</small></div>${G.map(g=>`<div class="row" data-group="${g.id}" onclick="focGroup('${g.id}')"><span style="font-size:22px">${g.e||'🧩'}</span><div class="rbody"><b>${escT(g.name)}</b><small>${g.ex.filter(e=>EX[e]).length} exercises</small></div><span class="chev">›</span></div>`).join('')}`:''}</div>`)}
+// A saved group (Train → My groups) used for today: start it, or add its exercises to the workout in progress.
+function focGroup(id){const g=(S.exGroups||[]).find(x=>x.id===id);if(!g)return;closeSheet();
+ if(S.active){if(typeof addGroupToActive==='function')addGroupToActive(id);return}
+ delete S.todayFocus;save();BAL_OK=true;startW('g_'+id)}
+function focTog(id){const A=FOC.areas;FOC.areas=A.includes(id)?A.filter(x=>x!==id):[...A,id];vib(8);focDraw()}
+function focPreset(k){const P=RFo.PRESETS[k];FOC.areas=RFo.presetOf(FOC.areas)===k?[]:[...P.areas];vib(8);focDraw()}
+// Set today's focus. A workout in progress keeps its logged exercises (and sets) first; the rest is regenerated.
+function focGo(){const A=RFo.valid(FOC?.areas);if(!A.length)return toast('Pick at least one area');
+ S.todayFocus={date:today(),areas:A};const k=regFocus(A),a=S.active,nm=RFo.label(A);
+ if(a){const logged=[...new Set(a.sets.map(s=>s.ex))],n=()=>a.list.length-logged.length;a.list=focusList(A,logged);a.prog=k;a.idx=Math.min(logged.length,a.list.length-1);a.planned=a.list.length;
+  save();closeSheet();render();return toast(`🎯 Today: ${esc(nm)} — ${n()} new exercise${n()===1?'':'s'}${logged.length?', logged sets kept':''}`)}
+ save();closeSheet();BAL_OK=true;startW(k)}
+function focClear(){delete S.todayFocus;save();closeSheet();render();toast('Back to your planned workout')}
 
 // ================= WEEK EDITOR =================
 V.weekedit=()=>{const W=ensureWeek(),ti=DOW(Date.now());
@@ -173,7 +220,7 @@ function balanceCard(){if(!S.week)return'';const L=weekLoad(),pm=plannedMuscles(
  <details><summary>Sessions per muscle</summary>${bars}</details></div>`}
 const _planP=V.plan;V.plan=()=>{let h=_planP();if(viewDate!==today()||!S.profile)return h;
  // today's workout row gets a "Change" action
- const p=dayPlan();if(p.type==='workout'&&!p.done)h=h.replace(/(<div class="sec"[^>]*>🗓️ This week)/,`<button class="btn sec2 wp-change" onclick="changeToday()">🔄 Can't do ${esc(shortName(p.prog))} today? Change it</button>$1`);
+ const p=dayPlan();if(p.type==='workout'&&!p.done)h=h.replace(/(<div class="sec"[^>]*>🗓️ This week)/,`<button class="btn sec2 wp-change" onclick="changeToday()">${p.focus?`🎯 Today: ${esc(RFo.label(PROGS[p.prog].focus))} · change focus`:`🔄 Can't do ${esc(shortName(p.prog))} today? Change it`}</button>$1`);
  else if(p.type==='rest'&&p.why==='covered')h=h.replace('>Rest day<','>Covered — already trained this week<');
  else if(p.type==='rest'&&p.why==='moved')h=h.replace('>Rest day<',`>Moved to ${WDL[p.to]}<`);
  const k=h.indexOf('<div class="sec" style="display:flex;justify-content:space-between;align-items:baseline">🗓️ This week');return k>=0?h.slice(0,k)+balanceCard()+h.slice(k):h+balanceCard()};
@@ -207,6 +254,15 @@ document.head.insertAdjacentHTML('beforeend',`<style>
 .wp-balc details{margin-top:8px}.wp-balc summary{font-size:13px;color:var(--ink-2);cursor:pointer}
 .wp-mb{display:flex;align-items:center;gap:8px;font-size:13px;margin-top:6px}.wp-mb span{width:88px}.wp-mb i{display:flex;gap:3px}.wp-mb b{width:18px;height:8px;border-radius:4px;background:var(--fill)}.wp-mb b.on{background:var(--ink)}.wp-mb b.hi{background:#ea580c}
 .wp-today{background:#fff0f3}
+.fc-pre{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.fc-pre button{border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:14px;padding:10px 6px;cursor:pointer;text-align:center;min-width:0}
+.fc-pre button b{display:block;font-size:16px}.fc-pre button small{display:block;font-size:11px;color:var(--ink-2);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fc-pre button.on{background:var(--ink);border-color:var(--ink);color:var(--surface)}.fc-pre button.on small{color:var(--surface);opacity:.75}
+.fc-g{margin-top:8px}.fc-g>small{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-2)}
+.fc-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}.fc-chips button{border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:8px 12px;font-size:14px;font-weight:600;cursor:pointer}
+.fc-chips button.on{background:var(--ink);border-color:var(--ink);color:var(--surface)}
+.fc-sub{display:block;color:var(--ink-2);font-size:12px;margin-top:2px}.fc-reg{color:var(--ink-2)}.fc-my{margin-top:var(--s3,18px)}
+.fc-prev{background:var(--fill);border-radius:14px;padding:10px 14px;margin-top:var(--s2)}.fc-prev ol{margin:6px 0 0;padding-left:20px;font-size:14px;line-height:1.6}.fc-prev small{color:var(--ink-2)}
+#focgo:disabled{opacity:.45}
 </style>`);
 window.__planReady=true;
 if(S.profile){try{ensureWeek()}catch(e){console.error(e)}}

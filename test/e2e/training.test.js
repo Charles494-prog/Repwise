@@ -145,7 +145,8 @@ test('missed workouts in a row cost more each time (1×, 1.5×, 2× … linear),
 });
 
 test('missed workouts: the Today card shows the cost; phone reminders the evening before, deadline morning and the morning after', async () => {
-  await p.open({ state: baseState({ startDate: '2020-01-01', xp: { Chest: 5000, Shoulders: 5000, Triceps: 5000 } }) });
+  // fixed 10 AM clock: with the real clock this failed after 7 PM (the evening-before reminder is already past)
+  await p.open({ state: baseState({ startDate: '2020-01-01', xp: { Chest: 5000, Shoulders: 5000, Triceps: 5000 } }), clock: '2026-11-23T10:00:00' });
   const r = await p.eval(`const N=[];window.Capacitor={Plugins:{LocalNotifications:{checkPermissions:async()=>({display:'granted'}),requestPermissions:async()=>({display:'granted'}),getPending:async()=>({notifications:[]}),cancel:async()=>{},schedule:async o=>N.push(...o.notifications),addListener(){}}}};
     S.workouts=[];S.notif.workout=true;const d=iso(Date.now()-864e5),due=iso(Date.now()+864e5);S.missed={[d]:{prog:'push',due,st:'open'}};
     stack=[];go('plan');await schedNotifs();const card=document.querySelector('.mw-card')?.innerText||'';

@@ -58,11 +58,16 @@ test('when nothing fits, the app asks: do it anyway / swap / skip', async () => 
   assert.deepEqual(p.errors, []);
 });
 
-test('change today\'s workout: sheet lists groups and splits with a preview of what changes', async () => {
+test('change today\'s workout: a focus picker (presets + muscle areas, no routines; groups only at the bottom) with a preview of what changes in the week', async () => {
   await p.open({ state: st(), clock: at(MON) });
-  const r = await p.eval(`${WEEK}${ARMS}stack=[];go('plan');const btn=!!$('.wp-change');changeToday();const list=$('#sheet').innerText;swapPick('g_ha');const prev=$('#sheet').innerText;return {btn,list,prev}`);
-  assert.ok(r.btn); assert.match(r.list, /My groups/); assert.match(r.list, /Home Arms Day/); assert.match(r.list, /Leg Day · planned/);
-  assert.match(r.prev, /What changes in your week/); assert.match(r.prev, /Legs moved Mon → Wednesday/); assert.match(r.prev, /Start Home Arms Day/);
+  const r = await p.eval(`${WEEK}${ARMS}stack=[];go('plan');const btn=!!$('.wp-change');changeToday();const list=$('#sheet').innerText;
+    focTog('biceps');focTog('triceps');const prev=$('#sheet').innerText;return {btn,list,prev}`);
+  assert.ok(r.btn); assert.match(r.list, /Planned today: Leg Day/); assert.match(r.list, /Push/); assert.match(r.list, /Legs\s+planned today/);
+  for (const bad of ['Chest & Back', 'Shoulders & Arms', 'Daily Rotation']) assert.ok(!r.list.includes(bad), bad);
+  // saved groups only appear in the small "My groups" section at the bottom (after every muscle area)
+  if (r.list.includes('My groups')) assert.ok(r.list.indexOf('My groups') > r.list.indexOf('Abs / core'));
+  assert.doesNotMatch(r.prev, /Keep as planned|Adjust around/);
+  assert.match(r.prev, /What changes in your week/); assert.match(r.prev, /Legs moved Mon → Wednesday/); assert.match(r.prev, /Start Triceps \+ Biceps/);
   assert.deepEqual(p.errors, []);
 });
 
