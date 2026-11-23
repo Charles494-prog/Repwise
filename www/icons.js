@@ -1,6 +1,20 @@
 // RepWise icon system: every emoji in the UI is swapped for a line-art SVG icon.
 (function(){
 const P={
+shield:'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
+hourglass:'M5 22h14M5 2h14M17 22v-4.17a2 2 0 0 0-.59-1.42L12 12l-4.41 4.41A2 2 0 0 0 7 17.83V22M7 2v4.17a2 2 0 0 0 .59 1.42L12 12l4.41-4.41A2 2 0 0 0 17 6.17V2',
+sunrise:'M12 2v8M4.93 10.93l1.41 1.41M2 18h2M20 18h2M19.07 10.93l-1.41 1.41M22 22H2M8 6l4-4 4 4M16 18a4 4 0 0 0-8 0',
+sun:'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41',
+bell:'M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0',
+map:'M9 3 3 6v15l6-3 6 3 6-3V3l-6 3-6-3zM9 3v15M15 6v15',
+building:'M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18ZM6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2M10 6h4M10 10h4M10 14h4M10 18h4',
+sliders:'M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6',
+bag:'M4 10a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zM9 6V4a3 3 0 0 1 6 0v2M8 14h8',
+door:'M13 4h3a2 2 0 0 1 2 2v14M2 20h3M13 20h9M10 12v.01M13 4.56v16.16a1 1 0 0 1-1.24.97L5 20V5.56a2 2 0 0 1 1.52-1.94l4-1A2 2 0 0 1 13 4.56z',
+info:'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zM12 16v-4M12 8h.01',
+steth:'M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 12 0V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3M8 15v1a6 6 0 0 0 12 0v-4M20 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4z',
+puzzle:'M4 4h6v2a2 2 0 1 0 4 0V4h6v6h-2a2 2 0 1 0 0 4h2v6h-6v-2a2 2 0 1 0-4 0v2H4v-6h2a2 2 0 1 0 0-4H4z',
+circle:'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z',
 trophy:'M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0V2Z',
 dumbbell:'M6.5 6.5v11M17.5 6.5v11M3 9.5v5M21 9.5v5M6.5 12h11M3 9.5h3.5M3 14.5h3.5M17.5 9.5H21M17.5 14.5H21',
 flame:'M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z',
@@ -87,7 +101,7 @@ hand:'M18 11V6a2 2 0 0 0-4 0M14 10V4a2 2 0 0 0-4 0v2M10 10.5V6a2 2 0 0 0-4 0v8M1
 hang:'M3 3h18M8 3v5M16 3v5M12 9a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM12 13v5M9 22l3-4 3 4',
 chev:'M12 19V5M5 12l7-7 7 7',
 };
-const M={'🏆':'trophy','🏋':'dumbbell','💪':'dumbbell','🦵':'leg','🏃':'run','🏅':'medal','🤸':'stretch','🧗':'mountain','🔥':'flame','🎯':'target','⚖':'scale','🚶':'walk','⚡':'zap','👟':'foot','✅':'checkc','⚠':'alert','✓':'check','✔':'check','📈':'up','🍽':'food','🔒':'lock','⚔':'swords','🚣':'waves','⏱':'timer','🚀':'rocket','🔬':'flask','✨':'sparkle','📉':'down','📡':'signal','🔄':'refresh','🙌':'hand','🪑':'chair','🦅':'wing','📏':'ruler','👩':'user','👨':'user','🧔':'user','👤':'user','🧑':'user','🎉':'party','💧':'drop','✕':'x','❌':'x','✖':'x','➕':'plus','⬆':'aup','⬇':'adown','⏸':'pause','✏':'pencil','📸':'camera','🌱':'sprout','🌿':'leaf','🥗':'leaf','🧬':'dna','📋':'clip','🦋':'wing','🕊':'wing','🔨':'hammer','💀':'skull','🍑':'pulse','🦶':'foot','🧘':'stretch','🐒':'hang','🔺':'tri','🏠':'home','🎲':'dice','💥':'zap','👑':'crown','🥩':'meat','🍔':'cookie','🍩':'cookie','📅':'cal','😴':'moon','🐢':'gauge','💊':'pill','☕':'coffee','🧠':'bulb','💡':'bulb','🤔':'bulb','🦴':'bone','🙂':'smile','👋':'smile','🐻':'heavy','🛋':'chair','💸':'cash','💻':'code','🎮':'game','📴':'offline','💬':'chat','🤖':'bot','📚':'book','🔁':'repeat','🔍':'search','👇':'adown','⚙':'gear','📊':'chart','🗑':'trash','💾':'save','📂':'folder','📁':'folder','📤':'upload','📥':'download','📱':'phone','🚫':'ban','📍':'pin','⭐':'sparkle','🌟':'sparkle'};
+const M={'🛡':'shield','⏳':'hourglass','🌅':'sunrise','🌤':'sun','🔔':'bell','🗺':'map','🏢':'building','🎛':'sliders','🎒':'bag','🚪':'door','🛈':'info','🩺':'steth','🧩':'puzzle','⚪':'circle','☑':'checkc','🌙':'moon','🥬':'leaf','🗓':'cal','🗣':'chat','🚨':'alert','🔝':'aup','🤲':'hand','🪓':'hammer','🪶':'wing','🏆':'trophy','🏋':'dumbbell','💪':'dumbbell','🦵':'leg','🏃':'run','🏅':'medal','🤸':'stretch','🧗':'mountain','🔥':'flame','🎯':'target','⚖':'scale','🚶':'walk','⚡':'zap','👟':'foot','✅':'checkc','⚠':'alert','✓':'check','✔':'check','📈':'up','🍽':'food','🔒':'lock','⚔':'swords','🚣':'waves','⏱':'timer','🚀':'rocket','🔬':'flask','✨':'sparkle','📉':'down','📡':'signal','🔄':'refresh','🙌':'hand','🪑':'chair','🦅':'wing','📏':'ruler','👩':'user','👨':'user','🧔':'user','👤':'user','🧑':'user','🎉':'party','💧':'drop','✕':'x','❌':'x','✖':'x','➕':'plus','⬆':'aup','⬇':'adown','⏸':'pause','✏':'pencil','📸':'camera','🌱':'sprout','🌿':'leaf','🥗':'leaf','🧬':'dna','📋':'clip','🦋':'wing','🕊':'wing','🔨':'hammer','💀':'skull','🍑':'pulse','🦶':'foot','🧘':'stretch','🐒':'hang','🔺':'tri','🏠':'home','🎲':'dice','💥':'zap','👑':'crown','🥩':'meat','🍔':'cookie','🍩':'cookie','📅':'cal','😴':'moon','🐢':'gauge','💊':'pill','☕':'coffee','🧠':'bulb','💡':'bulb','🤔':'bulb','🦴':'bone','🙂':'smile','👋':'smile','🐻':'heavy','🛋':'chair','💸':'cash','💻':'code','🎮':'game','📴':'offline','💬':'chat','🤖':'bot','📚':'book','🔁':'repeat','🔍':'search','👇':'adown','⚙':'gear','📊':'chart','🗑':'trash','💾':'save','📂':'folder','📁':'folder','📤':'upload','📥':'download','📱':'phone','🚫':'ban','📍':'pin','⭐':'sparkle','🌟':'sparkle'};
 const SEQ={'🧑‍💻':'code'};
 const ER=/(?<!\u2060)(?:\p{Extended_Pictographic}|[✓✕✔✖])(?:️|‍(?:\p{Extended_Pictographic})️?)*/gu;
 const svg=n=>`<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${P[n]}"/></svg>`;
