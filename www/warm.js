@@ -25,7 +25,7 @@
   .rk-lad.lock{opacity:.4}.rk-lad b{font-weight:600}.rk-lad small{margin-left:auto;color:var(--ink-2);font-size:var(--fs-caption)}
   .rk-lad.cur b{font-weight:800}
   .rk-pill{display:flex;align-items:center;gap:6px;margin-top:4px;font-size:var(--fs-label);font-weight:600;color:var(--ink-2)}
-  #xpt{position:fixed;left:50%;bottom:calc(88px + env(safe-area-inset-bottom));transform:translate(-50%,12px);background:var(--ink);color:var(--on-accent);border-radius:var(--r-pill);padding:9px 16px;font-size:var(--fs-label);font-weight:700;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:45;white-space:nowrap}
+  #xpt{position:fixed;left:50%;bottom:calc(88px + env(safe-area-inset-bottom));transform:translate(-50%,12px);background:var(--ink);color:var(--surface);border-radius:var(--r-pill);padding:9px 16px;font-size:var(--fs-label);font-weight:700;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:45;white-space:nowrap}
   body.full #xpt{bottom:calc(24px + env(safe-area-inset-bottom))}
   #xpt.show{opacity:1;transform:translate(-50%,0)}
   .w-over{position:fixed;inset:0;z-index:60;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:var(--s4);animation:wfade .25s ease}

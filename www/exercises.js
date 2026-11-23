@@ -162,7 +162,7 @@ document.head.insertAdjacentHTML('beforeend',`<style>
 .exemo{display:flex;flex-wrap:wrap;gap:6px;margin-top:var(--s1)}.exemo button{width:40px;height:40px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface);font-size:20px;cursor:pointer}.exemo button.on{border-color:var(--ink);background:var(--fill)}
 .exms{display:grid;gap:6px}.exm-r{display:flex;gap:6px}.exm-t{flex:1;display:flex;justify-content:space-between;align-items:center;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;padding:10px 12px;cursor:pointer;text-align:left;font-size:15px}
 .exm-t em,.exm-s em{font-style:normal;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;border-radius:6px;padding:2px 6px}
-.exm-t.st-p,.exm-s .st-p{background:var(--ink);border-color:var(--ink);color:var(--on-accent)}.st-p em{background:var(--surface)}
+.exm-t.st-p,.exm-s .st-p{background:var(--ink);border-color:var(--ink);color:var(--surface)}.st-p em{background:var(--surface)}
 .exm-t.st-s,.exm-s .st-s{background:color-mix(in srgb,var(--accent-2) 14%,var(--surface));border-color:var(--accent-2);color:var(--accent-2)}.st-s em{background:var(--accent-2)}
 .exm-t.st-sub{border-color:var(--ink);border-style:dashed}.exm-t.st-sub em{background:var(--fill);color:var(--ink-2)}
 .exm-x{width:44px;flex:none;border:1.5px solid var(--line);background:var(--surface);border-radius:12px;cursor:pointer;color:var(--ink-2);font-size:16px}.exm-x.on{transform:rotate(180deg)}

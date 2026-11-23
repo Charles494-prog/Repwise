@@ -33,7 +33,7 @@
   .chips{display:flex;gap:8px;overflow-x:auto;padding:2px 0 4px;margin:0 calc(-1 * var(--s2));padding-left:var(--s2);padding-right:var(--s2);scrollbar-width:none}
   .chips::-webkit-scrollbar{display:none}
   .chips button{flex:none;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:var(--r-pill);padding:8px 14px;font-size:var(--fs-label);font-weight:600;cursor:pointer;white-space:nowrap}
-  .chips button.on{background:var(--ink);border-color:var(--ink);color:var(--on-accent)}
+  .chips button.on{background:var(--ink);border-color:var(--ink);color:var(--surface)}
   .afrow{display:flex;align-items:center;justify-content:space-between;gap:var(--s2);padding:14px 0;border-bottom:1px solid var(--line);font-size:var(--fs-body)}
   .afrow>span:first-child{font-weight:600}.afrow .v{color:var(--ink-2);font-weight:500}
   .afrow input{border:none!important;background:none!important;text-align:right;font-size:var(--fs-body);font-weight:600;width:110px;padding:0!important;margin:0!important;box-shadow:none!important;outline:none;color:var(--ink)}
@@ -56,7 +56,7 @@
   .afcats{flex-wrap:wrap;margin:0;padding:0}.afcats button{margin:0}
   .afempty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:var(--s4) var(--s2);color:var(--ink-2);font-size:14px}.afempty .ic{width:32px;height:32px;color:var(--ink-3)}.afempty b{color:var(--ink);font-size:15px}
   .afbrowse-h{display:flex;align-items:center;gap:var(--s1);margin:var(--s2) 0 var(--s1)}.afbrowse-h b{flex:1;font-size:17px}
-  .afact{display:flex;gap:4px;flex:none}.afact button{width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);display:grid;place-items:center;cursor:pointer;font-size:14px}.afact button.on{background:var(--ink);color:var(--on-accent);border-color:var(--ink)}.afact .ic{width:16px;height:16px}
+  .afact{display:flex;gap:4px;flex:none}.afact button{width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);display:grid;place-items:center;cursor:pointer;font-size:14px}.afact button.on{background:var(--ink);color:var(--surface);border-color:var(--ink)}.afact .ic{width:16px;height:16px}
   .afing .afkc{width:44px}
   </style>`);
   document.head.insertAdjacentHTML('beforeend', `<style>
@@ -64,7 +64,7 @@
   .afstar{background:none;border:none;padding:4px 0 4px 10px;color:var(--ink-3);cursor:pointer;line-height:0}.afstar.on{color:var(--ink)}
   .afstar svg{width:20px;height:20px}
   .afli .nm{flex:1;min-width:0;overflow-wrap:anywhere}.afli .nm b{display:block}.afli .nm small{font-size:var(--fs-caption);color:var(--ink-2)}
-  .plbar{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;gap:var(--s2);padding:12px var(--s2) calc(12px + env(safe-area-inset-bottom));background:var(--ink);color:var(--on-accent);cursor:pointer}
+  .plbar{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;gap:var(--s2);padding:12px var(--s2) calc(12px + env(safe-area-inset-bottom));background:var(--ink);color:var(--surface);cursor:pointer}
   .plbar .t{flex:1}.plbar .t b{display:block;font-size:var(--fs-body)}.plbar .t small{opacity:.7;font-size:var(--fs-caption)}
   .plbar button{background:var(--surface);color:var(--ink);border:none;border-radius:var(--r-pill);padding:10px 18px;font-weight:700}
   .afprim{display:flex;gap:var(--s2);align-items:center}.afprim .btn{flex:1}

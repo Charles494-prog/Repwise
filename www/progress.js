@@ -16,7 +16,7 @@
   .pg-card{background:var(--surface);border-radius:16px;padding:4px var(--s2) 12px;box-shadow:0 1px 2px var(--shadow-c),0 6px 20px var(--shadow-c)}
   .pg-card .pg-line:last-of-type{border-bottom:none}
   .pg-card .pg-empty{border:none;flex-direction:column;justify-content:center;gap:var(--s1);padding:var(--s2) 0 var(--s1);text-align:center}
-  .pg-card .pg-empty button{background:var(--ink);color:var(--on-accent);border-radius:var(--r-pill);padding:9px 20px}
+  .pg-card .pg-empty button{background:var(--ink);color:var(--surface);border-radius:var(--r-pill);padding:9px 20px}
   .pg-heroc{margin-top:var(--s2);border-radius:20px;padding:20px;color:var(--on-accent);background:radial-gradient(120% 100% at 100% 0%,var(--accent) 0%,var(--accent-2) 62%);box-shadow:0 12px 30px var(--shadow-c)}
   .pg-hl{font-size:13px;font-weight:600;color:var(--on-accent)}
   .pg-hn{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;margin-top:4px}.pg-hn .num{font-size:52px;font-weight:800;letter-spacing:-.03em;line-height:1}.pg-hn small{font-size:20px;color:var(--on-accent);font-weight:600}

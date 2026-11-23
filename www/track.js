@@ -355,7 +355,7 @@ const _wk11=V.workouts;V.workouts=()=>{const h=_wk11(),k='<div class="sec">Histo
 // ================= GYM-LOGGER TOOLS: previous numbers, RIR, rest timer, plates & warm-up, deload =================
 document.head.insertAdjacentHTML('beforeend',`<style>
 #rest{position:fixed;left:12px;right:12px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:30;background:var(--accent-2);color:var(--on-accent);border-radius:20px;padding:12px 14px;display:flex;align-items:center;gap:10px;box-shadow:0 10px 30px var(--shadow-c);animation:up .35s cubic-bezier(.2,.8,.2,1)}
-#rest .rt{font-size:28px;font-weight:900;font-variant-numeric:tabular-nums;min-width:74px}#rest button{background:var(--ink);color:var(--on-accent);border:none;border-radius:12px;padding:8px 10px;font-weight:800}
+#rest .rt{font-size:28px;font-weight:900;font-variant-numeric:tabular-nums;min-width:74px}#rest button{background:var(--ink);color:var(--surface);border:none;border-radius:12px;padding:8px 10px;font-weight:800}
 #rest .rb{position:absolute;left:14px;right:14px;bottom:6px;height:3px;border-radius:2px;background:var(--ink);overflow:hidden}#rest .rb i{display:block;height:100%;background:var(--accent);transition:width 1s linear}
 .rir{display:flex;gap:6px;margin:4px 0 10px}.rir button{flex:1;border:2px solid var(--line);background:var(--surface);border-radius:12px;padding:8px 0;font-weight:800;color:var(--txt)}.rir button.on{border-color:var(--acc);background:var(--accent-soft);color:var(--acc)}
 </style>`);

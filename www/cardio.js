@@ -377,7 +377,7 @@ document.head.insertAdjacentHTML('beforeend',`<style>
 .sw.on{background:var(--ok)}.sw.on i{transform:translateX(20px)}
 .cd-fmts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:var(--s1)}
 .cd-fmts button{text-align:left;border:1.5px solid var(--line);background:var(--surface);border-radius:12px;padding:10px 12px;cursor:pointer;color:var(--ink)}.cd-fmts b{display:block;font-size:17px}.cd-fmts small{font-size:12px;color:var(--ink-2)}
-.cd-fmts button.on{border-color:var(--ink);background:var(--ink);color:var(--on-accent)}.cd-fmts button.on small{color:var(--on-accent)}
+.cd-fmts button.on{border-color:var(--ink);background:var(--ink);color:var(--surface)}.cd-fmts button.on small{color:var(--on-accent)}
 .cd-iv{border-radius:16px;padding:14px 16px;color:var(--on-accent);margin-bottom:12px;background:var(--ok)}.cd-iv.run{background:linear-gradient(135deg,var(--accent),var(--warn))}.cd-iv.done{background:var(--ink)}
 .cd-iv-row{display:flex;justify-content:space-between;align-items:baseline}.cd-iv b{font-size:20px;font-weight:900}.cd-iv-row span{font-size:30px;font-weight:900}.cd-iv small{opacity:.9;font-size:13px;display:block}
 </style>`);

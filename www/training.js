@@ -292,7 +292,7 @@ document.head.insertAdjacentHTML('beforeend',`<style>
 .offdays{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-top:var(--s3)}
 .offdays button{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 0;color:var(--ink);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
 .offdays button b{font-size:13px}.offdays button small{font-size:10px;color:var(--ink-2)}
-.offdays button.on{background:var(--ink);border-color:var(--ink);color:var(--on-accent)}.offdays button.on small{color:var(--on-accent)}
+.offdays button.on{background:var(--ink);border-color:var(--ink);color:var(--surface)}.offdays button.on small{color:var(--on-accent)}
 .offdays.sm{margin-top:var(--s1)}
 .plweek{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin-top:var(--s3)}
 .plweek div{border-radius:10px;background:var(--fill);padding:10px 2px;text-align:center;min-width:0}
