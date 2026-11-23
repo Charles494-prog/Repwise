@@ -15,6 +15,8 @@
   #sheet.af .afscr{margin-bottom:env(safe-area-inset-bottom);padding-bottom:96px}
   #pw,#pr,#afq,.afsearch input{min-height:44px}
   .rw-inl{display:inline-block}
+  /* sticky action buttons (e.g. "Restart with this workout") sit on a fade of the page background, so text never shows underneath */
+  .sticky{padding-top:22px;padding-bottom:6px;background:linear-gradient(to bottom,transparent,var(--bg) 42%);z-index:5}
   /* dark mode: accent-coloured text links ("Change", "See all", "Manage") are lightened to stay readable */
   /* (inline styles are re-serialised with a space after the colon once polish.js adds variables, so match both forms) */
   body[data-mode=dark] [onclick]:is([style*="color:var(--acc)"],[style*="color: var(--acc)"],[style*="color:var(--accent)"],[style*="color: var(--accent)"]):not([style*="background"]){color:color-mix(in srgb,var(--accent) 60%,var(--ink))!important}

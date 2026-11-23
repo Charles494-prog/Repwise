@@ -44,10 +44,12 @@
   // vegetable) never block, so you can still eat vegetables and drink water after reaching a limit.
   const TRIVIAL = { sugar: 1, sat: 0.5, fat: 1, sodium: 50, chol: 10 };
   const LIM_LABEL = { sugar: ['Added sugar', 'g'], sat: ['Saturated fat', 'g'], fat: ['Total fat', 'g'], sodium: ['Sodium', 'mg'], chol: ['Cholesterol', 'mg'] };
+  // Sugar on the label of a scanned packaged product counts toward the added-sugar limit.
+  const scanSugar = entries => (entries || []).reduce((g, x) => { const m = x[6]?.mult || 1; for (const it of x[6]?.items || []) { const ing = DB()[it.id]; if (ing && ing.scan && ing.per100.sugar != null) g += ing.per100.sugar * (+it.g || 0) / 100 * m; } return g; }, 0);
   function overLimits(items) {
     const L = ultraLimits(), entries = items.map(toEntry), was = dayT(viewDate), plus = H.dayTotals(entries, DB());
-    const cur = { sugar: RWCore.addedSugar(dayFood(viewDate)), sat: was.sat, fat: was.f, sodium: was.na, chol: was.chol };
-    const add = { sugar: RWCore.addedSugar(entries), sat: plus.sat, fat: plus.f, sodium: plus.na, chol: plus.chol };
+    const cur = { sugar: RWCore.addedSugar(dayFood(viewDate)) + scanSugar(dayFood(viewDate)), sat: was.sat, fat: was.f, sodium: was.na, chol: was.chol };
+    const add = { sugar: RWCore.addedSugar(entries) + scanSugar(entries), sat: plus.sat, fat: plus.f, sodium: plus.na, chol: plus.chol };
     const lim = { sugar: L.sugar, sat: L.sat, fat: L.fat, sodium: L.sodium, chol: L.chol };
     return Object.keys(lim).filter(k => add[k] >= TRIVIAL[k] && cur[k] + add[k] > lim[k].value)
       .map(k => ({ k, label: LIM_LABEL[k][0], unit: LIM_LABEL[k][1], now: Math.round(cur[k]), add: Math.round(add[k]), total: Math.round(cur[k] + add[k]), limit: lim[k].value, over: Math.round(cur[k] + add[k] - lim[k].value), why: lim[k].why }));

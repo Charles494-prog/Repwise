@@ -44,7 +44,7 @@
   .afsticky{position:sticky;top:-1px;background:var(--surface);z-index:2;padding:var(--s1) 0 var(--s2);border-bottom:1px solid var(--line);margin-bottom:var(--s1)}
   .afbar{position:absolute;left:0;right:0;bottom:0;padding:var(--s2) var(--s2) calc(var(--s2) + env(safe-area-inset-bottom));background:linear-gradient(transparent,var(--surface) 30%)}
   .aflink{background:none;border:none;color:var(--ink);font-weight:600;font-size:var(--fs-label);padding:10px 0;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
-  .afing{position:relative;overflow:hidden;border-bottom:1px solid var(--line)}
+  .afchg{display:inline;padding:0;margin:0;font-size:12px;text-decoration:underline}.afing{position:relative;overflow:hidden;border-bottom:1px solid var(--line)}
   .afing .row2{position:relative;z-index:1;display:flex;align-items:center;gap:var(--s2);padding:14px 0;background:var(--surface);transition:transform .2s}
   .afing .row2 b{flex:1;font-weight:600}.afing .gbtn{border:none;background:var(--fill);border-radius:var(--r-pill);padding:6px 12px;font-weight:600;font-size:var(--fs-label);color:var(--ink);font-variant-numeric:tabular-nums}
   .afing .afkc{width:64px;text-align:right;color:var(--ink-2);font-size:var(--fs-label);font-variant-numeric:tabular-nums}
@@ -110,7 +110,7 @@
   const NUT_KEYS = ['kcal', 'p', 'c', 'f', 'sat', 'fib', 'sugar', ...MICROS.map(x => x[0])];
   const blank = v => v == null || v === '' || Number.isNaN(+v);
   function regIng(m) { const k = m.ref === 'serving' && m.size > 0 ? 100 / m.size : 1, per = {}; for (const key of NUT_KEYS) per[key] = blank(m.vals?.[key]) ? null : +m.vals[key] * k;
-    F.ING['my_' + m.id] = { id: 'my_' + m.id, name: m.name, alt: 'my ingredient custom ' + m.name, group: 'mine', per100: per, src: 'My ingredient', pc: m.ref === 'serving' && m.size > 0 ? { g: m.size, label: 'serving' } : null, unit: m.unit || 'g', mine: m.id }; }
+    F.ING['my_' + m.id] = { id: 'my_' + m.id, name: m.name, alt: 'my ingredient custom ' + m.name, group: 'mine', per100: per, src: 'My ingredient', scan: !!m.barcode, pc: m.ref === 'serving' && m.size > 0 ? { g: m.size, label: 'serving' } : null, unit: m.unit || 'g', mine: m.id }; }
   S.myIngredients.forEach(regIng);
   // Extra nutrients (sugar + micronutrients) for a list of items; partial = some ingredients have no data for it.
   function nutrientList(items) { const out = [];
@@ -126,6 +126,8 @@
     if (have.length === 3 && est < kcal * 0.6 - 20) return `<div class="afwarn">Protein, carbs and fat only add up to about ${Math.round(est)} kcal of the ${kcal} kcal you entered. Worth a double-check (you can still save).</div>`;
     return ''; }
   window.afNewIng = (name, ret) => { AF.ci = { id: null, name: (name || '').trim(), ref: '100g', size: null, unit: 'g', vals: {}, ret: ret || AF.screen }; go('mying'); };
+  // Pre-filled form from a barcode / label scan (aifood.js): the user reviews, then saves (barcode kept for next time).
+  window.afPrefillIng = rec => { AF.ci = { id: null, name: rec.name || '', ref: rec.ref || '100g', size: rec.size || null, unit: 'g', vals: { ...(rec.vals || {}) }, barcode: rec.barcode || null, ret: 'search' }; go('mying'); };
   window.afEditIng = id => { const m = S.myIngredients.find(x => x.id === id); AF.ci = { ...JSON.parse(JSON.stringify(m)), ret: 'item' }; go('mying'); };
   window.AF_ci = (k, v) => { if (k === 'size') AF.ci.size = blank(v) ? null : +v; else AF.ci.vals[k] = blank(v) ? null : +v; const w = $('#ciwarn'); if (w) w.innerHTML = ciWarn(); };
   window.AF_ciSet = (k, v) => { AF.ci[k] = v; show(); };
@@ -142,7 +144,7 @@
     <div class="afbar"><div class="afprim"><button class="btn" onclick="afSaveIng()">${c.id ? 'Save changes' : 'Save ingredient'}</button></div></div>`; }
   window.afSaveIng = () => { const c = AF.ci, name = (c.name || '').trim();
     if (!name) return toast('Give your ingredient a name'); if (blank(c.vals.kcal)) return toast('Enter the calories'); if (c.ref === 'serving' && !(c.size > 0)) return toast('Enter the serving size');
-    const rec = { id: c.id || newId(), name, ref: c.ref, size: c.ref === 'serving' ? c.size : null, unit: c.unit, vals: { ...c.vals } };
+    const rec = { id: c.id || newId(), name, ref: c.ref, size: c.ref === 'serving' ? c.size : null, unit: c.unit, vals: { ...c.vals }, ...(c.barcode ? { barcode: String(c.barcode) } : {}) };
     if (c.id) Object.assign(S.myIngredients.find(x => x.id === c.id), rec); else S.myIngredients.push(rec);
     regIng(rec); save(); haptic(); toast(c.id ? 'Ingredient saved' : `Saved “${esc(name)}” to My ingredients`);
     if (c.ret === 'ing') return afPickIng('my_' + rec.id); afOpenIng('my_' + rec.id); };
@@ -191,6 +193,7 @@
   function scrSearch() {
     return `${head('Add food', null)}
     <div class="afsearch">${ic('search')}<input id="afq" placeholder="Search food, dishes or my meals" autocomplete="off" oninput="afSearch(this.value)"></div>
+    ${window.aiFoodBar ? aiFoodBar() : ''}
     <div id="afres"></div>`;
   }
   function recentList() {
@@ -256,14 +259,15 @@
   window.afInfo = k => { const T = { recipe: ['About this dish', 'Calories come from a typical home recipe (grams of each ingredient per serving) using USDA FoodData Central values. Filipino ingredients use the closest USDA equivalent until FNRI PhilFCT values are added. Restaurant and carinderia portions can be bigger and oilier — use Adjust ingredients to match yours.'] }[k]; const keep = AF.screen; openSheet(`<h3 class="t-title">${T[0]}</h3><p class="t-body" style="margin:var(--s2) 0">${T[1]}</p><button class="btn sec2" onclick="closeSheet();setTimeout(()=>{$('#sheet').classList.add('show');$('#sheetbg').classList.add('show');AF.screen='${keep}';AF_show()},420)">Back</button>`); };
   function scrDish() {
     const d = AF.d, v = d.variants.find(x => x.id === AF.v) || d.variants[0], { totals: t } = current();
-    return `${head(d.name, "afBack('search')", star('dish:' + d.id) + infoBtn('recipe'))}
+    const md = AF.mealDish;
+    return `${head(d.name, md ? (md.idx == null ? "AF.mealDish=null;afBack('mealpick')" : "AF.mealDish=null;afBack('mealed')") : "afBack('search')", star('dish:' + d.id) + infoBtn('recipe'))}
     ${d.variants.length > 1 ? `<div class="chips">${d.variants.map(x => `<button class="${x.id === v.id ? 'on' : ''}" onclick="afVar('${x.id}')">${x.name}</button>`).join('')}</div>` : ''}
     ${v.cuts ? `<div class="chips" style="margin-top:8px">${Object.keys(v.cuts).map(c => `<button class="${(AF.cut || Object.keys(v.cuts)[0]) === c ? 'on' : ''}" onclick="afCut('${c.replace(/'/g, "\\'")}')">${c}</button>`).join('')}</div>` : ''}
     ${heroBlock(t, AF.n === 1 ? d.serving : `${AF.n} × ${d.serving}`)}
     <div class="afrow"><span>Servings</span><span class="afstep"><button onclick="afN(-0.5)">−</button><b>${AF.n}</b><button onclick="afN(0.5)">+</button></span></div>
     ${cookingBlock()}${fatLine(t)}
-    <button class="aflink" onclick="afToBuilder()">Adjust ingredients</button>
-    ${logBar(t, 'afDishToPlate(true)', 'afDishToPlate()')}`;
+    ${md ? `<p class="afnote">Choose the version, servings and how it's cooked. This is saved in your meal.</p>${primary(t, md.idx == null ? 'Add to meal' : 'Update meal', 'afDishToMeal()')}`
+      : `<button class="aflink" onclick="afToBuilder()">Adjust ingredients</button>${logBar(t, 'afDishToPlate(true)', 'afDishToPlate()')}`}`;
   }
   window.afBack = s => go(s, 'back');
   window.afVar = id => { AF.v = id; AF.cut = null; haptic(); show(); };
@@ -511,8 +515,8 @@
   window.afDelMeal = id => { const m = mealById(id); if (!confirm(`Delete the meal “${m.name}”?\n\nThe dishes and foods in it stay. Past logs aren't affected.`)) return; S.myMeals = S.myMeals.filter(x => x.id !== id); S.favs = S.favs.filter(k => k !== 'meal:' + id); save(); toast('Meal deleted'); AF.q = ''; go('search', 'back'); };
 
   // Editor: name + items (catalog dishes, your dishes and foods) with default servings.
-  window.afNewMeal = name => { AF.med = { id: null, name: (name || '').trim(), items: [] }; go('mealed'); };
-  window.afEditMeal = id => { const m = mealById(id); AF.med = { id, name: m.name, items: JSON.parse(JSON.stringify(m.items)) }; go('mealed'); };
+  window.afNewMeal = name => { AF.mealDish = null; AF.med = { id: null, name: (name || '').trim(), items: [] }; go('mealed'); };
+  window.afEditMeal = id => { AF.mealDish = null; const m = mealById(id); AF.med = { id, name: m.name, items: JSON.parse(JSON.stringify(m.items)) }; go('mealed'); };
   function scrMealEd() {
     const E = AF.med, its = E.items.map(refToItem), t = sumPlate(its.filter(Boolean));
     return `${head(E.id ? 'Edit meal' : 'Create meal', E.id ? "afBack('meal')" : "afBack('search')")}
@@ -520,12 +524,19 @@
     <label class="affield full"><span>Meal name</span><span class="in"><input value="${esc(E.name)}" placeholder="e.g. My breakfast" oninput="AF.med.name=this.value"></span></label>
     <div class="afnote">A meal is the dishes and foods you usually eat together, e.g. adobo + rice + whey. Log it in one tap and adjust each item's servings first.</div>
     <div class="afsec">In this meal</div>
-    ${its.map((it, i) => it ? mealRow(it, i, 'afMedN', 'afMedDel', kindLbl(it)) : '').join('') || '<div class="afnote" style="padding:8px 0">Add the first dish or food.</div>'}
+    ${its.map((it, i) => it ? mealRow(it, i, 'afMedN', 'afMedDel', kindLbl(it) + (it.ref?.k === 'dish' ? ` · <button class="aflink afchg" onclick="afMedEdit(${i})">Change</button>` : '')) : '').join('') || '<div class="afnote" style="padding:8px 0">Add the first dish or food.</div>'}
     <button class="aflink" style="text-decoration:none;display:flex;align-items:center;gap:8px" onclick="AF.q='';afGo('mealpick')">${ic('plus')} Add dish or food</button>
     ${primary(t, E.id ? 'Save meal' : 'Create meal', 'afSaveMeal()')}`;
   }
   window.afMedN = (i, d) => { const x = AF.med.items[i], it = refToItem(x), st = itemStep(it); if (x.k === 'ing') x.g = Math.max(1, r1(x.g * Math.max(st, it.mult + d * st))); else x.n = Math.max(0.5, (x.n || 1) + d * 0.5); haptic(); show(); };
   window.afMedDel = i => { AF.med.items.splice(i, 1); haptic(); show(); };
+  window.afMedEdit = i => { const x = AF.med.items[i]; if (!x || x.k !== 'dish') return; AF.mealDish = { idx: i };
+    afOpenDish(x.id, { v: x.v || F.DISHES.find(d => d.id === x.id).variants[0].id, cut: x.cut || null, n: x.n || 1, ...(x.method ? { method: x.method, oilType: x.oilType || 'none', oilAmt: x.oilAmt || null, ...(x.oilG ? { oilG: x.oilG } : {}) } : {}) }); };
+  // Save the dish screen's choices into the meal (new item, or replace the one being changed).
+  window.afDishToMeal = () => { const md = AF.mealDish; if (!md || !AF.med) return;
+    const ref = { k: 'dish', id: AF.d.id, v: AF.v, cut: AF.cut || null, n: AF.n, method: AF.method, oilType: AF.oilType, oilAmt: AF.oilAmt, ...(AF.oilAmt === 'custom' && AF.oilG ? { oilG: AF.oilG } : {}) };
+    if (md.idx == null) AF.med.items.push(ref); else AF.med.items[md.idx] = ref;
+    AF.mealDish = null; haptic(); go('mealed', 'back'); };
   function scrMealPick() {
     return `${head('Add to meal', "afBack('mealed')")}<div class="afsearch">${ic('search')}<input id="afq" placeholder="Search dishes, my dishes or foods" autocomplete="off" oninput="afSearch(this.value)"></div><div id="afres"></div>`;
   }
@@ -536,6 +547,7 @@
     box.innerHTML = q.trim() ? (pickRows(F.search(q, all).slice(0, 30)) || `<div class="afnote" style="padding:14px 0">Nothing matches “${esc(q)}”.</div>`)
       : (mine.length ? `<div class="afgroup">Mine</div>${pickRows(mine)}` : '') + `<div class="afgroup">Filipino dishes</div>${pickRows(all.filter(e => e.type === 'dish').sort((a, b) => a.name.localeCompare(b.name)))}`; };
   window.afMealAdd = (type, id) => { const ing = type === 'ing' && F.ING[id];
+    if (type === 'dish') { AF.mealDish = { idx: null }; return afOpenDish(id); }
     AF.med.items.push(type === 'dish' ? { k: 'dish', id, n: 1 } : type === 'my' ? { k: 'my', id, n: 1 } : { k: 'ing', id, g: ing.pc ? ing.pc.g : 100 }); haptic(); go('mealed', 'back'); };
   window.afSaveMeal = () => { const E = AF.med, name = (E.name || '').trim(); if (!name) return toast('Give your meal a name'); if (!E.items.length) return toast('Add at least one dish or food');
     let m = E.id && mealById(E.id); if (m) Object.assign(m, { name, items: E.items }); else { m = { id: newId(), name, items: E.items }; S.myMeals.push(m); }
@@ -575,7 +587,7 @@
   window.foodSheet = (pre = {}) => {
     $('#sheet').classList.add('show'); $('#sheetbg').classList.add('show');
     if (pre.name) { Object.assign(AF, { items: [], name: pre.name, method: 'raw', oilType: 'none', oilAmt: null, manual: true, override: { kcal: pre.kcal ?? '', p: pre.protein ?? null, c: pre.carbs ?? null, f: pre.fat ?? null, fib: pre.fiber ?? null }, extra: null, editMy: null, edit: -1, from: 'search', adjustedFrom: null }); go('builder'); return; }
-    AF.q = ''; AF.browse = null; go('search');
+    AF.q = ''; AF.browse = null; AF.mealDish = null; go('search');
   };
   const _close = closeSheet; window.closeSheet = function () { _close(); setTimeout(() => { const sh = $('#sheet'); if (!sh.classList.contains('show')) sh.classList.remove('af'); }, 400); };
   window.AF = AF;

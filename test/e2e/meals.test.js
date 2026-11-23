@@ -35,7 +35,7 @@ test('meal: "My breakfast" = my adobo + catalog rice + whey; adjust servings and
 
 test('meal: mixes catalog dishes and custom items; editing a dish updates the meal; deleting a dish removes it from meals', async () => {
   await p.open({ state: baseState({ myMeals: [ADOBO] }) }); await ready();
-  const r = await p.eval(`foodSheet();afNewMeal('Lunch');afMealAdd('dish','adobo');afMealAdd('my','m1');afSaveMeal();const k0=Math.round(AF.meal.items.reduce((k,i)=>k+i.totals.kcal*i.mult,0));
+  const r = await p.eval(`foodSheet();afNewMeal('Lunch');afMealAdd('dish','adobo');afDishToMeal();afMealAdd('my','m1');afSaveMeal();const k0=Math.round(AF.meal.items.reduce((k,i)=>k+i.totals.kcal*i.mult,0));
     S.myDishes[0].items.push({id:'rice_white',g:158});save();afOpenMeal(S.myMeals[0].id);const k1=Math.round(AF.meal.items.reduce((k,i)=>k+i.totals.kcal*i.mult,0));
     afOpenMy('m1');afDelMy('m1');return {k0,k1,left:S.myMeals[0].items.map(i=>i.k)}`);
   assert.ok(r.k1 > r.k0 + 150); assert.deepEqual(r.left, ['dish']);

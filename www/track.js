@@ -315,13 +315,14 @@ const HRULES=[[/incline.*curl|chin-up|drag curl/i,'Biceps','Long head'],[/preach
  [/seated calf/i,'Calves','Soleus'],[/^(?!seated).*calf raise/i,'Calves','Gastrocnemius'],
  [/crunch|leg raise|sit-up/i,'Core','Rectus abdominis'],[/plank|l-sit|dead bug|pallof|wheel/i,'Core','Deep core & obliques']];
 const headsOf=e=>{const o=[];HRULES.forEach(([re,m,h])=>{if(re.test(e)&&!o.some(x=>x[0]===m&&x[1]===h))o.push([m,h])});return o};
-function coverage(list){const ms=[...new Set(list.flatMap(e=>EX[e]?.[0]||[]))].filter(m=>HEADS[m]),hit=list.flatMap(headsOf);
+function coverage(list,only){const ms=[...new Set(list.flatMap(e=>EX[e]?.[0]||[]))].filter(m=>HEADS[m]&&(!only||only.includes(m))),hit=list.flatMap(headsOf);
  return ms.map(m=>({m,parts:HEADS[m].p.map(([h,d,best])=>({h,d,best,on:hit.some(x=>x[0]===m&&x[1]===h)}))}))}
-function coverageCard(list){const c=coverage(list);if(!c.length)return'';const miss=c.flatMap(x=>x.parts.filter(p=>!p.on).map(p=>({...p,m:x.m})));
+// only: limit to these muscles (a focus workout is judged on the muscles you picked, not on secondary movers)
+function coverageCard(list,only){const c=coverage(list,only);if(!c.length)return'';const miss=c.flatMap(x=>x.parts.filter(p=>!p.on).map(p=>({...p,m:x.m})));
  return`<div class="sec">🎯 Muscle parts covered</div><div class="card">${c.map(x=>`<div style="margin:6px 0"><b>${x.m}</b> <small class="muted">${x.parts.filter(p=>p.on).length}/${x.parts.length}</small><div class="flex" style="gap:6px;flex-wrap:wrap;margin-top:4px">${x.parts.map(p=>`<span class="chip" style="${p.on?'background:var(--tile-3);color:var(--ok)':'background:color-mix(in srgb,var(--accent-2) 14%,var(--surface));color:var(--ink-2)'}">${p.on?'✓':'○'} ${p.h}</span>`).join('')}</div></div>`).join('')}
  ${miss.length?`<div class="coach q" style="margin-top:10px"><span class="ci">💡</span><span class="ct">Missing parts</span>${miss.slice(0,3).map(p=>`<b>${p.m} · ${p.h}</b>: add ${p.best.split(',')[0]}`).join('<br>')}</div>`:'<p class="muted" style="margin:8px 0 0">✅ Every part of every muscle is trained.</p>'}
  <small style="display:block;margin-top:8px;color:var(--acc);font-weight:700;cursor:pointer" onclick="push('anatomy')">Why muscle parts matter ›</small></div>`}
-const _prog10=V.prog;V.prog=k=>{const h=_prog10(k),P=PROGS[k];if(!P.ex.length)return h;const L=planList(k);return h.replace('<div class="sticky">',coverageCard(L)+'<div class="sticky">')};
+const _prog10=V.prog;V.prog=k=>{const h=_prog10(k),P=PROGS[k];if(!P.ex.length)return h;const L=planList(k),only=P.focus&&window.RWFocus?RWFocus.parents(P.focus):null;return h.replace('<div class="sticky">',coverageCard(L,only)+'<div class="sticky">')};
 const _pl10=V.player;V.player=()=>{const h=_pl10();if(!S.active)return h;const ex=S.active.list[S.active.idx],hs=headsOf(ex);if(!hs.length)return h;
  return h.replace('<div class="grid2" style="margin:12px 0">',`<div class="coach"><span class="ci">🎯</span><span class="ct">Muscle parts this hits</span>${hs.map(([m,p])=>{const d=HEADS[m].p.find(x=>x[0]===p);return`<b>${m} · ${p}</b> <small class="muted">— ${d[1]}</small>`}).join('<br>')}</div><div class="grid2" style="margin:12px 0">`)};
 V.anatomy=()=>`<div class="top">${backBtn()}<h1>Muscle parts</h1><span></span></div>
@@ -361,7 +362,12 @@ document.head.insertAdjacentHTML('beforeend',`<style>
 </style>`);
 const COMPOUND=/squat|deadlift|bench|press|row|pull-up|chin-up|dip|lunge|thrust/i;
 let restEnd=0,restTot=0,restI=null;
-function startRest(ex){restTot=S.restSec?.[COMPOUND.test(ex)?'c':'i']||(COMPOUND.test(ex)?150:90);restEnd=Date.now()+restTot*1000;clearInterval(restI);restI=setInterval(tickRest,250);tickRest()}
+// Rest between sets: ~3 min for heavy lower-body lifts, 2.5 min for other compounds, 90 s for isolation
+// (Schoenfeld 2016; Grgic 2017-18 reviews; Singer 2024 meta-analysis). S.restSec {h,c,i} overrides.
+const HEAVY=/squat|deadlift|leg press|romanian|rdl|hip thrust|good morning/i;
+function restFor(ex){const o=S.restSec||{};return HEAVY.test(ex)?(o.h||180):COMPOUND.test(ex)?(o.c||150):(o.i||90)}
+const restLbl=ex=>{const t=restFor(ex);return Math.floor(t/60)+':'+String(t%60).padStart(2,'0')};
+function startRest(ex){restTot=restFor(ex);restEnd=Date.now()+restTot*1000;clearInterval(restI);restI=setInterval(tickRest,250);tickRest()}
 function tickRest(){let el=$('#rest');const left=Math.ceil((restEnd-Date.now())/1000);if(!S.active||left<=-1){clearInterval(restI);el?.remove();if(left<=-1&&S.active){vib&&vib([200,100,200]);toast('⏰ Rest over — next set!')}return}
  if(!el){document.body.insertAdjacentHTML('beforeend','<div id="rest"></div>');el=$('#rest')}
  el.innerHTML=`<span style="font-size:20px">⏱️</span><div class="rt">${Math.floor(Math.max(0,left)/60)}:${String(Math.max(0,left)%60).padStart(2,'0')}</div><small style="flex:1;color:var(--ink-3)">Rest</small><button onclick="restEnd-=15000">−15</button><button onclick="restEnd+=15000;restTot+=15">+15</button><button onclick="restEnd=Date.now()-1000;tickRest()">Skip</button><div class="rb"><i style="width:${Math.max(0,left)/restTot*100}%"></i></div>`}
