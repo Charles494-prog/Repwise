@@ -26,7 +26,9 @@ function applyTheme(anim){const id=rankId(),mode=themeMode(),key=id+mode+S.ui.re
  const root=document.documentElement,v=RT.vars(id,mode);if(anim&&!first&&fxLevel(id)>0){root.classList.add('th-anim');setTimeout(()=>root.classList.remove('th-anim'),450)}
  for(const k in v)root.style.setProperty(k,v[k]);
  document.body.dataset.rank=id;document.body.dataset.mode=mode;document.body.dataset.fx=String(fxLevel(id));
- document.querySelector('meta[name=theme-color]')?.setAttribute('content',v['--bg'])}
+ document.querySelector('meta[name=theme-color]')?.setAttribute('content',v['--bg']);
+ // Native status bar follows the theme (dark theme → light icons). Android also takes the background colour.
+ const SB=window.Capacitor?.Plugins?.StatusBar;if(SB){try{SB.setStyle({style:mode==='dark'?'DARK':'LIGHT'});SB.setBackgroundColor?.({color:v['--bg']})}catch(e){}}}
 window.matchMedia?.('(prefers-color-scheme: dark)').addEventListener?.('change',()=>{if(S.ui.mode==='system'){THEME_ON=null;applyTheme(true)}});
 // Haptics follow the theme; sound is off unless turned on (a short synthesized chime, no files).
 function themeHaptic(){try{vib(RT.THEMES[rankId()].haptic)}catch(e){}}
@@ -42,6 +44,8 @@ function rankCard(){const r=overallRank();if(!r)return'';const id=r.rank.rank,n=
  <div class="rk-bar"><i style="width:${Math.round(r.progress*100)}%"></i></div><small>${n?`${r.toNext.toLocaleString()} pts to ${esc(n.name)} · today +${Math.round(r.today)}`:'Top rank — keep it'}</small></div><span class="chev">›</span></div>`}
 
 // ================= RANK SCREEN: progress · what moves it · history =================
+// The older screen (overall XP rank, muscle ranks, level) stays available as 'Muscle ranks & level'.
+const _xpRankV=V.rank;if(_xpRankV)V.xprank=_xpRankV;
 V.rank=()=>{const r=overallRank(),b=r.breakdown,W=RCF.CONFIG.weights,lbl={consistency:'Training consistency',overload:'Progressive overload',fasting:'Fasting adherence',logging:'Meal logging',streak:'Streak'};
  return`<div class="top">${backBtn()}<h1 style="font-size:22px;flex:1;margin-left:var(--s1)">Overall rank</h1><span></span></div>
  <div class="rk-hero">${ovBadge(r.rank.rank,120)}<div class="t-display rk-big">${esc(r.rank.name)}</div><p class="muted">${r.points.toLocaleString()} points${r.next?` · ${r.toNext.toLocaleString()} to ${esc(r.next.name)}`:''}</p><div class="rk-bar big"><i style="width:${Math.round(r.progress*100)}%"></i></div></div>
@@ -49,7 +53,7 @@ V.rank=()=>{const r=overallRank(),b=r.breakdown,W=RCF.CONFIG.weights,lbl={consis
  <p class="t-caption" style="margin-top:var(--s1)">Each day scores up to ${RCF.CONFIG.dailyCap} points from these, averaged over the last 7–14 days. Today: <b>${Math.round(r.today)}</b>. Duplicate or implausible logs don't count.</p></div>
  ${r.lowDays?`<div class="tip">⚠️ Your 14-day average is low. ${RCF.CONFIG.demotion.graceDays-r.lowDays} more low days and you drop one tier — any good day resets this.</div>`:''}
  <div class="sec">Rank history</div>${r.history.length?`<div class="rk-tl">${r.history.slice().reverse().map(h=>`<div class="rk-ev ${h.event}"><i></i><div><b>${h.event==='up'?'Reached':'Dropped to'} ${esc(h.name)}</b><small>${new Date(h.date+'T12:00').toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})}</small></div></div>`).join('')}</div>`:'<div class="empty">Your rank-ups will show here.</div>'}
- <button class="btn sec2" style="margin-top:var(--s2)" onclick="push('rankgallery')">See every rank's look</button><div style="height:var(--s4)"></div>`};
+ <button class="btn sec2" style="margin-top:var(--s2)" onclick="push('rankgallery')">See every rank's look</button>${V.xprank?`<button class="btn sec2" style="margin-top:var(--s1)" onclick="push('xprank')">Muscle ranks &amp; level</button>`:''}<div style="height:var(--s4)"></div>`};
 
 // ================= GALLERY: preview every rank's look (locked ranks as teasers) =================
 V.rankgallery=()=>{const cur=RT.ORDER.indexOf(overallRank()?.rank.rank||'iron'),mode=themeMode();
@@ -84,7 +88,7 @@ V.appearance=()=>{const U=S.ui,seg=(k,opts)=>`<div class="cd-seg">${opts.map(([v
  ${U.devThemes?`<div class="afsec">Preview theme</div><div class="chips">${RT.ORDER.map(id=>`<button class="${U.previewRank===id?'on':''}" onclick="S.ui.previewRank=${U.previewRank===id?'null':`'${id}'`};save();THEME_ON=null;applyTheme(true);render()">${RT.THEMES[id].name}</button>`).join('')}</div><button class="btn sm sec2" style="margin-top:var(--s1)" onclick="rankCeremony(RWRankConfig.steps().find(s=>s.rank===rankId()),0)">Play rank-up ceremony</button>`:''}</div></details>`};
 const _setTh=V.settings;V.settings=()=>_setTh().replace(/(<div class="row" onclick="push\('notifs'\)">)/,`<div class="row" onclick="push('appearance')"><span style="font-size:22px">🎨</span><div class="rbody"><b>Appearance</b><small>Rank theme, dark mode, reduce effects</small></div><span class="chev">›</span></div><div class="row" onclick="push('rank')"><span style="font-size:22px">🏅</span><div class="rbody"><b>Overall rank</b><small>Progress, what moves it, history, all ranks</small></div><span class="chev">›</span></div>$1`);
 // Home: the rank card goes right under the greeting.
-const _planTh=V.plan;V.plan=()=>{const h=_planTh();if(viewDate!==today()||!S.profile)return h;const k=h.indexOf('<div class="datenav">');return k>=0?h.slice(0,k)+rankCard()+h.slice(k):rankCard()+h};
+const _planTh=V.plan;V.plan=()=>{const h=_planTh().replace(/<button class="rk-line"[\s\S]*?<\/button>/,'');if(viewDate!==today()||!S.profile)return h;const k=h.indexOf('<div class="datenav">');return k>=0?h.slice(0,k)+rankCard()+h.slice(k):rankCard()+h};
 // Every render keeps the theme in sync with the rank and checks for a rank-up.
 const _rdTh=render;render=function(...a){applyTheme(true);const x=_rdTh.apply(this,a);try{if(!S.active&&stack.at(-1)?.[0]!=='player')setTimeout(checkOverallRankUp,800)}catch(e){}return x};
 
