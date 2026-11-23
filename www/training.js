@@ -321,4 +321,7 @@ body.resting #app button[onclick^="addSet"],body.resting #app button[onclick^="m
 #rest.nudge{animation:restNudge .4s}
 @keyframes restNudge{0%,100%{transform:none}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
 </style>`);
+// Pop-up queue (popups.js): rank-up / loss screens wait for an open sheet or overlay to close instead of stacking on it.
+if(window.Pop){const _srq=showRankQueue;showRankQueue=function(){if(S.rankQ?.length&&Pop.busy())return Pop.show('rank',showRankQueue);return _srq()};window.showRankQueue=showRankQueue;
+ const _slp=showLossPop;showLossPop=function(){if(S.lossQ&&Pop.busy())return Pop.show('loss',showLossPop);return _slp()}}
 if(typeof render==='function')render();

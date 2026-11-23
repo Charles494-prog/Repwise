@@ -14,9 +14,9 @@
   const breaded = items => items.some(i => ['flour', 'breadcrumbs', 'wrapper', 'cornstarch'].includes(i.id));
 
   document.head.insertAdjacentHTML('beforeend', `<style>
-  #sheet.af{height:92vh;max-height:92vh;padding:8px 0 0;display:flex;flex-direction:column;overflow:hidden}
+  #sheet.af{height:92vh;max-height:92vh;height:min(92dvh,calc(100dvh - env(safe-area-inset-top) - 12px));max-height:calc(100dvh - env(safe-area-inset-top) - 12px);padding:8px 0 0;display:flex;flex-direction:column;overflow:hidden}
   #sheet.af .grab{margin:0 auto 8px}
-  .afscr{flex:1;overflow-y:auto;padding:0 var(--s2) calc(96px + env(safe-area-inset-bottom));animation:afIn .22s cubic-bezier(.2,.8,.2,1)}
+  .afscr{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:0 var(--s2) calc(96px + env(safe-area-inset-bottom));animation:afIn .22s cubic-bezier(.2,.8,.2,1)}
   .afscr.back{animation:afBack .22s cubic-bezier(.2,.8,.2,1)}
     .afing.sw .del{display:block}
   @keyframes afIn{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
@@ -28,7 +28,7 @@
   .afsearch .ic{width:20px;height:20px;color:var(--ink-2)}.afsearch label{display:flex;cursor:pointer;color:var(--ink)}
   .afgroup{font-size:var(--fs-label);font-weight:600;color:var(--ink-2);margin:var(--s3) 0 2px}
   .afli{display:flex;align-items:baseline;gap:var(--s2);padding:14px 0;border-bottom:1px solid var(--line);cursor:pointer}
-  .afli:active{opacity:.55}.afli b{flex:1;font-size:var(--fs-body);font-weight:600}.afli span{font-size:var(--fs-label);color:var(--ink-2);text-align:right;white-space:nowrap}
+  .afli:active{opacity:.55}.afli b{flex:1;min-width:0;overflow-wrap:anywhere;font-size:var(--fs-body);font-weight:600}.afli span{font-size:var(--fs-label);color:var(--ink-2);text-align:right;white-space:nowrap}
   .afli.create b{color:var(--ink);font-weight:700}
   .chips{display:flex;gap:8px;overflow-x:auto;padding:2px 0 4px;margin:0 calc(-1 * var(--s2));padding-left:var(--s2);padding-right:var(--s2);scrollbar-width:none}
   .chips::-webkit-scrollbar{display:none}
@@ -63,7 +63,7 @@
   .afsrc{font-size:var(--fs-caption);color:var(--ink-3);font-weight:500;margin-left:6px}
   .afstar{background:none;border:none;padding:4px 0 4px 10px;color:var(--ink-3);cursor:pointer;line-height:0}.afstar.on{color:var(--ink)}
   .afstar svg{width:20px;height:20px}
-  .afli .nm{flex:1;min-width:0}.afli .nm b{display:block}.afli .nm small{font-size:var(--fs-caption);color:var(--ink-2)}
+  .afli .nm{flex:1;min-width:0;overflow-wrap:anywhere}.afli .nm b{display:block}.afli .nm small{font-size:var(--fs-caption);color:var(--ink-2)}
   .plbar{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;gap:var(--s2);padding:12px var(--s2) calc(12px + env(safe-area-inset-bottom));background:var(--ink);color:#fff;cursor:pointer}
   .plbar .t{flex:1}.plbar .t b{display:block;font-size:var(--fs-body)}.plbar .t small{opacity:.7;font-size:var(--fs-caption)}
   .plbar button{background:#fff;color:var(--ink);border:none;border-radius:var(--r-pill);padding:10px 18px;font-weight:700}

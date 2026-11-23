@@ -173,7 +173,7 @@ V.plan=()=>{const t=targets(),d=viewDate,isT=d===today(),f=dayFood(d),k=sum(f,1)
 
 // Settings additions: Learn + Reminders rows.
 const _settings=V.settings;
-V.settings=()=>_settings().replace('<div class="row" onclick="push(\'science\')">',`<div class="row" onclick="push('notifs')"><span style="font-size:22px">🔔</span><div class="rbody"><b>Reminders</b><small>Water, meals, fasting, workouts</small></div><span class="chev">›</span></div>
+V.settings=()=>_settings().replace('<div class="row" onclick="push(\'science\')">',`<div class="row" onclick="push('notifs')"><span style="font-size:22px">🔔</span><div class="rbody"><b>Reminders</b><small>Water, meals, fasting, workouts, after-meal walks</small></div><span class="chev">›</span></div>
  <div class="row" onclick="push('learn')"><span style="font-size:22px">📚</span><div class="rbody"><b>Learn</b><small>${ARTICLES.length} articles + science library</small></div><span class="chev">›</span></div>
  <div class="row" onclick="push('science')">`);
 

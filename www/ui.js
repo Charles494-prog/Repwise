@@ -97,7 +97,7 @@ const _sleep16=V.sleep;V.sleep=()=>{const sc=sleepScore(today())??sleepScore(iso
  <div class="li"><div><b>Split sleep is a backup, not a plan</b><small>A night plus a nap can cover the hours, but one consolidated night is better for recovery. Keep naps under 30 min, before 3 pm.</small></div></div></div>
  <div class="sec">Why it's part of your plan</div>`)};
 
-// ---------- After a meal: water + science-backed post-meal habits ----------
+// Post-meal habits with sources (the walk one feeds the after-meal pop-up).
 const POSTMEAL=[
  ['walk','Walk 10–15 minutes','Muscles pull sugar out of the blood while they work. A short walk within 30 min of eating cuts the blood-sugar spike by up to ~30% — better than one long walk at another time.','Buffey et al., 2022, Sports Med; Reynolds et al., 2016, Diabetologia'],
  ['drop','Drink a glass of water','Helps digestion and fullness, and most people under-drink. Water with meals doesn\'t "dilute" digestion.','Dennis et al., 2010, Obesity'],
@@ -105,20 +105,54 @@ const POSTMEAL=[
  ['timer','Wait 20 min before seconds','Fullness hormones (GLP-1, PYY) take 15–20 min to rise. Most "still hungry" feelings fade.','De Graaf et al., 2004, Am J Clin Nutr'],
  ['chair','Stay upright for 2–3 hours','Lying down soon after eating raises reflux risk and can disturb sleep.','Fujiwara et al., 2005, Am J Gastroenterol'],
 ];
-function afterMeal(name,k){const t=targets(),w=S.water[today()]||0;
- openSheet(`<div class="t-caption">Logged ${esc(name)} · ${k} kcal</div><h3 class="t-title" style="margin:4px 0 var(--s2)">Make this meal work harder</h3>
- <div class="t-label" style="display:flex;justify-content:space-between"><span>Water</span><span class="muted num" id="amw">${w.toLocaleString()} / ${t.water.toLocaleString()} ml</span></div>
- <div class="bar" style="margin:6px 0 var(--s1)"><i id="amb" style="width:${Math.min(100,w/t.water*100)}%"></i></div>
- <div style="display:flex;gap:var(--s1)"><button class="btn sec2" style="flex:1;padding:10px" onclick="amWater(250)">+ 250 ml glass</button><button class="btn sec2" style="flex:1;padding:10px" onclick="amWater(500)">+ 500 ml bottle</button></div>
- <div class="plist" style="margin-top:var(--s3)">${POSTMEAL.slice(0,4).filter(x=>x[0]!=='drop').map(([i,tt,b,s])=>`<div class="li" style="align-items:flex-start"><span style="color:var(--ink);margin-top:2px">${ic(i)}</span><div><b>${tt}</b><small>${b} <span style="color:var(--ink-3)">${s}</span></small></div></div>`).join('')}</div>
- <button class="btn" style="margin-top:var(--s3);display:flex;align-items:center;justify-content:center;gap:8px" onclick="closeSheet();startRun('walk')">${ic('walk')} Start a 10-min walk</button>
- <div class="t-label" style="text-align:center;margin-top:var(--s2);cursor:pointer" onclick="closeSheet()">Done</div>`)}
-function amWater(ml){const t=targets(),d=today();S.water[d]=(S.water[d]||0)+ml;save();const w=S.water[d];$('#amw').textContent=`${w.toLocaleString()} / ${t.water.toLocaleString()} ml`;$('#amb').style.width=Math.min(100,w/t.water*100)+'%';vib(10)}
+// ---------- After a meal: one focused pop-up — a brisk 10-minute walk ----------
+// Shows once per logged meal (today only), waits its turn in the pop-up queue (popups.js) and can be turned off in
+// Settings › Reminders. Water quick-add lives on the Nutrition screen's water bar, so this stays about the walk.
+S.notif.walkPop??=true;
+const WALK_NID=2100;let walkLast=null,walkT=null;
+function afterMeal(name,k){if(viewDate!==today()||S.notif.walkPop===false)return;
+ const d=today(),f=dayFood(d);if(!f.length)return;
+ const key=`${f.length-1}#${f.at(-1)[0]}`;if(S.walkSeen?.d!==d)S.walkSeen={d,k:[]};
+ if(S.walkSeen.k.includes(key))return;S.walkSeen.k.push(key);save();
+ walkLast={name,k};Pop.show('walk',walkPop)}
+function walkPop(){const m=walkLast;walkLast=null;if(!m||S.notif.walkPop===false||(typeof RUN!=='undefined'&&RUN))return;
+ const [,,why,src]=POSTMEAL[0];
+ openSheet(`<div class="wp" role="dialog" aria-label="After-meal walk"><div class="t-caption">${m.k.toLocaleString()} kcal logged</div><h3 class="t-title" style="margin:4px 0 var(--s1)">Nice — ${esc(m.name)} logged</h3>
+ <p class="t-body">A brisk 10-minute walk now blunts the blood-sugar spike from this meal.</p>
+ <p class="t-caption" style="margin-top:6px">${why} <span style="color:var(--ink-3)">${src}</span></p>
+ <div class="wp-acts"><button class="btn wp-start" onclick="walkStart()">${ic('walk')} Start walk</button><button class="btn sec2 wp-later" onclick="walkLater()">Remind me in 10 min</button></div>
+ <div class="wp-foot"><button class="aflink wp-dismiss" onclick="closeSheet()">Dismiss</button><button class="aflink wp-off" onclick="walkPopOff()">Don't show these</button></div></div>`)}
+function walkStart(){closeSheet();startRun('walk')}
+function walkPopOff(){S.notif.walkPop=false;save();closeSheet();toast('After-meal walk pop-ups off — turn them back on in Settings › Reminders')}
+// "Remind me in 10 min": a local notification (works with the app closed) + an in-app timer while it's open.
+async function schedWalkRemind(){const L=LN(),R=S.walkRemind;if(!L||!R||R.at<=Date.now())return;
+ try{const p=await L.checkPermissions();if(p.display!=='granted'&&(await L.requestPermissions()).display!=='granted')return;
+  await L.schedule({notifications:[{id:WALK_NID,title:'Time for your walk',body:'A brisk 10 minutes now blunts the blood-sugar spike from your meal.',schedule:{at:new Date(R.at),allowWhileIdle:true},extra:{go:'meals',walk:true}}]})}catch(e){console.warn('walk-notif',e)}}
+function walkTimer(){clearTimeout(walkT);walkT=null;const R=S.walkRemind;if(R&&R.at>Date.now())walkT=setTimeout(walkDue,R.at-Date.now())}
+function walkLater(){closeSheet();S.walkRemind={at:Date.now()+600000,id:WALK_NID};save();schedWalkRemind();walkTimer();toast('We\'ll remind you in 10 minutes')}
+function walkDue(){const R=S.walkRemind;if(!R)return;
+ if(document.visibilityState==='hidden')return; // app in the background: the notification takes over
+ S.walkRemind=null;save();try{LN()?.cancel({notifications:[{id:R.id}]})}catch(e){}
+ Pop.show('walkdue',()=>openSheet(`<div class="wp" role="dialog" aria-label="Walk reminder"><h3 class="t-title" style="margin-bottom:var(--s1)">Time for your 10-minute walk</h3>
+ <p class="t-body">A brisk walk now still blunts the blood-sugar spike from your meal.</p>
+ <div class="wp-acts"><button class="btn wp-start" onclick="walkStart()">${ic('walk')} Start walk</button></div>
+ <div class="wp-foot"><button class="aflink wp-dismiss" onclick="closeSheet()">Dismiss</button></div></div>`))}
+// Coming back to the app after the reminder already fired as a notification: don't show it twice.
+document.addEventListener('visibilitychange',()=>{const R=S.walkRemind;if(document.visibilityState!=='visible'||!R)return;if(R.at<=Date.now()){S.walkRemind=null;save()}else walkTimer()});
+if(S.walkRemind&&S.walkRemind.at<=Date.now())S.walkRemind=null;walkTimer();
+// (Tapping the notification opens the Nutrition tab through smart.js's single deep-link listener: extra.go='meals'.)
+// Full reschedules cancel every pending notification — put a pending walk reminder back afterwards.
+const _snWalk=schedNotifs;schedNotifs=async function(){await _snWalk();await schedWalkRemind()};
+document.head.insertAdjacentHTML('beforeend',`<style>
+.wp .wp-acts{display:flex;flex-direction:column;gap:var(--s1);margin-top:var(--s3)}.wp .wp-start{display:flex;align-items:center;justify-content:center;gap:8px}
+.wp .wp-foot{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:var(--s1);margin-top:var(--s1)}.wp .wp-off{color:var(--ink-2);text-decoration:none}
+</style>`);
+// Settings › Reminders: the after-meal walk pop-up toggle
+const _vnWalk=V.notifs;V.notifs=()=>_vnWalk()+`<div class="sec">In the app</div><div class="list"><div class="row" id="walkpop-row" onclick="S.notif.walkPop=!S.notif.walkPop;save();render()"><span style="font-size:22px">🚶</span><div class="rbody"><b>After-meal walk pop-up</b><small>After you log a meal: start a brisk 10-minute walk, or get reminded in 10 min</small></div><span class="chip" style="background:${S.notif.walkPop?'var(--good)':'#e5e5ec'};color:${S.notif.walkPop?'#fff':'inherit'}">${S.notif.walkPop?'ON':'OFF'}</span></div></div>`;
 const _af17=addFood;addFood=function(){const n=$('#fn')?.value.trim(),before=dayFood(viewDate).length;_af17();const f=dayFood(viewDate);if(f.length>before&&viewDate===today()){const x=f.at(-1);setTimeout(()=>afterMeal(x[0],x[1]),350)}};
 // Water lives on the Nutrition screen too (slim bar + quick add), right under protein
 const _meals17=V.meals;V.meals=()=>{const t=targets(),w=S.water[viewDate]||0;
- return _meals17().replace('<div class="qa">',`<div style="margin-top:var(--s2)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span class="t-label">Water</span><span class="t-label muted num">${w.toLocaleString()} / ${t.water.toLocaleString()} ml <button onclick="addWater(250)" style="margin-left:8px;border:1px solid var(--line);background:var(--surface);border-radius:var(--r-pill);padding:3px 10px;font-weight:600;color:var(--ink)">+250</button></span></div><div class="bar"><i style="width:${Math.min(100,w/t.water*100)}%;background:var(--ink)"></i></div></div><div class="qa">`)
- .replace('<div class="hdr">Logged',`${dayFood(viewDate).length?`<div class="t-caption" style="margin-top:var(--s2);display:flex;gap:6px;align-items:center;cursor:pointer" onclick="afterMeal('your last meal',dayFood(viewDate).at(-1)[1])">${ic('walk')} Just ate? A 10-minute walk blunts the blood-sugar spike.</div>`:''}<div class="hdr">Logged`)};
+ return _meals17().replace('<div class="qa">',`<div style="margin-top:var(--s2)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span class="t-label">Water</span><span class="t-label muted num">${w.toLocaleString()} / ${t.water.toLocaleString()} ml <button onclick="addWater(250)" style="margin-left:8px;border:1px solid var(--line);background:var(--surface);border-radius:var(--r-pill);padding:3px 10px;font-weight:600;color:var(--ink)">+250</button></span></div><div class="bar"><i style="width:${Math.min(100,w/t.water*100)}%;background:var(--ink)"></i></div></div><div class="qa">`)};
 
 // ---------- License / terms of use ----------
 V.license=()=>`<div class="top">${backBtn()}<h1>License</h1><span></span></div>
@@ -236,7 +270,8 @@ fastOK=function(){if(!S.fast.on||viewDate!==today())return true;const s=fastStat
 function fastBreakBlock(){if(!_fb)return'';const {wk,hin,h,next}=_fb,nt=next.toLocaleTimeString([],{weekday:'short',hour:'numeric',minute:'2-digit'});_fb=null;
  return wk>=3?`<div style="border-left:3px solid var(--accent);padding:2px 0 2px var(--s2);margin-bottom:var(--s3)"><div class="t-title" style="color:var(--accent)">This is the ${wk===3?'third':wk+'th'} time this week</div><p class="t-label" style="margin:6px 0">You ate outside your eating window ${wk} times in 7 days. Please stop — or switch to an easier window you can actually keep.</p><div class="t-caption">Fast restarted · next window opens ${nt}</div><button class="btn sec2" style="margin-top:var(--s2);padding:10px" onclick="closeSheet();push('fasting')">Pick an easier window</button></div>`
  :`<div style="border-left:3px solid var(--ink);padding:2px 0 2px var(--s2);margin-bottom:var(--s3)"><div class="t-label">Fast restarted · break ${wk} of 3 this week</div><div class="t-caption" style="margin-top:4px">You were ${dur(hin)} into a ${h} h fast. Next eating window opens ${nt}, then your normal schedule resumes. Total calories still matter most — not a failure.</div></div>`}
-const _am22=afterMeal;afterMeal=function(name,k){const top=fastBreakBlock();_am22(name,k);if(top){const sh=$('#sheet');sh.innerHTML=sh.innerHTML.replace(/(<div class="grab"><\/div>)/,`$1${top}`)}};
+// A fasting note replaces the after-meal walk pop-up for that meal (one pop-up per meal, through the queue).
+const _am22=afterMeal;afterMeal=function(name,k){const top=fastBreakBlock();if(!top)return _am22(name,k);Pop.show('fast',()=>openSheet(`${top}<button class="btn sec2" onclick="closeSheet()">OK</button>`))};
 // notifications: replace today's scheduled fasting reminders with ones based on the restarted fast
 const _sn22=schedNotifs;schedNotifs=async function(){await _sn22();const L=LN(),R=S.fast.reset;if(!L||!R||!S.fast.on||!S.notif.fast)return;
  try{const w=fastWin(),open=new Date(R+w.h*36e5),close=new Date(open.getTime()+w.eat*36e5),end=close.getTime()+36e5;
