@@ -168,7 +168,7 @@
   .ul-cite{display:block;color:var(--ink-2);font-size:11px;margin-top:6px;line-height:1.4}
   .ul-nudge .tip{margin-top:8px}.ul-body{margin-bottom:var(--s2)}.ul-body .tip{margin-top:8px}
   .ul-badge{margin-left:auto;margin-right:8px;min-height:44px;padding:0 12px;border-radius:999px;border:none;font-weight:700;font-size:13px;cursor:pointer;color:var(--ink)}
-  .ul-badge.green{background:color-mix(in srgb,var(--good,#16a34a) 22%,var(--surface))}.ul-badge.amber{background:color-mix(in srgb,#f59e0b 28%,var(--surface))}.ul-badge.red{background:color-mix(in srgb,var(--accent,#e11d48) 26%,var(--surface))}
+  .ul-badge.green{background:color-mix(in srgb,var(--good,var(--ok)) 22%,var(--surface))}.ul-badge.amber{background:color-mix(in srgb,var(--warn) 28%,var(--surface))}.ul-badge.red{background:color-mix(in srgb,var(--accent,var(--accent)) 26%,var(--surface))}
   </style>`);
   if (typeof render === 'function') render();
 })();

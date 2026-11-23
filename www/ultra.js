@@ -65,7 +65,7 @@
   const LVL = { urgent: ['🚨', 'ul-w urgent'], doctor: ['🩺', 'ul-w doc'], warn: ['⚠️', 'ul-w'], info: ['ℹ️', 'ul-w info'] };
   function limitRow(x, val, partial) { const p = Math.min(1, val / x.value), over = val > x.value;
     return `<div class="ul-lim"><div class="ul-lim-h"><b>${x.label}</b><span class="num${over ? ' ul-over' : ''}">${partial ? '≥' : ''}${fmtN(val)} / ${fmtN(x.value)} ${x.unit}</span></div>
-    <div class="prog"><i style="width:${p * 100}%;${over ? 'background:#ea580c' : ''}"></i></div>${x.why ? `<small class="ul-why">↓ ${esc(x.why)}</small>` : ''}</div>`; }
+    <div class="prog"><i style="width:${p * 100}%;${over ? 'background:var(--warn)' : ''}"></i></div>${x.why ? `<small class="ul-why">↓ ${esc(x.why)}</small>` : ''}</div>`; }
   function readingsCard(L) { const bp = L.bp, gf = L.glu?.fasting, ga = L.glu?.after, sb = (S.bp || []).at(-1), sg = (S.glu || []).at(-1);
     return `<div class="card">
     <div class="afrow"><span>Blood pressure<small class="t-caption" style="display:block;font-weight:400">${bp ? `Last ${bp.n} average ${bp.sys}/${bp.dia} · ${esc(bp.cat[0])}` : 'No readings yet'}${sb ? ` · latest ${sb[1]}/${sb[2]}` : ''}</small></span><button class="btn sm sec2" onclick="bpSheet()">Add</button></div>
@@ -120,14 +120,14 @@
       if (N.length) await L.schedule({ notifications: N }); } catch (e) { console.warn('ultra notif', e); } };
   const _nU = V.notifs; V.notifs = () => { const h = _nU(); if (!uOn()) return h;
     return h + `<div class="sec">🛡️ Ultra-Health</div><div class="list">
-     <div class="row" onclick="S.ultra.water=!S.ultra.water;save();schedNotifs();render()"><span style="font-size:22px">💧</span><div class="rbody"><b>Extra hydration</b><small>Every 2 hours, 8am–8pm</small></div><span class="chip" style="background:${S.ultra.water ? 'var(--good)' : '#e5e5ec'};color:${S.ultra.water ? '#fff' : 'inherit'}">${S.ultra.water ? 'ON' : 'OFF'}</span></div>
-     <div class="row" onclick="S.ultra.sleep=!S.ultra.sleep;save();schedNotifs();render()"><span style="font-size:22px">🌙</span><div class="rbody"><b>Bedtime</b><small>Wind-down reminder at 9:30 pm</small></div><span class="chip" style="background:${S.ultra.sleep ? 'var(--good)' : '#e5e5ec'};color:${S.ultra.sleep ? '#fff' : 'inherit'}">${S.ultra.sleep ? 'ON' : 'OFF'}</span></div></div>`; };
+     <div class="row" onclick="S.ultra.water=!S.ultra.water;save();schedNotifs();render()"><span style="font-size:22px">💧</span><div class="rbody"><b>Extra hydration</b><small>Every 2 hours, 8am–8pm</small></div><span class="chip" style="background:${S.ultra.water ? 'var(--good)' : 'var(--fill)'};color:${S.ultra.water ? 'var(--on-accent)' : 'inherit'}">${S.ultra.water ? 'ON' : 'OFF'}</span></div>
+     <div class="row" onclick="S.ultra.sleep=!S.ultra.sleep;save();schedNotifs();render()"><span style="font-size:22px">🌙</span><div class="rbody"><b>Bedtime</b><small>Wind-down reminder at 9:30 pm</small></div><span class="chip" style="background:${S.ultra.sleep ? 'var(--good)' : 'var(--fill)'};color:${S.ultra.sleep ? 'var(--on-accent)' : 'inherit'}">${S.ultra.sleep ? 'ON' : 'OFF'}</span></div></div>`; };
 
   document.head.insertAdjacentHTML('beforeend', `<style>
   .ul-reminder{margin:var(--s1) 0 0;padding:8px 12px;border-radius:12px;background:var(--fill)}
   .ul-lim{margin-bottom:12px}.ul-lim-h{display:flex;justify-content:space-between;gap:8px;font-size:14px}.ul-lim .prog{margin-top:6px}
-  .ul-why{display:block;font-size:12px;color:#9a3412;margin-top:4px}.ul-over{color:#c2410c;font-weight:700}
-  .ul-w{background:#fff7ed;color:#9a3412;border-radius:12px;padding:10px 12px;margin-top:8px;font-size:14px;line-height:1.45}.ul-w.doc{background:#eef2ff;color:#3730a3}.ul-w.urgent{background:#fee2e2;color:#991b1b;font-weight:600}.ul-w.info{background:var(--fill);color:var(--ink)}
+  .ul-why{display:block;font-size:12px;color:var(--warn);margin-top:4px}.ul-over{color:var(--warn);font-weight:700}
+  .ul-w{background:color-mix(in srgb,var(--warn) 14%,var(--surface));color:var(--warn);border-radius:12px;padding:10px 12px;margin-top:8px;font-size:14px;line-height:1.45}.ul-w.doc{background:color-mix(in srgb,var(--accent-2) 14%,var(--surface));color:var(--accent-2)}.ul-w.urgent{background:var(--accent-soft);color:var(--accent);font-weight:600}.ul-w.info{background:var(--fill);color:var(--ink)}
   .ul-src{margin-top:var(--s2)}.ul-src summary{font-size:13px;color:var(--ink-2);cursor:pointer}.ul-src p{margin-top:6px}
   </style>`);
   if (typeof render === 'function') render();

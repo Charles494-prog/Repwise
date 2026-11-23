@@ -243,17 +243,17 @@ document.head.insertAdjacentHTML('beforeend',`<style>
 .wp-strip{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin:8px 0 4px}
 .wp-d{text-align:center;padding:6px 2px;border-radius:12px;background:var(--surface);border:1px solid var(--line);cursor:pointer;min-width:0}.wp-d.today{border:2px solid var(--accent)}
 .wp-d small{font-weight:800;font-size:10px;color:var(--ink-2)}.wp-d div{font-size:18px}.wp-d b{font-size:9px;font-weight:700;display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.wp-d i{font-style:normal;font-size:10px}
-.wp-d.cov,.wp-d.off{opacity:.6}.wp-d.cov b,.wp-d.off b{text-decoration:line-through}.wp-d.mv{background:#eef2ff}.wp-d.adj b::after{content:' *'}
+.wp-d.cov,.wp-d.off{opacity:.6}.wp-d.cov b,.wp-d.off b{text-decoration:line-through}.wp-d.mv{background:color-mix(in srgb,var(--accent-2) 14%,var(--surface))}.wp-d.adj b::after{content:' *'}
 .wp-last{font-size:13px;color:var(--ink-2);margin-top:6px;cursor:pointer}.wp-last u{color:var(--accent);font-weight:700}
-.wp-pend{width:100%;margin-top:6px;border:none;border-radius:10px;background:#fff7ed;color:#9a3412;font-weight:700;padding:8px 10px;text-align:left;cursor:pointer}
-.wp-ch{background:#eef2ff;border-radius:14px;padding:12px 14px;margin-top:var(--s2);text-align:left}.wp-ch.warn{background:#fff7ed}.wp-ch-h{display:flex;justify-content:space-between;gap:8px;align-items:baseline;flex-wrap:wrap}.wp-ch-h small{color:var(--ink-2);font-size:12px}
+.wp-pend{width:100%;margin-top:6px;border:none;border-radius:10px;background:color-mix(in srgb,var(--warn) 14%,var(--surface));color:var(--warn);font-weight:700;padding:8px 10px;text-align:left;cursor:pointer}
+.wp-ch{background:color-mix(in srgb,var(--accent-2) 14%,var(--surface));border-radius:14px;padding:12px 14px;margin-top:var(--s2);text-align:left}.wp-ch.warn{background:color-mix(in srgb,var(--warn) 14%,var(--surface))}.wp-ch-h{display:flex;justify-content:space-between;gap:8px;align-items:baseline;flex-wrap:wrap}.wp-ch-h small{color:var(--ink-2);font-size:12px}
 .wp-ch-l{font-size:14px;margin-top:4px}.wp-ch-a,.wp-opts{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-.wp-bal{background:#fff7ed;color:#9a3412;border-radius:12px;padding:10px 12px;margin-top:var(--s2);display:grid;gap:6px;font-size:14px}.wp-bal small{font-size:12px;opacity:.85}
-.wp-miss{font-size:14px;margin-top:6px}.wp-miss.ok{color:var(--ink-2)}.wp-warn{color:#c2410c;font-weight:700}
+.wp-bal{background:color-mix(in srgb,var(--warn) 14%,var(--surface));color:var(--warn);border-radius:12px;padding:10px 12px;margin-top:var(--s2);display:grid;gap:6px;font-size:14px}.wp-bal small{font-size:12px;opacity:.85}
+.wp-miss{font-size:14px;margin-top:6px}.wp-miss.ok{color:var(--ink-2)}.wp-warn{color:var(--warn);font-weight:700}
 .wp-change{width:100%;margin-top:var(--s1)}
 .wp-balc details{margin-top:8px}.wp-balc summary{font-size:13px;color:var(--ink-2);cursor:pointer}
-.wp-mb{display:flex;align-items:center;gap:8px;font-size:13px;margin-top:6px}.wp-mb span{width:88px}.wp-mb i{display:flex;gap:3px}.wp-mb b{width:18px;height:8px;border-radius:4px;background:var(--fill)}.wp-mb b.on{background:var(--ink)}.wp-mb b.hi{background:#ea580c}
-.wp-today{background:#fff0f3}
+.wp-mb{display:flex;align-items:center;gap:8px;font-size:13px;margin-top:6px}.wp-mb span{width:88px}.wp-mb i{display:flex;gap:3px}.wp-mb b{width:18px;height:8px;border-radius:4px;background:var(--fill)}.wp-mb b.on{background:var(--ink)}.wp-mb b.hi{background:var(--warn)}
+.wp-today{background:var(--accent-soft)}
 .fc-pre{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.fc-pre button{border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:14px;padding:10px 6px;cursor:pointer;text-align:center;min-width:0}
 .fc-pre button b{display:block;font-size:16px}.fc-pre button small{display:block;font-size:11px;color:var(--ink-2);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .fc-pre button.on{background:var(--ink);border-color:var(--ink);color:var(--surface)}.fc-pre button.on small{color:var(--surface);opacity:.75}
