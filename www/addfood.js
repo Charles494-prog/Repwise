@@ -1,9 +1,9 @@
-// RepWise "Add food" flow: Catalog · My meals · Recent · Plate. Every log goes through the plate.
+// RepWise "Add food" flow: Catalog · My meals · My dishes · Recent · Plate. Every log goes through the plate.
 // All macro math comes from foods.js (FOODDB). Entries are stored as
 // [name, kcal, protein, carbs, fat, fiber, meta] so every existing screen keeps working.
 (function () {
   const F = window.FOODDB;
-  S.myMeals ??= []; S.oilPref ??= {};
+  S.myDishes ??= []; S.myMeals ??= []; S.oilPref ??= {};
   const AF = { screen: 'search' };
   const r1 = v => Math.round(v * 10) / 10;
   const fmt = t => `P ${Math.round(t.p)} · C ${Math.round(t.c)} · F ${Math.round(t.f)} · fiber ${Math.round(t.fib)} g`;
@@ -68,6 +68,11 @@
   .plbar .t{flex:1}.plbar .t b{display:block;font-size:var(--fs-body)}.plbar .t small{opacity:.7;font-size:var(--fs-caption)}
   .plbar button{background:#fff;color:var(--ink);border:none;border-radius:var(--r-pill);padding:10px 18px;font-weight:700}
   .afprim{display:flex;gap:var(--s2);align-items:center}.afprim .btn{flex:1}
+  .afprim2{display:flex;gap:10px;align-items:stretch}.afprim2 .btn{flex:1}
+  .afplus{position:relative;flex:none;width:58px;border-radius:16px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer}
+  .afplus svg{width:26px;height:26px}.afplus b{position:absolute;left:9px;top:5px;font-size:16px;line-height:1}
+  .afplus i{position:absolute;top:-6px;right:-6px;min-width:20px;height:20px;border-radius:10px;background:var(--accent);color:#fff;font-style:normal;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 5px}
+  .afplnote{display:block;width:100%;background:var(--fill);border:none;border-radius:12px;padding:8px 12px;margin-bottom:8px;text-align:left;font-weight:600;font-size:var(--fs-label);color:var(--ink);cursor:pointer}
   .afmiss{background:var(--fill);border-radius:10px}
   .afmiss input::placeholder{color:var(--accent)}
   .afgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:var(--s1)}
@@ -85,12 +90,12 @@
 
   // ---------- favorites / my meals storage ----------
   S.favs ??= []; S.dontAsk ??= [];
-  S.myMeals.forEach((m, i) => { m.id ??= 'm' + Date.now().toString(36) + i; });
+  S.myDishes.forEach((m, i) => { m.id ??= 'm' + Date.now().toString(36) + i; });
   const isFav = k => S.favs.includes(k);
   window.afFav = (k, ev) => { if (ev) ev.stopPropagation(); S.favs = isFav(k) ? S.favs.filter(x => x !== k) : [...S.favs, k]; save(); haptic(); const b = ev && ev.currentTarget; if (b) { b.classList.toggle('on', isFav(k)); b.innerHTML = starSvg(isFav(k)); } else show(); };
   const starSvg = on => `<svg viewBox="0 0 24 24" fill="${on ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></svg>`;
   const star = k => `<button class="afstar${isFav(k) ? ' on' : ''}" aria-label="Favorite" onclick="afFav('${k}',event)">${starSvg(isFav(k))}</button>`;
-  const myById = id => S.myMeals.find(m => m.id === id);
+  const myById = id => S.myDishes.find(m => m.id === id);
   const EMPTY = { kcal: null, p: null, c: null, f: null, fib: null };
   // My meal totals = ingredients + manual "extra" (fields may be null = missing)
   function myTotals(m) { const t = F.round(F.sumItems(m.items || [])), x = m.extra || {}; const o = {}; for (const k of ['kcal', 'p', 'c', 'f', 'sat', 'fib']) o[k] = (t[k] || 0) + (x[k] || 0); return o; }
@@ -142,19 +147,20 @@
     regIng(rec); save(); haptic(); toast(c.id ? 'Ingredient saved' : `Saved “${esc(name)}” to My ingredients`);
     if (c.ret === 'ing') return afPickIng('my_' + rec.id); afOpenIng('my_' + rec.id); };
   window.afDupIng = id => { const m = S.myIngredients.find(x => x.id === id), c = JSON.parse(JSON.stringify(m)); c.id = newId(); c.name = m.name + ' (copy)'; S.myIngredients.push(c); regIng(c); save(); toast('Duplicated'); afOpenIng('my_' + c.id); };
-  window.afDelIng = id => { const m = S.myIngredients.find(x => x.id === id), used = S.myMeals.filter(x => (x.items || []).some(i => i.id === 'my_' + id)).length;
+  window.afDelIng = id => { const m = S.myIngredients.find(x => x.id === id), used = S.myDishes.filter(x => (x.items || []).some(i => i.id === 'my_' + id)).length;
     if (!confirm(`Delete “${m.name}” from My ingredients?${used ? `\n\nIt's used in ${used} saved meal${used > 1 ? 's' : ''}; those meals will no longer count it.` : ''}\n\nPast logs aren't affected.`)) return;
     S.myIngredients = S.myIngredients.filter(x => x.id !== id); delete F.ING['my_' + id]; S.favs = S.favs.filter(k => k !== 'ing:my_' + id); save(); toast('Deleted'); AF.q = ''; go('search', 'back'); };
 
   // ---------- plate ----------
   AF.plate ??= [];
   const plateTotals = () => AF.plate.reduce((t, it) => F.add(t, F.mul(it.totals, it.mult)), F.round(F.sumItems([])));
-  function addToPlate(item) { AF.plate.push({ mult: 1, ...item }); haptic(); toast(`Added ${esc(item.name)} to plate`); AF.q = ''; go('search', 'back'); }
+  function addToPlate(item) { AF.plate.push({ mult: 1, ...item }); haptic(); toast(`On the plate (${AF.plate.length}) — add more, then tap Log`); AF.q = ''; go('search', 'back'); }
 
   // ---------- index ----------
   function index() {
     const out = [];
-    for (const m of S.myMeals) { const t = myTotals(m); out.push({ type: 'my', key: 'my:' + m.id, id: m.id, name: m.name, alt: 'my meal', kcal: Math.round(t.kcal), serving: '1 serving', src: 'My meal', incomplete: missingOf(m).length > 0 }); }
+    for (const m of S.myMeals) { const its = mealPlate(m); out.push({ type: 'meal', key: 'meal:' + m.id, id: m.id, name: m.name, alt: 'my meal ' + its.map(i => i.name).join(' '), kcal: Math.round(its.reduce((k, i) => k + i.totals.kcal * i.mult, 0)), serving: `${m.items.length} item${m.items.length === 1 ? '' : 's'}`, src: 'My meal' }); }
+    for (const m of S.myDishes) { const t = myTotals(m); out.push({ type: 'my', key: 'my:' + m.id, id: m.id, name: m.name, alt: 'my dish', kcal: Math.round(t.kcal), serving: '1 serving', src: 'My dish', incomplete: missingOf(m).length > 0 }); }
     for (const d of F.DISHES) { const o = dishDefaults(d), t = dishTotals(d, d.variants[0].id, null, 1, o).totals;
       out.push({ type: 'dish', key: 'dish:' + d.id, id: d.id, name: d.name, alt: d.alt + ' ' + d.variants.map(v => v.name + ' ' + v.alt).join(' '), kcal: t.kcal, serving: d.serving, src: 'Catalog' }); }
     for (const ing of Object.values(F.ING)) { const g = ing.pc ? ing.pc.g : 100;
@@ -162,19 +168,19 @@
     return out;
   }
   function row(e, label) {
-    const open = e.type === 'dish' ? `afOpenDish('${e.id}')` : e.type === 'my' ? `afOpenMy('${e.id}')` : e.type === 'recent' ? `afRelog(${e.i})` : `afOpenIng('${e.id}')`;
+    const open = e.type === 'meal' ? `afOpenMeal('${e.id}')` : e.type === 'dish' ? `afOpenDish('${e.id}')` : e.type === 'my' ? `afOpenMy('${e.id}')` : e.type === 'recent' ? `afRelog(${e.i})` : `afOpenIng('${e.id}')`;
     return `<div class="afli" style="align-items:center" onclick="${open}"><div class="nm"><b>${escT(e.name)}${label ? `<span class="afsrc">${e.src}</span>` : ''}</b><small>${e.kcal} kcal · ${e.serving}${e.incomplete ? ' · incomplete' : ''}</small></div>${e.key ? star(e.key) : ''}</div>`;
   }
 
   // ---------- render ----------
   function show(dir) {
     const sh = $('#sheet'); sh.classList.add('af');
-    const html = ({ search: scrSearch, dish: scrDish, builder: scrBuilder, ing: scrIng, item: scrItem, my: scrMy, plate: scrPlate, mying: scrMyIng })[AF.screen]();
+    const html = ({ search: scrSearch, dish: scrDish, builder: scrBuilder, ing: scrIng, item: scrItem, my: scrMy, plate: scrPlate, mying: scrMyIng, meal: scrMeal, mealed: scrMealEd, mealpick: scrMealPick })[AF.screen]();
     const k = html.indexOf('<div class="afbar">'), body = k >= 0 ? html.slice(0, k) : html;
     let bar = k >= 0 ? html.slice(k) : '';
     if (AF.screen === 'search' && AF.plate.length) { const t = plateTotals(); bar = `<div class="plbar" onclick="afGo('plate')"><div class="t"><b>Plate · ${AF.plate.length} item${AF.plate.length > 1 ? 's' : ''} · ${Math.round(t.kcal)} kcal</b><small>Tap to review</small></div><button onclick="event.stopPropagation();afLogPlate()">Log</button></div>`; }
     sh.innerHTML = `<div class="grab"></div><div class="afscr${dir === 'back' ? ' back' : ''}">${body}</div>${bar}`;
-    if (AF.screen === 'search' || AF.screen === 'ing') { const i = $('#afq'); i.value = AF.q || ''; afSearch(i.value); if (!AF.plate.length || AF.screen === 'ing') setTimeout(() => i.focus(), 60); }
+    if (AF.screen === 'search' || AF.screen === 'ing' || AF.screen === 'mealpick') { const i = $('#afq'); i.value = AF.q || ''; afSearch(i.value); if (!AF.plate.length || AF.screen === 'ing') setTimeout(() => i.focus(), 60); }
   }
   const go = (s, dir) => { AF.screen = s; show(dir); };
   window.afGo = s => go(s);
@@ -184,7 +190,7 @@
   // ---------- search ----------
   function scrSearch() {
     return `${head('Add food', null)}
-    <div class="afsearch">${ic('search')}<input id="afq" placeholder="Search food, dish or my meals" autocomplete="off" oninput="afSearch(this.value)"></div>
+    <div class="afsearch">${ic('search')}<input id="afq" placeholder="Search food, dishes or my meals" autocomplete="off" oninput="afSearch(this.value)"></div>
     <div id="afres"></div>`;
   }
   function recentList() {
@@ -207,23 +213,24 @@
     }
     const all = index(), rec = recentList();
     if (!q.trim()) {
-      const favs = all.filter(e => isFav(e.key)), mine = all.filter(e => e.type === 'my'), myIng = all.filter(e => e.src === 'My ingredient');
+      const favs = all.filter(e => isFav(e.key)), meals = all.filter(e => e.type === 'meal'), mine = all.filter(e => e.type === 'my'), myIng = all.filter(e => e.src === 'My ingredient');
       // Start screen: two clear actions, browse by category, then your own foods.
       if (AF.browse) { const B = BROWSE.find(b => b[0] === AF.browse), list = AF.browse === 'dish' ? all.filter(e => e.type === 'dish') : all.filter(e => e.type === 'ing' && e.group === AF.browse);
         box.innerHTML = `<div class="afbrowse-h"><button class="aflink" style="text-decoration:none" onclick="afBrowse(null)">‹ All</button><b>${B[1]}</b><span class="t-caption">${list.length}</span></div>${list.sort((a, b) => a.name.localeCompare(b.name)).map(e => row(e)).join('')}`; return; }
-      box.innerHTML = `<div class="afacts"><button onclick="afNewIng('','search')"><span class="ai">${ic('plus')}</span><b>Custom ingredient</b><small>Add one from its nutrition label</small></button><button onclick="afCreate('')"><span class="ai">${ic('clip')}</span><b>Create meal</b><small>Combine ingredients into one meal</small></button></div>
+      box.innerHTML = `<div class="afacts"><button onclick="afNewIng('','search')"><span class="ai">${ic('plus')}</span><b>Custom ingredient</b><small>Add one from its nutrition label</small></button><button onclick="afCreate('')"><span class="ai">${ic('clip')}</span><b>Create dish</b><small>A recipe from ingredients, e.g. adobo</small></button><button onclick="afNewMeal('')"><span class="ai">${ic('plus')}</span><b>Create meal</b><small>Dishes & foods you eat together</small></button></div>
         <div class="afgroup">Browse</div><div class="chips afcats">${BROWSE.map(([k, l]) => `<button onclick="afBrowse('${k}')">${l}</button>`).join('')}</div>`
         + (favs.length ? `<div class="afgroup">Favorites</div>${favs.map(e => row(e, true)).join('')}` : '')
-        + (mine.length ? `<div class="afgroup">My meals</div>${mine.map(e => row(e)).join('')}` : '')
+        + (meals.length ? `<div class="afgroup">My meals</div>${meals.map(e => row(e)).join('')}` : '')
+        + (mine.length ? `<div class="afgroup">My dishes</div>${mine.map(e => row(e)).join('')}` : '')
         + (myIng.length ? `<div class="afgroup">My ingredients</div>${myIng.map(e => row(e)).join('')}` : '')
         + (rec.length ? `<div class="afgroup">Recent</div>${rec.map(e => row(e)).join('')}` : '')
-        + (!favs.length && !mine.length && !rec.length ? `<div class="afempty">${ic('search')}<b>Search 50+ Filipino dishes and 130 ingredients</b><span>or browse above. Tap ☆ on anything you eat often and it shows up here.</span></div>` : '');
+        + (!favs.length && !mine.length && !meals.length && !rec.length ? `<div class="afempty">${ic('search')}<b>Search 50+ Filipino dishes and 130 ingredients</b><span>or browse above. Tap ☆ on anything you eat often and it shows up here.</span></div>` : '');
       return;
     }
     let res = F.search(q, [...all, ...rec]);
-    const rank = e => (e.type === 'my' || e.src === 'My ingredient' ? 2 : 0) + (isFav(e.key) ? 1 : 0);
+    const rank = e => (e.type === 'meal' || e.type === 'my' || e.src === 'My ingredient' ? 2 : 0) + (isFav(e.key) ? 1 : 0);
     res = res.map((e, i) => ({ e, i })).sort((a, b) => rank(b.e) - rank(a.e) || a.i - b.i).map(x => x.e).slice(0, 30);
-    box.innerHTML = res.map(e => row(e, true)).join('') + `<div class="afli create" onclick="afNewIng(AF.q,'search')"><b>Create ingredient “${esc(q.trim())}”</b><span>${ic('plus')}</span></div><div class="afli create" onclick="afCreate(AF.q)"><b>Create meal “${esc(q.trim())}”</b><span>${ic('plus')}</span></div>`;
+    box.innerHTML = res.map(e => row(e, true)).join('') + `<div class="afli create" onclick="afNewIng(AF.q,'search')"><b>Create ingredient “${esc(q.trim())}”</b><span>${ic('plus')}</span></div><div class="afli create" onclick="afCreate(AF.q)"><b>Create dish “${esc(q.trim())}”</b><span>${ic('plus')}</span></div><div class="afli create" onclick="afNewMeal(AF.q)"><b>Create meal “${esc(q.trim())}”</b><span>${ic('plus')}</span></div>`;
   };
 
   // ---------- dish (catalog) ----------
@@ -241,7 +248,10 @@
   const heroBlock = (t, sub) => `<div class="afhero"><div class="t-display num" id="afk">${Math.round(t.kcal)}</div><div class="t-label muted">kcal${sub ? ' · ' + sub : ''}</div><div class="t-caption num" id="afm" style="margin-top:6px">${fmt(t)}</div></div>`;
   const fatLine = t => t.f > 0 ? `<div class="afnote">Fat ${r1(t.f)} g · saturated ${r1(t.sat)} g · unsaturated ${r1(Math.max(0, t.f - t.sat))} g</div>` : '';
   const primary = (t, label, fn, second) => `<div class="afbar"><div class="afprim"><button class="btn" data-kc="${label} · # kcal" onclick="${fn}">${label} · ${Math.round(t.kcal)} kcal</button>${second || ''}</div></div>`;
-  const logNow = fn => `<button class="aflink" style="text-decoration:none;white-space:nowrap" onclick="${fn}">Log now</button>`;
+  // Log flow: one clear action (Log) plus a small plate button for building multi-item meals.
+  // The plate count shows on the button; when something is already on the plate, a line links to it.
+  const plateIc = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="13" r="7.5"/><circle cx="12" cy="13" r="4"/></svg>`;
+  const logBar = (t, logFn, plateFn, label = 'Log') => `<div class="afbar">${AF.plate.length ? `<button class="afplnote" onclick="afGo('plate')">Plate: ${AF.plate.length} item${AF.plate.length > 1 ? 's' : ''} waiting · ${Math.round(plateTotals().kcal)} kcal ›</button>` : ''}<div class="afprim2"><button class="btn" data-kc="${label} · # kcal" onclick="${logFn}">${label} · ${Math.round(t.kcal)} kcal</button>${plateFn ? `<button class="afplus" aria-label="Add to plate" title="Add to plate" onclick="${plateFn}"><b>+</b>${plateIc}${AF.plate.length ? `<i>${AF.plate.length}</i>` : ''}</button>` : ''}</div></div>`;
   const infoBtn = msg => `<button class="pg-i" aria-label="Info" onclick="afInfo('${msg}')">i</button>`;
   window.afInfo = k => { const T = { recipe: ['About this dish', 'Calories come from a typical home recipe (grams of each ingredient per serving) using USDA FoodData Central values. Filipino ingredients use the closest USDA equivalent until FNRI PhilFCT values are added. Restaurant and carinderia portions can be bigger and oilier — use Adjust ingredients to match yours.'] }[k]; const keep = AF.screen; openSheet(`<h3 class="t-title">${T[0]}</h3><p class="t-body" style="margin:var(--s2) 0">${T[1]}</p><button class="btn sec2" onclick="closeSheet();setTimeout(()=>{$('#sheet').classList.add('show');$('#sheetbg').classList.add('show');AF.screen='${keep}';AF_show()},420)">Back</button>`); };
   function scrDish() {
@@ -253,14 +263,14 @@
     <div class="afrow"><span>Servings</span><span class="afstep"><button onclick="afN(-0.5)">−</button><b>${AF.n}</b><button onclick="afN(0.5)">+</button></span></div>
     ${cookingBlock()}${fatLine(t)}
     <button class="aflink" onclick="afToBuilder()">Adjust ingredients</button>
-    ${primary(t, 'Add to plate', 'afDishToPlate()', logNow('afDishToPlate(true)'))}`;
+    ${logBar(t, 'afDishToPlate(true)', 'afDishToPlate()')}`;
   }
   window.afBack = s => go(s, 'back');
   window.afVar = id => { AF.v = id; AF.cut = null; haptic(); show(); };
   window.afCut = c => { AF.cut = c; haptic(); show(); };
   window.afN = d => { AF.n = Math.max(0.5, Math.min(10, AF.n + d)); haptic(); show(); };
   const dishName = () => { const d = AF.d, v = d.variants.find(x => x.id === AF.v); return d.variants.length > 1 ? `${d.name} (${v.name}${AF.cut ? ', ' + AF.cut : ''})` : d.name; };
-  window.afDishToPlate = now => { const { meal, totals } = current(); const it = { name: dishName() + (AF.n !== 1 ? ` ×${AF.n}` : ''), totals, meta: { kind: 'dish', dish: AF.d.id, variant: AF.v, cut: AF.cut, servings: AF.n, method: AF.method, oilType: AF.oilType, oilAmt: AF.oilAmt, items: meal.items, sat: totals.sat } };
+  window.afDishToPlate = now => { const { meal, totals } = current(); const it = { name: dishName() + (AF.n !== 1 ? ` ×${AF.n}` : ''), totals, meta: { kind: 'dish', dish: AF.d.id, variant: AF.v, cut: AF.cut, servings: AF.n, method: AF.method, oilType: AF.oilType, oilAmt: AF.oilAmt, ...(AF.oilAmt === 'custom' ? { oilG: AF.oilG } : {}), items: meal.items, sat: totals.sat } };
     if (now) return logItems([{ ...it, mult: 1 }], false); addToPlate(it); };
   window.afToBuilder = () => { Object.assign(AF, { items: F.dishItems(AF.d, AF.v, AF.cut, AF.n), name: 'My ' + dishName().replace(/^./, c => c.toLowerCase()), editMy: null, extra: null, manual: false, override: null, edit: -1, from: 'dish', adjustedFrom: dishName(), origItems: JSON.stringify(F.dishItems(AF.d, AF.v, AF.cut, AF.n)) }); go('builder'); };
 
@@ -277,10 +287,10 @@
     ${nutrientBlock(AF.items)}
     <div class="afnote" style="margin-top:var(--s2)">Per 100 ${u}: ${Math.round(ing.per100.kcal)} kcal · ${ing.src}${ing.mine && ['p', 'c', 'f', 'sat', 'fib'].some(k => ing.per100[k] == null) ? ` · ${['p', 'c', 'f', 'sat', 'fib'].filter(k => ing.per100[k] == null).map(k => ({ p: 'protein', c: 'carbs', f: 'fat', sat: 'saturated fat', fib: 'fibre' })[k]).join(', ')} unknown (shown as 0)` : ''}</div>
     ${ing.mine ? `<div style="display:flex;flex-wrap:wrap;gap:0 var(--s3)"><button class="aflink" onclick="afEditIng('${ing.mine}')">Edit</button><button class="aflink" onclick="afDupIng('${ing.mine}')">Duplicate</button><button class="aflink" onclick="afDelIng('${ing.mine}')">Delete</button></div>` : ''}
-    ${primary(t, 'Add to plate', 'afIngToPlate()', logNow('afIngToPlate(true)'))}`;
+    ${logBar(t, 'afIngToPlate(true)', 'afIngToPlate()')}`;
   }
   window.afItemG = g => { AF.g = Math.max(1, r1(g)); haptic(); show(); };
-  window.afIngToPlate = now => { const ing = F.ING[AF.ingId], { meal, totals } = current(), it = { name: ing.name, ing: { id: ing.id, g: AF.g }, totals, meta: { kind: 'custom', ing: { id: ing.id, g: AF.g }, items: meal.items, method: AF.method, oilType: AF.oilType, oilAmt: AF.oilAmt, sat: totals.sat } };
+  window.afIngToPlate = now => { const ing = F.ING[AF.ingId], { meal, totals } = current(), it = { name: ing.name, ing: { id: ing.id, g: AF.g }, totals, meta: { kind: 'custom', ing: { id: ing.id, g: AF.g }, items: meal.items, method: AF.method, oilType: AF.oilType, oilAmt: AF.oilAmt, ...(AF.oilAmt === 'custom' ? { oilG: AF.oilG } : {}), sat: totals.sat } };
     if (now) return logItems([{ ...it, mult: 1 }], false); addToPlate(it); };
 
   // ---------- cooking / oil / manual ----------
@@ -300,7 +310,7 @@
 
   // ---------- builder (copies, new meals, editing My meals) ----------
   window.afCreate = name => { Object.assign(AF, { items: [], name: (name || '').trim() || nextName(), method: 'raw', oilType: 'none', oilAmt: null, manual: false, override: null, extra: null, editMy: null, edit: -1, from: 'search', adjustedFrom: null }); go('builder'); };
-  const nextName = () => { let n = 1; while (S.myMeals.some(m => m.name === `Custom meal #${n}`)) n++; return `Custom meal #${n}`; };
+  const nextName = () => { let n = 1; while (S.myDishes.some(m => m.name === `Custom dish #${n}`)) n++; return `Custom dish #${n}`; };
   const rowAct = (edit, del, open) => `<span class="afact"><button class="${open ? 'on' : ''}" aria-label="Edit amount" onclick="${edit}">✏️</button><button aria-label="Remove" onclick="${del}">${ic('x')}</button></span>`;
   function scrBuilder() {
     const { meal, totals: t } = current(), editing = AF.editMy != null;
@@ -312,15 +322,15 @@
         <div class="chips">${[50, 100, 150, 200].map(g => `<button onclick="afSetG(${i},${g})">${g} g</button>`).join('')}${ing.pc ? `<button onclick="afSetG(${i},${ing.pc.g})">1 ${ing.pc.label}</button><button onclick="afSetG(${i},${ing.pc.g * 2})">2 ${ing.pc.label}s</button>` : ''}</div></div>` : ''}</div>`; }).join('');
     const ex = AF.extra, exRow = ex ? `<div class="afing"><div class="row2"><b>Other (entered by hand)</b><button class="gbtn" onclick="afExtraEdit()">edit</button><span class="afkc">${Math.round(ex.kcal || 0)}</span></div></div>` : '';
     const manual = AF.manual ? manualFields() : '';
-    return `${head(editing ? 'Edit my meal' : AF.adjustedFrom ? 'Adjust ingredients' : 'Create meal', AF.from === 'dish' ? "afBack('dish')" : AF.from === 'my' ? "afBack('my')" : "afBack('search')")}
+    return `${head(editing ? 'Edit my dish' : AF.adjustedFrom ? 'Adjust ingredients' : 'Create dish', AF.from === 'dish' ? "afBack('dish')" : AF.from === 'my' ? "afBack('my')" : "afBack('search')")}
     <div class="afsticky"><div class="t-display num" id="afk" style="font-size:40px">${Math.round(t.kcal)}</div><div class="t-caption num" id="afm">${fmt(t)}</div></div>
-    <label class="affield full"><span>Meal name</span><span class="in"><input value="${esc(AF.name || '')}" placeholder="Any name, e.g. My_Usual_meal_Breast_Chicken" oninput="AF.name=this.value"></span></label>
+    <label class="affield full"><span>Dish name</span><span class="in"><input value="${esc(AF.name || '')}" placeholder="Any name, e.g. Chicken adobo" oninput="AF.name=this.value"></span></label>
     ${AF.adjustedFrom ? `<div class="afnote">A copy of ${esc(AF.adjustedFrom)}. The catalog dish stays the same.</div>` : ''}
     ${manual || `<div class="afsec">Ingredients</div>${rows}${exRow}${!rows && !exRow ? '<div class="afnote" style="padding:8px 0">Add the first ingredient, or enter the totals by hand.</div>' : ''}
     <button class="aflink" style="text-decoration:none;display:flex;align-items:center;gap:8px" onclick="afAddIng()">${ic('plus')} Add ingredient</button>
     ${!rows && !exRow ? `<button class="aflink" onclick="afManual()">Enter totals by hand</button>` : ''}
     ${meal.items.some(i => !i.oil) ? cookingBlock() + fatLine(t) + nutrientBlock(meal.items) : ''}`}
-    ${editing ? primary(t, 'Save changes', 'afSaveMy()') : primary(t, 'Add to plate', 'afBuilderToPlate()', logNow('afBuilderToPlate(true)'))}
+    ${editing ? primary(t, 'Save changes', 'afSaveMy()') : logBar(t, 'afBuilderToPlate(true)', 'afBuilderToPlate()')}
     ${!editing && !AF.manual ? '' : ''}`;
   }
   function manualFields() {
@@ -355,12 +365,12 @@
 
   function scrIng() { return `${head('Add ingredient', "afBack('builder')")}<div class="afsearch">${ic('search')}<input id="afq" placeholder="Search ingredients" autocomplete="off" oninput="afSearch(this.value)"></div><div id="afres"></div>`; }
 
-  // ---------- My meals ----------
+  // ---------- My dishes (a recipe made of ingredients; stored in S.myDishes) ----------
   window.afOpenMy = id => { AF.myId = id; AF.portion = 1; go('my'); };
   function scrMy() {
     const m = myById(AF.myId); if (!m) return go('search');
     const t = F.mul(myTotals(m), AF.portion), miss = missingOf(m);
-    return `${head('My meal', "afBack('search')", star('my:' + m.id))}
+    return `${head('My dish', "afBack('search')", star('my:' + m.id))}
     <div class="t-title" style="margin-top:var(--s1)">${escT(m.name)}</div>
     ${heroBlock(t, AF.portion === 1 ? '1 serving' : `${AF.portion} servings`)}
     ${miss.length ? `<div class="afnote" style="text-align:center">Incomplete · missing ${miss.join(', ')} · <button class="aflink" style="padding:0" onclick="afEditMy()">Fill in</button></div>` : ''}
@@ -369,18 +379,18 @@
     <div style="display:flex;flex-wrap:wrap;gap:0 var(--s3);margin-top:var(--s2)">
       <button class="aflink" onclick="afAdjustMy()">Adjust before logging</button><button class="aflink" onclick="afEditMy()">Edit</button>
       <button class="aflink" onclick="afDupMy('${m.id}')">Duplicate</button><button class="aflink" onclick="afDelMy('${m.id}')">Delete</button></div>
-    ${primary(t, 'Log', 'afLogMy()', `<button class="aflink" style="text-decoration:none;white-space:nowrap" onclick="afMyToPlate()">Add to plate</button>`)}`;
+    ${logBar(t, 'afLogMy()', 'afMyToPlate()')}`;
   }
   const myToItem = (m, portion) => ({ name: m.name + (portion !== 1 ? ` ×${portion}` : ''), totals: myTotals(m), mult: portion, meta: { kind: 'my', myId: m.id, items: JSON.parse(JSON.stringify(m.items || [])), extra: m.extra || null, method: m.method, oilType: m.oilType, oilAmt: m.oilAmt, sat: myTotals(m).sat } });
   window.afLogMy = () => logItems([myToItem(myById(AF.myId), AF.portion)], false);
-  window.afMyToPlate = () => { const it = myToItem(myById(AF.myId), AF.portion); AF.plate.push(it); haptic(); toast(`Added ${esc(it.name)} to plate`); AF.q = ''; go('search', 'back'); };
+  window.afMyToPlate = () => { addToPlate(myToItem(myById(AF.myId), AF.portion)); };
   function loadMyIntoBuilder(m, asCopy) { Object.assign(AF, { items: JSON.parse(JSON.stringify(m.items || [])).map(it => ({ id: it.id, g: r1(it.g * (asCopy ? AF.portion : 1)) })), extra: m.extra ? { ...m.extra } : null, name: m.name, method: m.method || 'raw', oilType: m.oilType || 'none', oilAmt: m.oilAmt || null, manual: false, override: null, edit: -1, from: 'my', adjustedFrom: null, editMy: asCopy ? null : m.id }); go('builder'); }
   window.afAdjustMy = () => loadMyIntoBuilder(myById(AF.myId), true);
   window.afEditMy = () => { const m = myById(AF.myId); loadMyIntoBuilder(m, false); if (m.extra && missingOf(m).length && !(m.items || []).length) { AF.manual = true; AF.override = { ...m.extra }; AF.extra = null; show(); } };
-  window.afSaveMy = () => { const m = myById(AF.editMy), s = builderSnapshot(), name = (AF.name || '').trim(); if (!name) return toast('Give your meal a name');
+  window.afSaveMy = () => { const m = myById(AF.editMy), s = builderSnapshot(), name = (AF.name || '').trim(); if (!name) return toast('Give your dish a name');
     Object.assign(m, { name, items: s.items, extra: s.extra, method: s.method, oilType: s.oilType, oilAmt: s.oilAmt }); save(); haptic(); toast('Saved. Past logs stay as they were.'); AF.myId = m.id; go('my', 'back'); };
-  window.afDupMy = id => { const m = myById(id), c = JSON.parse(JSON.stringify(m)); c.id = newId(); c.name = m.name + ' (copy)'; S.myMeals.push(c); save(); toast('Duplicated'); AF.myId = c.id; show(); };
-  window.afDelMy = id => { const m = myById(id); if (!confirm(`Delete “${m.name}” from My meals?\n\nPast logs aren't affected.`)) return; S.myMeals = S.myMeals.filter(x => x.id !== id); S.favs = S.favs.filter(k => k !== 'my:' + id); save(); toast('Deleted'); if (AF.screen === 'my') go('search', 'back'); else render(); };
+  window.afDupMy = id => { const m = myById(id), c = JSON.parse(JSON.stringify(m)); c.id = newId(); c.name = m.name + ' (copy)'; S.myDishes.push(c); save(); toast('Duplicated'); AF.myId = c.id; show(); };
+  window.afDelMy = id => { const m = myById(id); const inMeals = S.myMeals.filter(x => x.items.some(i => i.k === 'my' && i.id === id)); if (!confirm(`Delete the dish “${m.name}”?${inMeals.length ? `\n\nIt's also removed from: ${inMeals.map(x => x.name).join(', ')}.` : ''}\n\nPast logs aren't affected.`)) return; inMeals.forEach(x => x.items = x.items.filter(i => !(i.k === 'my' && i.id === id))); S.myDishes = S.myDishes.filter(x => x.id !== id); S.favs = S.favs.filter(k => k !== 'my:' + id); save(); toast('Deleted'); if (AF.screen === 'my') go('search', 'back'); else render(); };
 
   // ---------- plate ----------
   function scrPlate() {
@@ -409,6 +419,7 @@
   const sig = items => items.map(i => i.name.replace(/ ×[\d.]+$/, '')).sort().join(' + ');
   window.__afLog = items => logItems(items, false);
   function logItems(items, fromPlate) {
+    const noAsk = AF.noAsk; AF.noAsk = false;
     if (!items.length) return;
     if (!fastOK()) { if (fromPlate) AF.plate.unshift(...items); return; }
     let kcal = 0;
@@ -418,8 +429,8 @@
     save(); render(); xpFly(`+${Math.round(kcal)} kcal`);
     const name = items.length === 1 ? items[0].name : `${items.length} items`, s = sig(items);
     const isMine = items.length === 1 && items[0].meta?.kind === 'my';
-    const exists = S.myMeals.some(m => sig([{ name: m.name }]) === s) || S.myMeals.some(m => m.combo === s);
-    const ask = !isMine && !exists && !S.dontAsk.includes(s) && (items.length >= 2 || items[0].adjusted);
+    const exists = S.myDishes.some(m => sig([{ name: m.name }]) === s) || S.myDishes.some(m => m.combo === s) || S.myMeals.some(m => m.combo === s || sig([{ name: m.name }]) === s);
+    const ask = !noAsk && !isMine && !exists && !S.dontAsk.includes(s) && (items.length >= 2 || items[0].adjusted);
     const after = () => { if (viewDate === today()) afterMeal(name, Math.round(kcal)); else closeSheet(); };
     if (ask) { AF.pending = { items, s, after }; savePrompt(); } else { closeSheet(); setTimeout(after, 350); }
   }
@@ -430,32 +441,132 @@
     const L = { p: 'protein', c: 'carbs', f: 'fat', fib: 'fiber' };
     $('#sheet').classList.remove('af'); $('#sheet').classList.add('show'); $('#sheetbg').classList.add('show');
     $('#sheet').innerHTML = `<div class="grab"></div><h3 class="t-title">${items.length > 1 ? 'New combination' : 'You adjusted this dish'}</h3>
-      <p class="t-label muted" style="margin:6px 0 var(--s2)">Save it as a meal so next time it's one tap?</p>
+      <p class="t-label muted" style="margin:6px 0 var(--s2)">${items.length > 1 ? 'Save it as a meal so next time it’s one tap?' : 'Save it as one of your dishes?'}</p>
       <div class="afrow"><span>Name</span><input id="spn" style="width:65%" value="${esc(def)}"></div>
       ${miss.length ? `<div class="afsec">Fill in now or later</div>${miss.map(({ i, k }, n) => `<div class="afrow afmiss"><span style="font-weight:500">Missing ${L[k]} for “${esc(i.name)}”</span><input type="number" inputmode="decimal" placeholder="g" data-n="${n}"></div>`).join('')}<div class="afnote">Saving without them marks the meal incomplete.</div>` : ''}
-      <button class="btn" style="margin-top:var(--s3)" onclick="afSavePlate()">Save meal</button>
+      <button class="btn" style="margin-top:var(--s3)" onclick="afSavePlate()">${items.length > 1 ? 'Save meal' : 'Save dish'}</button>
       <div style="display:flex;justify-content:space-between;margin-top:var(--s1)"><button class="aflink" style="text-decoration:none" onclick="afSkipSave(false)">Not now</button><button class="aflink" style="text-decoration:none;color:var(--ink-2)" onclick="afSkipSave(true)">Don't ask again for this</button></div>`;
     AF.pending.miss = miss;
   }
   window.afSavePlate = () => {
     const P = AF.pending, name = $('#spn').value.trim() || nextName();
+    if (P.items.length > 1) return savePlateAsMeal(P, name);
     document.querySelectorAll('#sheet [data-n]').forEach(inp => { if (inp.value !== '') { const { i, k } = P.miss[+inp.dataset.n]; i.draft.extra[k] = +inp.value; } });
     const items = [], extra = { kcal: 0, p: 0, c: 0, f: 0, sat: 0, fib: 0 }; let hasExtra = false;
     for (const it of P.items) { const m = it.mult || 1, src = it.draft || (it.meta?.kind === 'my' ? { items: it.meta.items, extra: it.meta.extra } : { items: (it.meta?.items || []).filter(x => !x.oil).concat((it.meta?.items || []).filter(x => x.oil)) });
       (src.items || []).forEach(x => items.push({ id: x.id, g: r1(x.g * m), ...(x.oil ? { oil: true } : {}) }));
       if (src.extra) { hasExtra = true; for (const k of Object.keys(extra)) extra[k] = extra[k] == null || src.extra[k] == null ? (k === 'kcal' ? extra[k] + (src.extra[k] || 0) * m : null) : extra[k] + src.extra[k] * m; } }
-    S.myMeals.push({ id: newId(), name, items, extra: hasExtra ? extra : null, method: 'raw', oilType: 'none', oilAmt: null, combo: P.s }); S.dontAsk.push(P.s); save(); haptic();
-    toast(`Saved “${esc(name)}” to My meals`); closeSheet(); setTimeout(P.after, 400); AF.pending = null;
+    S.myDishes.push({ id: newId(), name, items, extra: hasExtra ? extra : null, method: 'raw', oilType: 'none', oilAmt: null, combo: P.s }); S.dontAsk.push(P.s); save(); haptic();
+    toast(`Saved “${esc(name)}” to My dishes`); closeSheet(); setTimeout(P.after, 400); AF.pending = null;
   };
   window.afSkipSave = forever => { const P = AF.pending; if (forever) { S.dontAsk.push(P.s); save(); } closeSheet(); setTimeout(P.after, 400); AF.pending = null; };
   window.afRelog = i => { const x = AF.recent[i], m = x[6] || {}; const t = { kcal: x[1], p: x[2], c: x[3] || 0, f: x[4] || 0, sat: m.sat || 0, fib: x[5] || 0 }, mult = m.mult || 1;
     const ing = m.ing && F.ING[m.ing.id];
     AF.plate.push({ name: ing ? ing.name : x[0].replace(/ ×[\d.]+$/, ''), ...(ing ? { ing: m.ing } : {}), totals: F.mul(t, 1 / mult), mult, meta: m }); haptic(); toast(`Added ${esc(x[0])} to plate`); show(); };
 
-  // ---------- My meals management page ----------
-  V.mymeals = () => `<div class="top">${backBtn()}<h1>My meals</h1><button class="aflink" style="text-decoration:none" onclick="foodSheet();afCreate('')">New</button></div>
-    ${S.myMeals.length ? `<div class="plist">${S.myMeals.map(m => { const t = myTotals(m), miss = missingOf(m); return `<div class="li" style="cursor:pointer" onclick="foodSheet();afOpenMy('${m.id}')"><div style="flex:1;min-width:0"><b>${escT(m.name)}</b><small>${Math.round(t.kcal)} kcal · P ${Math.round(t.p)} g${miss.length ? ' · incomplete' : ''}</small></div>${star('my:' + m.id)}</div>`; }).join('')}</div>`
-    : `<div class="empty">No meals yet. Build one from Add food → Create meal, or save a plate after logging it.</div>`}`;
+  // ---------- Meals: a saved combination of dishes and / or foods you eat together ----------
+  // S.myMeals = [{ id, name, items: [{k:'dish', id, v, cut, n} | {k:'my', id, n} | {k:'ing', id, g}] }]
+  // Items are references (catalog dish, your dish, or an ingredient), so editing a dish updates every meal that uses it.
+  const mealById = id => S.myMeals.find(m => m.id === id);
+  function refToItem(x) {
+    if (x.k === 'dish') { const d = F.DISHES.find(y => y.id === x.id); if (!d) return null; const v = (d.variants.find(y => y.id === x.v) || d.variants[0]), o = x.method ? { method: x.method, oilType: x.oilType || 'none', oilAmt: x.oilAmt || null } : dishDefaults(d), its = F.dishItems(d, v.id, x.cut || null, 1), m = F.buildMeal(its, o.method, o.oilType, o.oilAmt, { breaded: breaded(its), g: x.oilG });
+      return { name: d.variants.length > 1 ? `${d.name} (${v.name}${x.cut ? ', ' + x.cut : ''})` : d.name, totals: m.totals, mult: x.n || 1, ref: x, meta: { kind: 'dish', dish: d.id, variant: v.id, cut: x.cut || null, servings: 1, method: o.method, oilType: o.oilType, oilAmt: o.oilAmt, items: m.items, sat: m.totals.sat } }; }
+    if (x.k === 'my') { const d = myById(x.id); if (!d) return null; return { ...myToItem(d, 1), name: d.name, mult: x.n || 1, ref: x }; }
+    if (x.k === 'ing') { const ing = F.ING[x.id]; if (!ing) return null; const its = [{ id: ing.id, g: x.g }], mth = x.method || 'raw', ot = x.oilType || 'none', oa = x.oilAmt || null, m = F.buildMeal(its, mth, ot, oa, { g: x.oilG });
+      return { name: ing.name, ing: { id: ing.id, g: x.g }, totals: m.totals, mult: 1, ref: x, meta: { kind: 'custom', ing: { id: ing.id, g: x.g }, items: m.items, method: mth, oilType: ot, oilAmt: oa, sat: m.totals.sat } }; }
+    return null;
+  }
+  const mealPlate = m => (m.items || []).map(refToItem).filter(Boolean);
+  const itemAmt = it => it.ing ? amtLabel(F.ING[it.ing.id], r1(it.ing.g * it.mult)) : `${it.mult === 0.5 ? '½' : it.mult % 1 === 0.5 ? Math.floor(it.mult) + '½' : it.mult} serving${it.mult > 1 ? 's' : ''}`;
+  const itemStep = it => it.ing ? (F.ING[it.ing.id].pc ? F.ING[it.ing.id].pc.g : 10) / it.ing.g : 0.5;
+  const sumPlate = its => its.reduce((t, it) => F.add(t, F.mul(it.totals, it.mult)), F.round(F.sumItems([])));
+  // Servings row shared by the meal screen and the meal editor.
+  const mealRow = (it, i, fnStep, fnDel, sub) => `<div class="afing"><div class="row2"><div style="flex:1;min-width:0"><b style="display:block">${escT(it.name)}</b><small class="t-caption">${sub || ''}</small></div>
+    <span class="afstep"><button aria-label="Less" onclick="${fnStep}(${i},-1)">−</button><b style="min-width:74px;font-size:13px">${itemAmt(it)}</b><button aria-label="More" onclick="${fnStep}(${i},1)">+</button></span>
+    <span class="afkc">${Math.round(it.totals.kcal * it.mult)}</span><span class="afact"><button aria-label="Remove" onclick="${fnDel}(${i})">${ic('x')}</button></span></div></div>`;
+  const kindLbl = it => it.ref?.k === 'dish' ? 'Dish' : it.ref?.k === 'my' ? 'My dish' : 'Food';
+
+  // Open: every item with its own servings, adjust for today, log all in one tap.
+  window.afOpenMeal = id => { const m = mealById(id); if (!m) return; AF.meal = { id, items: mealPlate(m) }; go('meal'); };
+  function scrMeal() {
+    const m = mealById(AF.meal.id); if (!m) return scrSearch(); const its = AF.meal.items, t = sumPlate(its), missing = m.items.length - mealPlate(m).length;
+    return `${head('My meal', "afBack('search')", star('meal:' + m.id))}
+    <div class="t-title" style="margin-top:var(--s1)">${escT(m.name)}</div>
+    ${heroBlock(t, `${its.length} item${its.length === 1 ? '' : 's'}`)}
+    <div class="afsec">Adjust servings for this time</div>
+    ${its.map((it, i) => mealRow(it, i, 'afMealN', 'afMealSkip', kindLbl(it))).join('') || '<div class="afnote">Everything is skipped — tap Reset to bring the items back.</div>'}
+    ${missing ? `<div class="afnote">${missing} item${missing > 1 ? 's were' : ' was'} deleted and left out.</div>` : ''}
+    <div style="display:flex;flex-wrap:wrap;gap:0 var(--s3);margin-top:var(--s1)"><button class="aflink" onclick="afOpenMeal('${m.id}')">Reset</button><button class="aflink" onclick="afEditMeal('${m.id}')">Edit meal</button><button class="aflink" onclick="afDelMeal('${m.id}')">Delete</button></div>
+    ${its.length ? logBar(t, 'afLogMeal()', 'afMealToPlate()', 'Log meal') : ''}`;
+  }
+  window.afMealN = (i, d) => { const it = AF.meal.items[i]; it.mult = Math.max(itemStep(it), r1((it.mult + d * itemStep(it)) * 100) / 100); haptic(); show(); };
+  window.afMealSkip = i => { const gone = AF.meal.items.splice(i, 1)[0]; haptic(); toast(`Skipped ${esc(gone.name)} this time`); show(); };
+  // Each item is logged as its own entry (so it can be edited or removed later), tagged with the meal's name.
+  const forLog = (its, meal) => its.map(it => ({ ...it, name: it.meta?.kind === 'my' && it.mult !== 1 ? `${it.name} ×${it.mult}` : it.name, meta: { ...it.meta, meal } }));
+  window.afLogMeal = () => { const m = mealById(AF.meal.id), its = AF.meal.items; if (!its.length) return; AF.noAsk = true; logItems(forLog(its, m.name), false); };
+  window.afMealToPlate = () => { const its = AF.meal.items; AF.plate.push(...its.map(it => ({ ...it }))); haptic(); toast(`On the plate (${AF.plate.length}) — add more, then tap Log`); AF.q = ''; go('search', 'back'); };
+  window.afDelMeal = id => { const m = mealById(id); if (!confirm(`Delete the meal “${m.name}”?\n\nThe dishes and foods in it stay. Past logs aren't affected.`)) return; S.myMeals = S.myMeals.filter(x => x.id !== id); S.favs = S.favs.filter(k => k !== 'meal:' + id); save(); toast('Meal deleted'); AF.q = ''; go('search', 'back'); };
+
+  // Editor: name + items (catalog dishes, your dishes and foods) with default servings.
+  window.afNewMeal = name => { AF.med = { id: null, name: (name || '').trim(), items: [] }; go('mealed'); };
+  window.afEditMeal = id => { const m = mealById(id); AF.med = { id, name: m.name, items: JSON.parse(JSON.stringify(m.items)) }; go('mealed'); };
+  function scrMealEd() {
+    const E = AF.med, its = E.items.map(refToItem), t = sumPlate(its.filter(Boolean));
+    return `${head(E.id ? 'Edit meal' : 'Create meal', E.id ? "afBack('meal')" : "afBack('search')")}
+    <div class="afsticky"><div class="t-display num" style="font-size:40px">${Math.round(t.kcal)}<span class="t-label muted" style="letter-spacing:0"> kcal</span></div><div class="t-caption num">${fmt(t)}</div></div>
+    <label class="affield full"><span>Meal name</span><span class="in"><input value="${esc(E.name)}" placeholder="e.g. My breakfast" oninput="AF.med.name=this.value"></span></label>
+    <div class="afnote">A meal is the dishes and foods you usually eat together, e.g. adobo + rice + whey. Log it in one tap and adjust each item's servings first.</div>
+    <div class="afsec">In this meal</div>
+    ${its.map((it, i) => it ? mealRow(it, i, 'afMedN', 'afMedDel', kindLbl(it)) : '').join('') || '<div class="afnote" style="padding:8px 0">Add the first dish or food.</div>'}
+    <button class="aflink" style="text-decoration:none;display:flex;align-items:center;gap:8px" onclick="AF.q='';afGo('mealpick')">${ic('plus')} Add dish or food</button>
+    ${primary(t, E.id ? 'Save meal' : 'Create meal', 'afSaveMeal()')}`;
+  }
+  window.afMedN = (i, d) => { const x = AF.med.items[i], it = refToItem(x), st = itemStep(it); if (x.k === 'ing') x.g = Math.max(1, r1(x.g * Math.max(st, it.mult + d * st))); else x.n = Math.max(0.5, (x.n || 1) + d * 0.5); haptic(); show(); };
+  window.afMedDel = i => { AF.med.items.splice(i, 1); haptic(); show(); };
+  function scrMealPick() {
+    return `${head('Add to meal', "afBack('mealed')")}<div class="afsearch">${ic('search')}<input id="afq" placeholder="Search dishes, my dishes or foods" autocomplete="off" oninput="afSearch(this.value)"></div><div id="afres"></div>`;
+  }
+  // Search results while picking items for a meal (meals themselves and recents are left out).
+  const pickRows = list => list.map(e => `<div class="afli" style="align-items:center" onclick="afMealAdd('${e.type}','${e.id}')"><div class="nm"><b>${escT(e.name)}<span class="afsrc">${e.src}</span></b><small>${e.kcal} kcal · ${e.serving}</small></div><span>${ic('plus')}</span></div>`).join('');
+  const _afSearch = window.afSearch; window.afSearch = q => { if (AF.screen !== 'mealpick') return _afSearch(q); AF.q = q; const box = $('#afres'); if (!box) return;
+    const all = index().filter(e => e.type !== 'meal'), mine = all.filter(e => e.type === 'my' || e.src === 'My ingredient');
+    box.innerHTML = q.trim() ? (pickRows(F.search(q, all).slice(0, 30)) || `<div class="afnote" style="padding:14px 0">Nothing matches “${esc(q)}”.</div>`)
+      : (mine.length ? `<div class="afgroup">Mine</div>${pickRows(mine)}` : '') + `<div class="afgroup">Filipino dishes</div>${pickRows(all.filter(e => e.type === 'dish').sort((a, b) => a.name.localeCompare(b.name)))}`; };
+  window.afMealAdd = (type, id) => { const ing = type === 'ing' && F.ING[id];
+    AF.med.items.push(type === 'dish' ? { k: 'dish', id, n: 1 } : type === 'my' ? { k: 'my', id, n: 1 } : { k: 'ing', id, g: ing.pc ? ing.pc.g : 100 }); haptic(); go('mealed', 'back'); };
+  window.afSaveMeal = () => { const E = AF.med, name = (E.name || '').trim(); if (!name) return toast('Give your meal a name'); if (!E.items.length) return toast('Add at least one dish or food');
+    let m = E.id && mealById(E.id); if (m) Object.assign(m, { name, items: E.items }); else { m = { id: newId(), name, items: E.items }; S.myMeals.push(m); }
+    save(); haptic(); toast(`Saved “${esc(name)}” to My meals`); afOpenMeal(m.id); };
+
+  // Saving a plate of several items makes a Meal. Items with no catalog / dish / food behind them
+  // (an adjusted dish, a hand-built recipe, an old log) are saved as your own dish first.
+  function savePlateAsMeal(P, name) {
+    document.querySelectorAll('#sheet [data-n]').forEach(inp => { if (inp.value !== '') { const { i, k } = P.miss[+inp.dataset.n]; i.draft.extra[k] = +inp.value; } });
+    const refs = [];
+    for (const it of P.items) { const mult = it.mult || 1, mt = it.meta || {};
+      if (it.ref) { refs.push(it.ref.k === 'ing' ? { ...it.ref, g: r1(it.ref.g * mult) } : { ...it.ref, n: mult }); continue; }
+      // Dishes always keep how they were cooked (boiled included); foods only when not plain raw. Custom oil keeps its grams.
+      const cookAll = mt.method ? { method: mt.method, oilType: mt.oilType || 'none', oilAmt: mt.oilAmt || null, ...(mt.oilAmt === 'custom' && mt.oilG ? { oilG: mt.oilG } : {}) } : {};
+      const cook = mt.method && (mt.method !== 'raw' || (mt.oilType && mt.oilType !== 'none')) ? cookAll : {};
+      if (mt.kind === 'dish' && !it.adjusted && !it.draft) { refs.push({ k: 'dish', id: mt.dish, v: mt.variant, cut: mt.cut || null, n: (mt.servings || 1) * mult, ...cookAll }); continue; }
+      if (mt.kind === 'my' && mt.myId && myById(mt.myId)) { refs.push({ k: 'my', id: mt.myId, n: mult }); continue; }
+      if (it.ing && !it.draft) { refs.push({ k: 'ing', id: it.ing.id, g: r1(it.ing.g * mult), ...cook }); continue; }
+      const src = it.draft || (mt.kind === 'my' ? { items: mt.items || [], extra: mt.extra || null, method: mt.method, oilType: mt.oilType, oilAmt: mt.oilAmt } : null) || { items: (mt.items || []).filter(x => !x.oil), extra: mt.manual ? { kcal: it.totals.kcal, p: it.totals.p, c: it.totals.c, f: it.totals.f, fib: it.totals.fib, sat: it.totals.sat || 0 } : null, method: mt.method, oilType: mt.oilType, oilAmt: mt.oilAmt };
+      const items = (src.items || []).map(x => ({ id: x.id, g: r1(x.g) })), extra = !items.length && !src.extra ? { kcal: it.totals.kcal, p: it.totals.p, c: it.totals.c, f: it.totals.f, fib: it.totals.fib, sat: it.totals.sat || 0 } : src.extra || null;
+      const d = { id: newId(), name: it.name.replace(/ ×[\d.]+$/, '').replace(/ \(\d[\d.]* [^)]*\)$/, ''), items, extra, method: src.method || 'raw', oilType: src.oilType || 'none', oilAmt: src.oilAmt || null };
+      S.myDishes.push(d); refs.push({ k: 'my', id: d.id, n: mult }); }
+    S.myMeals.push({ id: newId(), name, items: refs, combo: P.s }); S.dontAsk.push(P.s); save(); haptic();
+    toast(`Saved “${esc(name)}” to My meals`); closeSheet(); setTimeout(P.after, 400); AF.pending = null;
+  }
+
+  // ---------- My meals & dishes page ----------
+  V.mymeals = () => `<div class="top">${backBtn()}<h1>My meals</h1><span></span></div>
+    <div class="sec">Meals <small onclick="foodSheet();afNewMeal('')" style="cursor:pointer;color:var(--accent)">+ New</small></div>
+    ${S.myMeals.length ? `<div class="plist">${S.myMeals.map(m => { const its = mealPlate(m), t = sumPlate(its); return `<div class="li" style="cursor:pointer" onclick="foodSheet();afOpenMeal('${m.id}')"><div style="flex:1;min-width:0"><b>${escT(m.name)}</b><small>${Math.round(t.kcal)} kcal · ${esc(its.map(i => i.name).join(' + '))}</small></div>${star('meal:' + m.id)}</div>`; }).join('')}</div>`
+    : `<div class="empty">A meal is what you eat together, e.g. “My breakfast” = adobo + rice + whey. Log it in one tap.</div>`}
+    <div class="sec">Dishes <small onclick="foodSheet();afCreate('')" style="cursor:pointer;color:var(--accent)">+ New</small></div>
+    ${S.myDishes.length ? `<div class="plist">${S.myDishes.map(m => { const t = myTotals(m), miss = missingOf(m); return `<div class="li" style="cursor:pointer" onclick="foodSheet();afOpenMy('${m.id}')"><div style="flex:1;min-width:0"><b>${escT(m.name)}</b><small>${Math.round(t.kcal)} kcal · P ${Math.round(t.p)} g${miss.length ? ' · incomplete' : ''}</small></div>${star('my:' + m.id)}</div>`; }).join('')}</div>`
+    : `<div class="empty">A dish is a recipe made of ingredients, e.g. adobo with soy sauce, sugar and chicken. Create one when it isn't in the catalog.</div>`}<div style="height:var(--s4)"></div>`;
 
   // ---------- entry ----------
   window.foodSheet = (pre = {}) => {

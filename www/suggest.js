@@ -57,7 +57,7 @@
     combo('Oatmeal with milk & banana', [{ id: 'oats_rolled', g: 40 }, { id: 'milk', g: 200 }, { id: 'banana', g: 118 }], 'breakfast')]; }
   function userCands() {
     const out = [];
-    for (const m of S.myMeals || []) { const t = F.round(F.sumItems(m.items || [])); if (m.extra) for (const k of ['kcal', 'p', 'c', 'f', 'fib']) t[k] += m.extra[k] || 0; if (t.kcal) out.push({ kind: 'my', myId: m.id, name: m.name, t, mine: true, pd: t.p / t.kcal }); }
+    for (const m of S.myDishes || []) { const t = F.round(F.sumItems(m.items || [])); if (m.extra) for (const k of ['kcal', 'p', 'c', 'f', 'fib']) t[k] += m.extra[k] || 0; if (t.kcal) out.push({ kind: 'my', myId: m.id, name: m.name, t, mine: true, pd: t.p / t.kcal }); }
     const cutoff = iso(Date.now() - 30 * 864e5), cnt = {};
     for (const d of Object.keys(S.food)) if (d >= cutoff) for (const x of S.food[d]) { const k = x[0]; cnt[k] = cnt[k] || { n: 0, x }; cnt[k].n++; }
     Object.values(cnt).filter(c => c.n >= 2 && !out.some(o => o.name === c.x[0])).forEach(c => { const x = c.x; out.push({ kind: 'recent', name: x[0], t: { kcal: x[1], p: x[2], c: x[3] || 0, f: x[4] || 0, fib: x[5] || 0, sat: x[6]?.sat || 0 }, meta: x[6] || {}, mine: true, pd: x[2] / Math.max(1, x[1]) }); });
@@ -96,7 +96,10 @@
       : mode === 'surplus' ? `${Math.round(r.kcal).toLocaleString()} kcal and ${Math.max(0, Math.round(r.p))} g protein to go. Easy ways to get there:`
       : `${Math.round(r.kcal).toLocaleString()} kcal and ${Math.max(0, Math.round(r.p))} g protein left${mode === 'deficit' ? ' — filling, high-protein picks' : ''}:`;
     const late = mode === 'surplus' && new Date().getHours() >= 19 && r.kcal > 700 ? `<div class="t-caption" style="margin-top:4px">It's late and you're far from your target — liquid calories like a shake are the easiest way to close the gap.</div>` : '';
-    return `<div class="hdr">Suggested for the rest of today</div><div class="t-caption" style="margin-bottom:var(--s1)">${head}</div>${late}
+    // Secondary: a small collapsible chip under the logged foods; it can be hidden for the day.
+    if (S.sgHide === viewDate) return `<button class="sg-show" onclick="S.sgHide=null;save();render()">💡 Show meal ideas for the rest of today</button>`;
+    const sum = S2.done ? 'Still hungry? Ideas that barely count' : `${S2.picks.length} idea${S2.picks.length > 1 ? 's' : ''} for your last ${Math.round(r.kcal).toLocaleString()} kcal`;
+    return `<details class="sgchip"${S.sgOpen === viewDate ? ' open' : ''} ontoggle="S.sgOpen=this.open?viewDate:null"><summary><span>💡 ${sum}</span><button class="sg-x" aria-label="Hide for today" onclick="event.preventDefault();event.stopPropagation();S.sgHide=viewDate;save();render()">✕</button></summary><div class="sgbody"><div class="t-caption" style="margin-bottom:var(--s1)">${head}</div>${late}
       <div class="plist">${S2.picks.map(({ c, slot }, i) => `<div class="li" style="cursor:pointer" onclick="sgOpen(${i})"><div style="flex:1;min-width:0"><small>${slot}${c.mine ? ' · yours' : ''}${c.how ? ' · ' + c.how : ''}</small><b>${escT(c.name)}</b><small class="num">${Math.round(c.t.kcal)} kcal · ${Math.round(c.t.p)} g protein</small></div><button class="pg-link" style="text-decoration:none;padding:8px 0 8px 12px" onclick="event.stopPropagation();sgLog(${i})">Log</button></div>`).join('')}</div>`;
   }
   window.sgLog = i => { const { c } = window.__sg[i];
@@ -106,6 +109,20 @@
     if (c.kind === 'my') { foodSheet(); afOpenMy(c.myId); return; }
     if (c.items) return afOpenBuilderWith(c.name, c.items.filter(x => !x.oil), c.method, c.oilType, c.oilAmt);
     sgLog(i); };
-  const _m = V.meals; V.meals = () => { const h = _m(), sec = section(), k = '<div class="hdr">Logged'; return sec && h.includes(k) ? h.replace(k, sec + k) : h; };
+  // Logged foods are the main focus: move them up under the calorie / macro summary, ideas go below them.
+  const WATER = '<div style="margin-top:var(--s2)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span class="t-label">Water';
+  const _m = V.meals; V.meals = () => { let h = _m(); const a = h.indexOf('<!--logged-->'), b = h.indexOf('<!--/logged-->');
+    if (a < 0 || b < 0) return h; const end = b + '<!--/logged-->'.length; let block = h.slice(a, end); h = h.slice(0, a) + h.slice(end);
+    block = block.replace(/<div class="hdr">Logged(<small[^>]*>[^<]*<\/small>)?<\/div>/, (m0, k) => `<div class="hdr lg-h"><span>Logged${k ? ' ' + k : ''}</span><button class="lg-add" onclick="foodSheet()">+ Add food</button></div>`);
+    const sec = section(); block += !sec ? '' : sec.startsWith('<details') ? sec + '</div></details>' : sec;
+    const w = h.indexOf(WATER), q = h.indexOf('<div class="qa">'), at = w >= 0 ? w : q >= 0 ? q : a; return h.slice(0, at) + block + h.slice(at); };
+  document.head.insertAdjacentHTML('beforeend', `<style>
+  .lg-h{display:flex;justify-content:space-between;align-items:center;font-size:22px!important;font-weight:800!important;color:var(--ink)!important;margin-top:var(--s3)!important}.lg-h small{font-size:14px;font-weight:600;color:var(--ink-2)}
+  .lg-h+.plist,.lg-h+.empty{background:var(--surface);border-radius:var(--r-card);box-shadow:0 1px 3px #0000000f,0 4px 16px #0000000a;padding:4px 14px}.lg-h+.plist .li b{font-size:16px}.lg-h small{margin-left:6px}.lg-add{border:none;background:var(--ink);color:#fff;border-radius:var(--r-pill);padding:7px 14px;font-weight:700;font-size:var(--fs-label);cursor:pointer}
+  .sgchip{margin-top:var(--s2);background:var(--fill);border-radius:14px;padding:0 12px}.sgchip summary{list-style:none;display:flex;align-items:center;gap:8px;padding:10px 0;cursor:pointer;font-size:var(--fs-label);font-weight:600;color:var(--ink-2)}
+  .sgchip summary::-webkit-details-marker{display:none}.sgchip summary span{flex:1}.sgchip summary::after{content:'›';transform:rotate(90deg);transition:transform .2s;font-size:18px}.sgchip[open] summary::after{transform:rotate(-90deg)}
+  .sg-x{border:none;background:none;color:var(--ink-3);font-size:14px;padding:4px 6px;cursor:pointer}.sgbody{padding-bottom:10px}.sgbody .plist{background:var(--surface);border-radius:12px}
+  .sg-show{border:none;background:none;color:var(--ink-2);font-size:var(--fs-label);padding:8px 0;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+  </style>`);
   window.__suggest = suggest;
 })();

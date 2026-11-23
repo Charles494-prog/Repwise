@@ -126,19 +126,19 @@ nav button.on{color:var(--acc)}nav button.on svg{transform:translateY(-2px) scal
 <script>
 const V={};
 // ================= DATA =================
-const MUSCLES=['Chest','Back','Shoulders','Biceps','Triceps','Quads','Hamstrings','Glutes','Calves','Core'];
+const MUSCLES=['Chest','Back','Shoulders','Biceps','Triceps','Forearms','Quads','Hamstrings','Glutes','Calves','Core'];
 const EX={
  'Bench Press':[['Chest'],['Triceps','Shoulders'],'🏋️'],'Incline Dumbbell Press':[['Chest'],['Shoulders','Triceps'],'🏋️'],'Push-up':[['Chest'],['Triceps','Core'],'🤸'],'Chest Fly':[['Chest'],[],'🦋'],
- 'Pull-up':[['Back'],['Biceps'],'🧗'],'Lat Pulldown':[['Back'],['Biceps'],'⬇️'],'Barbell Row':[['Back'],['Biceps'],'🚣'],'Seated Cable Row':[['Back'],['Biceps'],'🚣'],'Deadlift':[['Back','Hamstrings','Glutes'],['Core'],'🏋️'],
+ 'Pull-up':[['Back'],['Biceps','Forearms'],'🧗'],'Lat Pulldown':[['Back'],['Biceps','Forearms'],'⬇️'],'Barbell Row':[['Back'],['Biceps','Forearms'],'🚣'],'Seated Cable Row':[['Back'],['Biceps','Forearms'],'🚣'],'Deadlift':[['Back','Hamstrings','Glutes'],['Core','Forearms'],'🏋️'],
  'Overhead Press':[['Shoulders'],['Triceps'],'🙌'],'Lateral Raise':[['Shoulders'],[],'🕊️'],'Face Pull':[['Shoulders'],['Back'],'🎯'],
- 'Barbell Curl':[['Biceps'],[],'💪'],'Hammer Curl':[['Biceps'],[],'🔨'],'Tricep Pushdown':[['Triceps'],[],'⬇️'],'Skull Crusher':[['Triceps'],[],'💀'],'Dips':[['Triceps','Chest'],[],'⬇️'],
+ 'Barbell Curl':[['Biceps'],['Forearms'],'💪'],'Hammer Curl':[['Biceps'],['Forearms'],'🔨'],'Tricep Pushdown':[['Triceps'],[],'⬇️'],'Skull Crusher':[['Triceps'],[],'💀'],'Dips':[['Triceps','Chest'],[],'⬇️'],
  'Squat':[['Quads','Glutes'],['Core'],'🦵'],'Leg Press':[['Quads'],['Glutes'],'🦵'],'Lunge':[['Quads','Glutes'],[],'🚶'],'Leg Extension':[['Quads'],[],'🦵'],
  'Romanian Deadlift':[['Hamstrings','Glutes'],['Back'],'🏋️'],'Leg Curl':[['Hamstrings'],[],'🦵'],'Hip Thrust':[['Glutes'],['Hamstrings'],'🍑'],'Calf Raise':[['Calves'],[],'🦶'],
  'Hanging Leg Raise':[['Core'],[],'🧘'],'Crunch':[['Core'],[],'🔥'],'Plank Hold (sec)':[['Core'],['Shoulders'],'⏱️'],
- 'Incline Push-up':[['Chest'],['Triceps'],'🤸'],'Knee Push-up':[['Chest'],['Triceps'],'🤸'],'Dead Hang (sec)':[['Back'],['Biceps'],'🐒'],'Scapular Pull-up':[['Back'],[],'🧗'],
- 'Australian Row':[['Back'],['Biceps'],'🚣'],'Negative Pull-up':[['Back'],['Biceps'],'🧗'],'Chin-up':[['Back','Biceps'],[],'🧗'],'Explosive Pull-up':[['Back'],['Biceps','Core'],'🚀'],
+ 'Incline Push-up':[['Chest'],['Triceps'],'🤸'],'Knee Push-up':[['Chest'],['Triceps'],'🤸'],'Dead Hang (sec)':[['Back'],['Biceps','Forearms'],'🐒'],'Scapular Pull-up':[['Back'],[],'🧗'],
+ 'Australian Row':[['Back'],['Biceps','Forearms'],'🚣'],'Negative Pull-up':[['Back'],['Biceps','Forearms'],'🧗'],'Chin-up':[['Back','Biceps'],['Forearms'],'🧗'],'Explosive Pull-up':[['Back'],['Biceps','Core','Forearms'],'🚀'],
  'Pistol Squat':[['Quads','Glutes'],['Core'],'🦵'],'Pike Push-up':[['Shoulders'],['Triceps'],'🔺'],'Wall Handstand (sec)':[['Shoulders'],['Core','Triceps'],'🤸'],'Handstand (sec)':[['Shoulders'],['Core'],'🤸'],'L-sit (sec)':[['Core'],['Triceps'],'🪑'],'Run (km)':[['Quads','Calves'],['Hamstrings','Glutes'],'🏃'],
- 'Straight Bar Dip':[['Triceps','Chest'],['Shoulders'],'⬇️'],'Muscle-up':[['Back','Triceps'],['Chest','Core','Biceps'],'🦅'],
+ 'Straight Bar Dip':[['Triceps','Chest'],['Shoulders'],'⬇️'],'Wrist Curl':[['Forearms'],[],'🤲'],'Reverse Curl':[['Forearms'],['Biceps'],'💪'],'Muscle-up':[['Back','Triceps'],['Chest','Core','Biceps','Forearms'],'🦅'],
 };
 const PROGS={
  push:{name:'Push Day',sub:'Chest, Shoulders & Triceps',e:'🏋️',bg:'#ffe4e6',ex:['Bench Press','Overhead Press','Incline Dumbbell Press','Lateral Raise','Tricep Pushdown'],m:['Chest','Shoulders','Triceps']},
@@ -216,7 +216,7 @@ const PASTEL=['#ffe4e6','#e0f2fe','#dcfce7','#fef3c7','#ede9fe','#fce7f3','#e0e7
 // ================= STATE =================
 const __load=RWStore.load();let S=__load.state;window.__loadStatus=__load.status;
 S.profile??=null;S.food??={};S.workouts??=[];S.xp??={};S.active??=null;S.quests??={};S.custom??=[];S.water??={};S.steps??={};S.weights??=[];S.runs??=[];
-MUSCLES.forEach(m=>S.xp[m]??=0);S.customEx??={};S.ext??={};Object.assign(EX,S.customEx);
+MUSCLES.forEach(m=>S.xp[m]??=0);S.customEx??={};S.customExDel??={};S.ext??={};Object.assign(EX,S.customExDel,S.customEx);
 const save=()=>{try{checkGoals()}catch(e){}try{localStorage.setItem('gq',JSON.stringify(S))}catch(e){console.error('save failed',e);try{toast('⚠️ Storage is full — export a backup in Settings')}catch(_){}}RWStore.snapshot(S).catch(()=>{})};
 const iso=d=>{const x=new Date(d);return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0')};
 const today=()=>iso(Date.now());
@@ -386,11 +386,11 @@ function weighIn(){openSheet(`<h3 style="font-size:20px">Weigh-in ⚖️</h3><p 
 function saveWeight(){const v=+$('#wi').value;if(!v)return;const prev=S.profile.weight;S.weights.push([new Date(viewDate+'T'+new Date().toTimeString().slice(0,8)).getTime(),v]);S.weights.sort((a,b)=>a[0]-b[0]);if(viewDate===today())S.profile.weight=v;save();closeSheet();render();
  toast(v<prev?`📉 ${(prev-v).toFixed(1)} kg down! Great job!`:v>prev?`📈 +${(v-prev).toFixed(1)} kg`:'Weight saved ✅')}
 function tips(){const t=targets(),f=dayFood(today()),k=sum(f,1),p=sum(f,2),out=[];
- const neg=MUSCLES.filter(m=>{const d=daysSince(m);return d===null||d>=5});if(neg.length&&S.workouts.length)out.push(`Not trained in 5+ days: <b>${neg.slice(0,4).join(', ')}</b>`);
+ const neg=MUSCLES.filter(m=>m!=='Forearms').filter(m=>{const d=daysSince(m);return d===null||d>=5});if(neg.length&&S.workouts.length)out.push(`Not trained in 5+ days: <b>${neg.slice(0,4).join(', ')}</b>`);
  if(p<t.protein*.5&&new Date().getHours()>=14)out.push(`Behind on protein (${p}/${t.protein}g) — add chicken, tuna, eggs or a whey shake.`);
  if(k>t.kcal)out.push(`${k-t.kcal} kcal over target. A 30–45 min walk burns ~150–250 kcal 👟`);
  out.push('Progressive overload = more XP. Beat your <b>all-time best</b> for a 2× PR bonus 🏅; beat <b>last session</b> for a smaller 📈 overload bonus.');
- const low=MUSCLES.reduce((a,m)=>S.xp[m]<S.xp[a]?m:a);out.push(`Weakest rank: <b>${low}</b> (${rankOf(S.xp[low]).name}). Give it extra sets!`);
+ const low=MUSCLES.filter(m=>m!=='Forearms').reduce((a,m)=>S.xp[m]<S.xp[a]?m:a);out.push(`Weakest rank: <b>${low}</b> (${rankOf(S.xp[low]).name}). Give it extra sets!`);
  if(S.profile.goal.includes('cut'))out.push('On a cut, keep lifting heavy to hold muscle and hit your step goal.');return out}
 V.levelinfo=()=>{const L=level();return`<div class="top">${backBtn()}<h1>Level ${L.lvl}</h1><span></span></div>
  <div class="card"><div class="big" data-count="${L.total}">0</div><p class="muted">total XP</p><div class="prog" style="height:10px"><i style="width:${L.cur/L.need*100}%"></i></div><p class="muted" style="margin-top:6px">${L.cur} / ${L.need} XP to level ${L.lvl+1}</p></div>
@@ -581,7 +581,7 @@ V.settings=()=>{const p=S.profile;return`<div class="top">${backBtn()}<h1>Settin
  <div class="row" onclick="push('science')"><span style="font-size:22px">🔬</span><div class="rbody"><b>Science library</b><small>${SCIENCE.length} research-backed tips</small></div><span class="chev">›</span></div>
  <div class="row" onclick="push('transfer')"><span style="font-size:22px">🔄</span><div class="rbody"><b>Transfer / backup account</b><small>Move your progress to another device</small></div><span class="chev">›</span></div>
  <div class="row" onclick="push('privacy')"><span style="font-size:22px">🔒</span><div class="rbody"><b>Privacy</b><small>What we store (almost nothing)</small></div><span class="chev">›</span></div>
- <div class="row" onclick="if(confirm('Delete ALL data?')){localStorage.removeItem('gq');location.reload()}"><span style="font-size:22px">🗑️</span><div class="rbody"><b style="color:var(--acc)">Reset everything</b></div></div></div>`};
+ <div class="row" onclick="if(confirm('Delete ALL data?')){localStorage.removeItem('gq');localStorage.removeItem('gq_pre_v3');location.reload()}"><span style="font-size:22px">🗑️</span><div class="rbody"><b style="color:var(--acc)">Reset everything</b></div></div></div>`};
 // ================= DREAM GOALS =================
 // A goal is locked once set: it can only be changed after it has been reached.
 const GOALDEF={weight:{label:'Dream weight',unit:'kg',min:30,max:250,step:.5,cur:()=>S.profile.weight},bf:{label:'Dream body fat',unit:'%',min:3,max:60,step:.5,cur:()=>bodyFat().bf}};
@@ -644,5 +644,8 @@ window.addEventListener('popstate',()=>{});
 <script src="vendor/leaflet/leaflet.js"></script>
 <script src="routes.js"></script>
 <script src="cardio.js"></script>
+<script src="exercises.js"></script>
+<script src="schedule.js"></script>
+<script src="weekplan.js"></script>
 </body>
 </html>

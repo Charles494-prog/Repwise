@@ -138,7 +138,7 @@ Object.assign(PROGS,{
 });
 // Rotation: one exercise per muscle group, variations rotate every day.
 const ROT={Chest:['Bench Press','Push-up','Incline Dumbbell Press','Dips'],Back:['Pull-up','Barbell Row','Lat Pulldown','Seated Cable Row'],Shoulders:['Overhead Press','Lateral Raise','Arnold Press','Face Pull'],Biceps:['Barbell Curl','Hammer Curl','Chin-up'],Triceps:['Tricep Pushdown','Skull Crusher','Bench Dip'],Quads:['Squat','Leg Press','Lunge','Goblet Squat'],Hamstrings:['Romanian Deadlift','Leg Curl'],Glutes:['Hip Thrust','Glute Bridge'],Calves:['Calf Raise'],Core:['Hanging Leg Raise','Plank Hold (sec)','Crunch','Dead Bug']};
-PROGS.rotation={name:'Daily Rotation',sub:'1 exercise per muscle, changes daily',e:'🔄',bg:'#ccfbf1',m:MUSCLES,get ex(){return MUSCLES.map(m=>ROT[m][dayIdx()%ROT[m].length])}};
+PROGS.rotation={name:'Daily Rotation',sub:'1 exercise per muscle, changes daily',e:'🔄',bg:'#ccfbf1',m:MUSCLES,get ex(){return MUSCLES.filter(m=>ROT[m]).map(m=>ROT[m][dayIdx()%ROT[m].length])}};
 const SPLITS={
  ppl:{name:'Push / Pull / Legs',days:['push','pull','legs'],d:'3 or 6 days/week. Each muscle trained by movement pattern.'},
  ul:{name:'Upper / Lower',days:['upper','lower'],d:'4 days/week. Hits every muscle 2×/week — great for beginners & intermediates.'},
@@ -180,11 +180,11 @@ function useAlt(orig,e){S.subs[orig]=e;window._swap=true;useEx(e);toast(`Swapped
 // Each family = same movement & muscles; listed in suggestion order (machine → barbell → dumbbell → bar → home).
 Object.assign(EX,{
  'Chest Press Machine':[['Chest'],['Triceps','Shoulders'],'🏋️'],'Dumbbell Bench Press':[['Chest'],['Triceps','Shoulders'],'🏋️'],'Pec Deck':[['Chest'],[],'🦋'],'Cable Crossover':[['Chest'],[],'🦋'],'Wide Push-up':[['Chest'],['Shoulders'],'🤸'],'Decline Push-up':[['Chest','Shoulders'],['Triceps'],'🤸'],'Incline Machine Press':[['Chest'],['Shoulders','Triceps'],'🏋️'],
- 'Dumbbell Row':[['Back'],['Biceps'],'🚣'],'Dumbbell Pullover':[['Back'],['Chest'],'🏋️'],'Superman Hold (sec)':[['Back'],['Glutes'],'🦸'],
+ 'Dumbbell Row':[['Back'],['Biceps','Forearms'],'🚣'],'Dumbbell Pullover':[['Back'],['Chest'],'🏋️'],'Superman Hold (sec)':[['Back'],['Glutes'],'🦸'],
  'Shoulder Press Machine':[['Shoulders'],['Triceps'],'🙌'],'Cable Lateral Raise':[['Shoulders'],[],'🕊️'],'Bottle Lateral Raise':[['Shoulders'],[],'🕊️'],'Rear Delt Fly':[['Shoulders'],['Back'],'🎯'],'Prone Y-T-W':[['Shoulders'],['Back'],'🎯'],
- 'Cable Curl':[['Biceps'],[],'💪'],'Dumbbell Curl':[['Biceps'],[],'💪'],'Backpack Curl':[['Biceps'],[],'🎒'],'Overhead Dumbbell Extension':[['Triceps'],[],'💪'],'Diamond Push-up':[['Triceps','Chest'],[],'💎'],'Assisted Dip Machine':[['Triceps','Chest'],[],'⬇️'],
+ 'Cable Curl':[['Biceps'],['Forearms'],'💪'],'Dumbbell Curl':[['Biceps'],['Forearms'],'💪'],'Backpack Curl':[['Biceps'],['Forearms'],'🎒'],'Overhead Dumbbell Extension':[['Triceps'],[],'💪'],'Diamond Push-up':[['Triceps','Chest'],[],'💎'],'Assisted Dip Machine':[['Triceps','Chest'],[],'⬇️'],
  'Bodyweight Squat':[['Quads','Glutes'],['Core'],'🦵'],'Bulgarian Split Squat':[['Quads','Glutes'],[],'🦵'],'Dumbbell Lunge':[['Quads','Glutes'],[],'🚶'],'Hack Squat':[['Quads','Glutes'],[],'🦵'],
- 'Dumbbell RDL':[['Hamstrings','Glutes'],['Back'],'🏋️'],'Single-leg RDL':[['Hamstrings','Glutes'],['Core'],'🦩'],'Dumbbell Deadlift':[['Back','Hamstrings','Glutes'],['Core'],'🏋️'],'Back Extension':[['Back','Hamstrings','Glutes'],[],'🦸'],
+ 'Dumbbell RDL':[['Hamstrings','Glutes'],['Back'],'🏋️'],'Single-leg RDL':[['Hamstrings','Glutes'],['Core'],'🦩'],'Dumbbell Deadlift':[['Back','Hamstrings','Glutes'],['Core','Forearms'],'🏋️'],'Back Extension':[['Back','Hamstrings','Glutes'],[],'🦸'],
  'Dumbbell Leg Curl':[['Hamstrings'],[],'🦵'],'Sliding Leg Curl':[['Hamstrings'],['Glutes'],'🧦'],'Hip Thrust Machine':[['Glutes'],['Hamstrings'],'🍑'],'Dumbbell Hip Thrust':[['Glutes'],['Hamstrings'],'🍑'],
  'Calf Raise Machine':[['Calves'],[],'🦶'],'Dumbbell Calf Raise':[['Calves'],[],'🦶'],'Single-leg Calf Raise':[['Calves'],[],'🦶'],'Cable Crunch':[['Core'],[],'🔥'],'Lying Leg Raise':[['Core'],[],'🧘'],
 });

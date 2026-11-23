@@ -26,8 +26,8 @@ V.meals=()=>{const t=targets(),d=viewDate,f=dayFood(d),k=sum(f,1),p=sum(f,2),bur
  <div style="margin-top:var(--s3)"><div style="display:flex;justify-content:space-between;margin-bottom:6px"><span class="t-label">Protein</span><span class="t-label muted num">${p} / ${t.protein} g</span></div><div class="bar"><i style="width:${Math.min(100,p/t.protein*100)}%"></i></div></div>
  <div class="qa"><button onclick="foodSheet()">${ic('search')}Add food</button><button onclick="push('nutrition')">${ic('flask')}Nutrients</button><button onclick="push('foodsci')">${ic('leaf')}Smart foods</button><button onclick="push('supps')">${ic('pill')}Supplements</button></div>
  <div id="aiout"></div>
- <div class="hdr">Logged${f.length?`<small class="num">${k.toLocaleString()} kcal</small>`:''}</div>
- ${f.length?`<div class="plist">${f.map((x,i)=>`<div class="li"><div style="flex:1;min-width:0"><b>${escT(x[0])}</b><small>${x[2]} g protein</small></div><span class="t-label num">${x[1]}</span><button class="x" aria-label="Remove" onclick="S.food[viewDate].splice(${i},1);save();render()">${ic('x')}</button></div>`).join('')}</div>`:'<div class="empty">No meals logged yet.</div>'}
+ <!--logged--><div class="hdr">Logged${f.length?`<small class="num">${k.toLocaleString()} kcal</small>`:''}</div>
+ ${f.length?`<div class="plist">${f.map((x,i)=>`<div class="li"><div style="flex:1;min-width:0"><b>${escT(x[0])}</b><small>${x[2]} g protein</small></div><span class="t-label num">${x[1]}</span><button class="x" aria-label="Remove" onclick="S.food[viewDate].splice(${i},1);save();render()">${ic('x')}</button></div>`).join('')}</div>`:'<div class="empty">No meals logged yet.</div>'}<!--/logged-->
  ${balDays().length>=2?`<div class="hdr">Calorie balance</div>${mealsTrack()}`:''}
  <div style="height:var(--s4)"></div>`};
 

@@ -40,7 +40,7 @@
   const App = window.Capacitor?.Plugins?.App; let lastBack = 0;
   window.handleBack = function () {
     const sh = $('#sheet');
-    if (sh && sh.classList.contains('show')) { if (window.AF && sh.classList.contains('af') && AF.screen && AF.screen !== 'search') { const up = { dish: 'search', item: 'search', my: 'search', plate: 'search', builder: AF.from === 'dish' ? 'dish' : AF.from === 'my' ? 'my' : 'search', ing: 'builder' }[AF.screen] || 'search'; afBack(up); } else closeSheet(); return 'sheet'; }
+    if (sh && sh.classList.contains('show')) { if (window.AF && sh.classList.contains('af') && AF.screen && AF.screen !== 'search') { const up = { dish: 'search', item: 'search', my: 'search', plate: 'search', builder: AF.from === 'dish' ? 'dish' : AF.from === 'my' ? 'my' : 'search', ing: 'builder', meal: 'search', mealed: AF.med && AF.med.id ? 'meal' : 'search', mealpick: 'mealed' }[AF.screen] || 'search'; afBack(up); } else closeSheet(); return 'sheet'; }
     if (typeof OB !== 'undefined' && OB.active && S.profile) { if (OB.step > 0) { OB.step--; render('pop'); } else if (window.exitOB) exitOB(); return 'onboarding'; }
     if (stack.length) { back(); return 'pop'; }
     if (tab !== 'plan') { go('plan'); return 'today'; }

@@ -159,11 +159,11 @@ function sessGain(m){const g=w=>(w.sets||[]).reduce((t,s)=>{const e=EX[s.ex];ret
 function missCost(prog,n){const o={},f=missMult(n);for(const m of (PROGS[prog]?.m||[])){const xp=S.xp[m]||0,r=rankOf(xp),c=Math.min(Math.max(1,Math.round(sessGain(m)*.05*f)),xp),x=r.cur>0?Math.min(c,r.cur):r.idx>0?c:0;if(x>0)o[m]=x}return o}
 const missTxt=xp=>Object.entries(xp).map(([m,x])=>`${m} −${x}`).join(', ');
 const missDemotes=xp=>Object.entries(xp).filter(([m,x])=>rankOf((S.xp[m]||0)-x).idx<rankOf(S.xp[m]||0).idx).map(([m])=>m);
-function missedScan(){if(!S.profile||!S.week)return;const W=ensureWeek(),ti=DOW(Date.now()),td=today(),ov=xpTotal(),was={...S.xp};let lost=[];
+function missedScan(){if(!S.profile||!S.week||!window.__planReady)return;const W=ensureWeek(),ti=DOW(Date.now()),td=today(),ov=xpTotal(),was={...S.xp};let lost=[];
  for(let i=0;i<ti;i++){const d=iso(dayOfWeek(i));if(S.missed[d]||d<S.missedFrom||(S.startDate&&d<S.startDate))continue;if(dayPlan(d).type!=='missed')continue;
-  const prog=W.queue[W.pat.slice(0,i).filter(Boolean).length]||W.queue.at(-1);if(!prog)continue;const due=new Date(d+'T12:00');due.setDate(due.getDate()+2);S.missed[d]={prog,due:iso(due),st:'open'}}
+  const prog=W.days?.[i]?.prog||W.queue[W.pat.slice(0,i).filter(Boolean).length]||W.queue.at(-1);if(!prog)continue;const due=new Date(d+'T12:00');due.setDate(due.getDate()+2);S.missed[d]={prog,due:iso(due),st:'open'}}
  for(const [d,e] of Object.entries(S.missed).sort(([a],[b])=>a<b?-1:1)){if(e.st!=='open')continue;
-  if(S.workouts.some(w=>w.prog===e.prog&&iso(w.ts)>d&&iso(w.ts)<=e.due)){e.st='done';continue}
+  if(S.workouts.some(w=>iso(w.ts)>d&&iso(w.ts)<=e.due&&(w.prog===e.prog||(typeof madeUp==='function'&&madeUp(w,e.prog))))){e.st='done';continue}
   if(td>e.due){e.n=missN(d);e.xp=missCost(e.prog,e.n);e.st='lost';for(const [m,x] of Object.entries(e.xp))S.xp[m]-=x;
    if(Object.keys(e.xp).length)lost.push([d,e])}}
  for(const x of Object.keys(S.missed))if(x<iso(Date.now()-60*864e5))delete S.missed[x];

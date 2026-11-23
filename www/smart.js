@@ -19,9 +19,9 @@ function buildWeek(mon,split){const cp=S.plan?.pat?.some(Boolean)&&S.plan.pat,[l
  const cardio=[...rest,...train].slice(0,want).sort((a,b)=>a-b);
  return{mon,split,n,pat,queue,cardio,notes:[]}}
 function ensureWeek(){const mon=monday();if(!S.week||S.week.mon!==mon){if(S.nextSplit&&SPLITS[S.nextSplit]){S.split=S.nextSplit}delete S.nextSplit;S.week=buildWeek(mon,S.split);save()}reconcileCardio();return S.week}
-const weekWorkouts=()=>S.workouts.filter(w=>iso(w.ts)>=S.week.mon&&S.week.queue.includes(w.prog));
-const doneCount=()=>Math.min(S.week.queue.length,weekWorkouts().length);
-const weekDone=()=>doneCount()>=S.week.queue.length;
+let weekWorkouts=()=>S.workouts.filter(w=>iso(w.ts)>=S.week.mon&&S.week.queue.includes(w.prog));
+let doneCount=()=>Math.min(S.week.queue.length,weekWorkouts().length);
+let weekDone=()=>doneCount()>=S.week.queue.length;
 // What is planned for a given date: workout (with program), rest, or done-for-the-week.
 function dayPlan(d=today()){const W=ensureWeek(),i=DOW(d+'T12:00'),trained=S.workouts.filter(w=>iso(w.ts)===d&&W.queue.includes(w.prog));
  if(d<W.mon)return{type:'past'};
@@ -42,7 +42,7 @@ function reconcileCardio(){const W=S.week;if(!W)return;const ti=DOW(Date.now()),
   for(let j=Math.max(c,ti)+1;j<7;j++)if(!W.cardio.includes(j)&&!moved.includes(j)){moved.push(j);W.notes.push(`${missed?'Missed':'Tough session'} — cardio moved ${WD[c]} → ${WD[j]}`);return j}
   return c}).sort((a,b)=>a-b);
  W.notes=[...new Set(W.notes)].slice(-4);if(moved.length)save()}
-const cardioToday=(d=today())=>S.week&&d>=S.week.mon&&S.week.cardio.includes(DOW(d+'T12:00'));
+let cardioToday=(d=today())=>S.week&&d>=S.week.mon&&S.week.cardio.includes(DOW(d+'T12:00'));
 
 // ================= START-WORKOUT RULES =================
 const _startW=startW;

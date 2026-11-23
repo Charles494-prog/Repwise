@@ -15,10 +15,10 @@ test('corrupt JSON without a backup → empty state, never throws', () => {
 });
 test('v1 → v2 migration normalises old shapes', () => {
   const s = R.migrate({ food: { '2026-01-01': [['Rice', '205', 4], 'junk', ['Egg', 72, 6, 0.4, 5, 0, { kind: 'x' }]], 'bad-key': [] }, weights: [[3, 80], [1, 81], [2, 0]], myMeals: [{ name: 'A' }], bp: {}, sleep: [] });
-  assert.equal(s.schemaVersion, 2);
+  assert.equal(s.schemaVersion, R.CURRENT);
   assert.deepEqual(s.food['2026-01-01'][0], ['Rice', 205, 4]); assert.equal(s.food['2026-01-01'].length, 2); assert.deepEqual(s.food['2026-01-01'][1][6], { kind: 'x' });
   assert.ok(!('bad-key' in s.food)); assert.deepEqual(s.weights.map(w => w[0]), [1, 3]);
-  assert.ok(s.myMeals[0].id && Array.isArray(s.myMeals[0].items)); assert.ok(Array.isArray(s.bp)); assert.ok(!Array.isArray(s.sleep));
+  assert.ok(s.myDishes[0].id && Array.isArray(s.myDishes[0].items)); assert.ok(Array.isArray(s.bp)); assert.ok(!Array.isArray(s.sleep));
 });
 test('migration is idempotent at current version', () => { const s = R.migrate({ schemaVersion: R.CURRENT, food: { x: 1 } }); assert.deepEqual(s.food, { x: 1 }); });
 test('snapshot writes one last-good copy per day and records lastBackup', async () => {
@@ -33,4 +33,20 @@ test('snapshot prunes native backups to the newest 7', async () => {
 test('snapshot skips the in-localStorage copy for very large histories (relies on file backups)', async () => {
   const big = { blob: 'x'.repeat(2e6) }, ls = mem({ gq_last: '{"day":"old","data":{}}' }); ls.removeItem = k => ls.setItem(k, '');
   await R.snapshot(big, ls, {}); assert.equal(ls.getItem('gq_last'), '');
+});
+
+test('v2 → v3: custom meals become Dishes (nothing lost), custom exercises get targets, groups start empty', () => {
+  const meals = [{ id: 'm1', name: 'Adobo', items: [{ id: 'soy_sauce', g: 15 }, { id: 'chicken_breast', g: 150 }], extra: null, method: 'braise' }, { id: 'm2', name: 'Rice & egg', items: [{ id: 'rice_white', g: 158 }], combo: 'Egg + Rice' }];
+  const s = R.migrate({ schemaVersion: 2, myMeals: JSON.parse(JSON.stringify(meals)), favs: ['my:m1', 'dish:adobo'], customEx: { 'Band Pushdown': [['Triceps'], ['Triceps', 'Shoulders'], '⬇️'], junk: 5 },
+    food: { '2026-11-20': [['Adobo', 400, 30, 10, 20, 1, { kind: 'my', myId: 'm1', mult: 1 }]] } });
+  assert.equal(s.schemaVersion, 3);
+  assert.deepEqual(s.myDishes, meals); assert.deepEqual(s.myMeals, []);
+  assert.deepEqual(s.favs, ['my:m1', 'dish:adobo']); assert.equal(s.food['2026-11-20'][0][6].myId, 'm1');
+  assert.deepEqual(s.customEx['Band Pushdown'], [['Triceps'], ['Shoulders'], '⬇️', { t: [{ m: 'Triceps', r: 'p' }, { m: 'Shoulders', r: 's' }] }]);
+  assert.ok(!('junk' in s.customEx)); assert.deepEqual(s.exGroups, []); assert.deepEqual(s.customExDel, {});
+});
+test('upgrading keeps an untouched copy of the old data', () => {
+  const raw = JSON.stringify({ schemaVersion: 2, myMeals: [{ id: 'a', name: 'X', items: [] }] }), ls = mem({ gq: raw });
+  const r = R.load(ls); assert.equal(r.state.myDishes[0].name, 'X'); assert.equal(ls.getItem('gq_pre_v3'), raw);
+  const ls2 = mem({ gq: JSON.stringify(r.state) }); R.load(ls2); assert.equal(ls2.getItem('gq_pre_v3'), null);
 });

@@ -66,3 +66,33 @@ test('errors: no key, rate limit and bad key surface a code', async () => {
   reset(); await assert.rejects(R.suggestRoutes({ start, meters: 5000, kind: 'loop', fetch: mockFetch({ status: 429 }) }), e => e.code === 'rate');
   reset(); await assert.rejects(R.suggestRoutes({ start, meters: 5000, kind: 'loop', fetch: mockFetch({ status: 403 }) }), e => e.code === 'key');
 });
+
+// A circle with a dead-end alley: at the 25% mark it walks 150 m out sideways and straight back.
+const withSpur = (L, th, at = 18, len = 150) => { const c = circle(L, th), j = c[at], b = R.bearingOf(c[at - 1], j) + 90;
+  const out = Array.from({ length: 16 }, (_, i) => R.destPoint(j, b, i * len / 15)); return [...c.slice(0, at + 1), ...out.slice(1), ...out.slice(0, -1).reverse(), ...c.slice(at + 1)]; };
+// Lollipop: 600 m stem out, a small circle, and back along the same stem.
+const lollipop = L => { const stem = Array.from({ length: 25 }, (_, i) => R.destPoint(start, 90, i * 25)), e = stem.at(-1), r = (L - 1200) / 2 / Math.PI, c = R.destPoint(e, 90, r);
+  const ring = Array.from({ length: 73 }, (_, i) => R.destPoint(c, 270 + i * 5, r)); return [...stem, ...ring.slice(1), ...stem.slice(0, -1).reverse()]; };
+
+test('loop shape: dead-end alleys are cut out, a clean circle stays the same', () => {
+  const c = circle(4000, 20), s = withSpur(4000, 20);
+  assert.ok(R.routeLen(s) - R.routeLen(c) > 250);
+  const t = R.trimSpurs(s); assert.ok(Math.abs(R.routeLen(t) - R.routeLen(c)) < 60, `trimmed ${R.routeLen(t)} vs ${R.routeLen(c)}`);
+  assert.ok(R.outBackRatio(t) < 0.03);
+  assert.ok(Math.abs(R.routeLen(R.trimSpurs(c)) - R.routeLen(c)) < 40);
+  assert.ok(R.roundness(c) > 0.9); assert.ok(R.roundness(outBack(4000)) < 0.05);
+});
+
+test('loop shape: lollipops (out and back along one street) are rejected; a short stem near home is fine', () => {
+  assert.equal(R.cleanLoop({ pts: lollipop(4000), meters: 4000 }, start).ok, false);
+  assert.equal(R.cleanLoop({ pts: withSpur(4000, 20), meters: 4300 }, start).ok, true);
+  const home = [...Array.from({ length: 7 }, (_, i) => R.destPoint(start, 0, i * 25))], c0 = home.at(-1), r = 3700 / 2 / Math.PI, cc = R.destPoint(c0, 0, r);
+  const ring = Array.from({ length: 73 }, (_, i) => R.destPoint(cc, 180 + i * 5, r));
+  assert.equal(R.cleanLoop({ pts: [...home, ...ring.slice(1), ...home.slice(0, -1).reverse()], meters: 4000 }, start).ok, true);
+});
+
+test('loop suggestions: alleys are trimmed and lengths are judged after trimming', async () => {
+  reset(); const f = async (url, init) => { const b = JSON.parse(init.body), { length, seed } = b.options.round_trip; return fc(withSpur(length, (seed * 47) % 360)); };
+  const out = await R.suggestRoutes({ start, meters: 5000, kind: 'loop', n: 3, fetch: f });
+  assert.ok(out.length >= 1); for (const r of out) { assert.ok(R.outBackRatio(r.pts) < 0.03); assert.ok(Math.abs(r.meters - R.routeLen(r.pts)) < 1); assert.ok(Math.abs(r.off) <= 0.2); }
+});

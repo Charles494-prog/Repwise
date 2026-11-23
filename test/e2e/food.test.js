@@ -32,7 +32,7 @@ test('custom meal: free-text name, custom + catalogue ingredients, live totals w
   await p.open({ state: baseState({ myIngredients: [{ id: 'x1', name: 'Kalamansi juice', ref: '100g', size: null, unit: 'ml', vals: { kcal: 30, c: 7, vc: 30, na: 2 } }] }) }); await ready();
   const r = await p.eval(`foodSheet();afCreate('My_Usual_meal_Breast_Chicken');afAddIng();afSearch('');const listed=/My ingredients/.test($('#afres').textContent);
     afPickIng('my_x1');afSetG(0,200);afAddIng();afPickIng('chicken_breast');const txt=$('#sheet').innerText;afBuilderToPlate();afLogPlate();afSavePlate&&$('#spn')&&afSavePlate();
-    const m=S.myMeals.find(x=>/Kalamansi|My_Usual/.test(x.name));return {listed,txt,name:AF.name,meal:!!m,items:m&&m.items.map(i=>i.id)}`);
+    const m=S.myDishes.find(x=>/Kalamansi|My_Usual/.test(x.name));return {listed,txt,name:AF.name,meal:!!m,items:m&&m.items.map(i=>i.id)}`);
   assert.ok(r.listed); assert.match(r.txt, /200 ml/); assert.match(r.txt, /Vitamin C\s*≥ 60 mg/); assert.match(r.txt, /≥ means some ingredients have no data/);
   assert.deepEqual(p.errors, []);
 });

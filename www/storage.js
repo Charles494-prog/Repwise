@@ -2,7 +2,7 @@
 // UMD so the migrations can be unit-tested in Node.
 (function (root) {
   'use strict';
-  const KEY = 'gq', LAST = 'gq_last', CURRENT = 2, LAST_MAX = 1.8e6;
+  const KEY = 'gq', LAST = 'gq_last', CURRENT = 3, LAST_MAX = 1.8e6;
   const isObj = v => v && typeof v === 'object' && !Array.isArray(v);
   const num = v => (typeof v === 'number' && isFinite(v) ? v : +v || 0);
 
@@ -22,6 +22,26 @@
       for (const k of ['water', 'steps', 'sleep', 'sleepQ', 'burn', 'goals', 'quests']) if (s[k] != null && !isObj(s[k])) s[k] = {};
       return s;
     },
+    // v2 → v3: custom exercises get muscle targets (with sub-muscles), exercise groups,
+    // and "custom meals" (which were really single dishes) become Dishes; Meals are a new combination type.
+    2: s => {
+      if (!isObj(s.customEx)) s.customEx = {};
+      for (const [n, d] of Object.entries(s.customEx)) {
+        if (!Array.isArray(d)) { delete s.customEx[n]; continue; }
+        const pri = Array.isArray(d[0]) ? d[0].map(String) : [], sec = (Array.isArray(d[1]) ? d[1].map(String) : []).filter(m => !pri.includes(m));
+        const meta = isObj(d[3]) ? d[3] : {};
+        if (!Array.isArray(meta.t)) meta.t = [...pri.map(m => ({ m, r: 'p' })), ...sec.map(m => ({ m, r: 's' }))];
+        s.customEx[n] = [pri, sec, typeof d[2] === 'string' ? d[2] : '💪', meta];
+      }
+      if (!isObj(s.customExDel)) s.customExDel = {};
+      if (!Array.isArray(s.exGroups)) s.exGroups = [];
+      // Every existing custom meal becomes a Dish: same id, name, ingredients and extras, so favourites
+      // ('my:<id>'), past food logs (meta.myId) and suggestions keep pointing at it.
+      const old = Array.isArray(s.myMeals) ? s.myMeals : [];
+      s.myDishes = [...(Array.isArray(s.myDishes) ? s.myDishes : []), ...old.filter(isObj)];
+      s.myMeals = [];
+      return s;
+    },
   };
   function migrate(s) {
     if (!isObj(s)) return { schemaVersion: CURRENT };
@@ -39,6 +59,9 @@
       status = 'corrupt'; s = null;
       try { const last = JSON.parse(ls.getItem(LAST) || 'null'); if (last && isObj(last.data)) { s = last.data; status = 'recovered:' + last.day; } } catch (_) {}
     }
+    // Before upgrading the data model, keep the untouched data once (skipped for huge histories; daily file backups cover those).
+    // Only when it fits next to the data and the daily copy (≈ 3 copies ≤ 4.5M chars); it's removed after 14 days.
+    if (s && (num(s.schemaVersion) || 1) < CURRENT && raw && raw.length * 3 < 4.5e6) { try { ls.setItem('gq_pre_v' + CURRENT, raw); s.preCopyAt = Date.now(); } catch (_) {} }
     return { state: migrate(s || {}), status, fresh: !s };
   }
 
@@ -47,6 +70,8 @@
     ls = ls || root.localStorage; P = P || root.Capacitor?.Plugins;
     const d = new Date(), day = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
     let last = null; try { last = JSON.parse(ls.getItem(LAST) || 'null'); } catch (_) {}
+    try { if (!s.preCopyAt && ls.getItem('gq_pre_v' + CURRENT) != null) s.preCopyAt = Date.now(); } catch (_) {}
+    if (s.preCopyAt && Date.now() - s.preCopyAt > 14 * 864e5) { try { ls.removeItem && ls.removeItem('gq_pre_v' + CURRENT); } catch (_) {} delete s.preCopyAt; }
     if (last && last.day === day) return false;
     const json = JSON.stringify(s);
     // The last-good copy doubles storage use; past ~1.8M chars (≈ several years of logs) rely on file backups.

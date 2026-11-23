@@ -26,6 +26,34 @@
     let back = 0; for (const x of e) { const [a, b] = x.split('>'); if (e.has(b + '>' + a)) back++; } return e.size ? back / e.size : 0; }
   // Share of route a's cells that route b also passes through.
   function overlap(a, b) { const ca = new Set(cells(a, 30)), cb = new Set(cells(b, 30)); let n = 0; for (const x of ca) if (cb.has(x)) n++; return ca.size ? n / ca.size : 0; }
+  // ---------- loop shape ----------
+  // Resample to ~step m (real coordinates, not grid centres), each point tagged with its ~grid-sized cell.
+  function resample(pts, step = 10, grid = 20) { const out = [], k = grid / 111320, key = p => Math.round(p[0] / k) + ':' + Math.round(p[1] / (k / Math.cos(rad(p[0]))));
+    if (!pts.length) return out; out.push({ p: pts[0], c: key(pts[0]) }); let carry = 0;
+    for (let i = 1; i < pts.length; i++) { const a = pts[i - 1], b = pts[i], d = hav(a, b); let t = step - carry;
+      while (t <= d) { const f = t / d, p = [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f]; out.push({ p, c: key(p) }); t += step; } carry = (carry + d) % step; }
+    const l = pts.at(-1); if (pts.length > 1) out.push({ p: l, c: key(l) }); return out; }
+  // Cut every dead-end spur ("into the alley and straight back out"): walking back into the cell we came from
+  // undoes the last step, so a spur collapses to the junction where it started.
+  // Points every 10 m; stepping back next to the point before the last one means we're retracing, so drop the last.
+  function trimSpurs(pts) { const st = [];
+    for (const { p } of resample(pts)) {
+      while (st.length >= 2) { const a = hav(p, st.at(-2)); if (a <= 12 && a < hav(p, st.at(-1))) st.pop(); else break; }
+      if (st.length && hav(p, st.at(-1)) < 5) continue;
+      st.push(p); }
+    return st; }
+  // Share of the route retraced in the opposite direction, ignoring the stretch within `near` m of the start
+  // (if you live on a dead-end street, leaving and coming back that way can't be avoided).
+  function retrace(pts, start, near = 250) { return outBackRatio(pts.filter(p => hav(p, start) > near)); }
+  // Roundness: enclosed area vs a circle of the same length (circle = 1, out-and-back or figure-8 ≈ 0).
+  function roundness(pts) { if (pts.length < 3) return 0; const o = pts[0], k = Math.cos(rad(o[0])), xy = pts.map(p => [(p[1] - o[1]) * 111320 * k, (p[0] - o[0]) * 111320]);
+    let a = 0; for (let i = 0; i < xy.length; i++) { const [x1, y1] = xy[i], [x2, y2] = xy[(i + 1) % xy.length]; a += x1 * y2 - x2 * y1; }
+    const L = routeLen(pts); return L ? Math.min(1, Math.abs(a / 2) / (L * L / (4 * Math.PI))) : 0; }
+  // A proper loop: spurs cut, no long retraced stretch, and a reasonably round shape.
+  const LOOP_MAX_RETRACE = 0.1, LOOP_MIN_ROUND = 0.2;
+  function cleanLoop(r, start) { const pts = trimSpurs(r.pts), m = routeLen(pts), f = m ? m / (routeLen(r.pts) || m) : 1;
+    const q = { ...r, pts, meters: m, secs: Math.round((r.secs || 0) * f), round: roundness(pts), back: retrace(pts, start) };
+    q.ok = q.back <= LOOP_MAX_RETRACE && q.round >= LOOP_MIN_ROUND; return q; }
   const sessionKey = (start, meters, kind) => `${start[0].toFixed(3)},${start[1].toFixed(3)}|${Math.round(meters / 100) * 100}|${kind}`;
 
   // ---------- pace / time → distance ----------
@@ -59,11 +87,14 @@
       let seed = 1 + Math.floor(Math.random() * 1e5);
       while (calls < config.maxCalls && out.length < n) {
         while (ses.seeds.has(seed)) seed++; ses.seeds.add(seed);
-        let len = meters, r = await call({ coordinates: [[start[1], start[0]]], options: { round_trip: { length: len, points: 4 + (seed % 3), seed } } });
-        if (r && off(r.meters) > 0.10 && calls < config.maxCalls) { len = Math.round(len * meters / r.meters); const r2 = await call({ coordinates: [[start[1], start[0]]], options: { round_trip: { length: len, points: 4 + (seed % 3), seed } } }); if (r2 && off(r2.meters) < off(r.meters)) r = r2; }
-        if (!r || outBackRatio(r.pts) > 0.4 || !distinct(r)) continue;
+        // Fewer waypoints = simpler, rounder shapes. Each result has its dead-end spurs cut before it's judged.
+        const np = 3 + (seed % 2), rt = len => call({ coordinates: [[start[1], start[0]]], options: { round_trip: { length: len, points: np, seed } } }).then(x => x && cleanLoop(x, start));
+        let len = meters, r = await rt(len);
+        if (r && r.ok && off(r.meters) > 0.10 && calls < config.maxCalls) { len = Math.round(len * meters / r.meters); const r2 = await rt(len); if (r2 && r2.ok && off(r2.meters) < off(r.meters)) r = r2; }
+        if (!r || !r.ok || !distinct(r)) continue;
         r.seed = seed; cands.push(r); const t = tols[Math.min(2, Math.floor(calls / 5))]; if (off(r.meters) <= t) { r.off = off(r.meters); out.push(r); }
       }
+      out.sort((a, b) => b.round - a.round); // roundest first
     } else {
       // Each batch rotates the 8 bearings by 17° and varies the distance factor, so every Reroll asks for new destinations.
       const rot = ses.rot++, fac = [0.75, 0.7, 0.8][rot % 3], bearings = Array.from({ length: 8 }, (_, i) => (i * 45 + rot * 17) % 360);
@@ -81,6 +112,6 @@
     if (!out.length && lastErr) throw lastErr;
     if (!fresh) S.cache[key] = out; return out; }
 
-  const API = { config, hav, destPoint, bearingOf, routeLen, cells, outBackRatio, overlap, sessionKey, paces, timeToMeters, metersToSecs, suggestRoutes, _state: S };
+  const API = { config, hav, destPoint, bearingOf, routeLen, cells, outBackRatio, overlap, trimSpurs, retrace, roundness, cleanLoop, sessionKey, paces, timeToMeters, metersToSecs, suggestRoutes, _state: S };
   if (typeof module === 'object' && module.exports) module.exports = API; else root.RWRoutes = API;
 })(typeof self !== 'undefined' ? self : this);

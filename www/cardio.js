@@ -119,7 +119,7 @@ function goalBox(){const g=GOAL.g,P=RWRoutes.paces(S.runs);
  return`${seg}<div class="chips" style="margin-top:var(--s1)">${chips}</div>
  <div class="afrow"><span>${isD?'Distance':'Time'}</span><span class="afstep"><button onclick="goalSet('${k}',${v-step})">−</button><b>${isD?(v/1000).toFixed(1)+' km':v/60+' min'}</b><button onclick="goalSet('${k}',${v+step})">+</button></span></div>
  ${isD?'':`<p class="t-caption" id="goalest">≈ ${(goalMeters()/1000).toFixed(1)} km at ${P.fromHistory?'your usual pace':runFrac()===1?'a typical jog pace (6:30 /km)':'typical jog (6:30 /km) and walk (11:00 /km) paces'}</p>`}
- <div class="afsec">Route</div><div class="cd-fmts">${[['loop','Loop','start and finish here, different streets back'],['oneway','One way','end somewhere else, plan your own way back']].map(([x,n,d])=>`<button class="${GOAL.kind===x?'on':''}" onclick="goalSet('kind','${x}')"><b>${n}</b><small>${d.replace(/^./,c=>c.toUpperCase())}</small></button>`).join('')}</div>`}
+ <div class="afsec">Route</div><div class="cd-fmts">${[['loop','Loop','one round from here and back here, no doubling back down dead ends'],['oneway','One way','end somewhere else, plan your own way back']].map(([x,n,d])=>`<button class="${GOAL.kind===x?'on':''}" onclick="goalSet('kind','${x}')"><b>${n}</b><small>${d.replace(/^./,c=>c.toUpperCase())}</small></button>`).join('')}</div>`}
 function goalSet(k,v){if(k==='dist')v=Math.max(500,Math.min(42000,v));if(k==='time')v=Math.max(300,Math.min(14400,v));GOAL[k]=v;$('#sheet').innerHTML='<div class="grab"></div>'+ivSheet()}
 function startActivity(){if(LOC.state==='denied')return toast('📍 Location is blocked — allow it in phone Settings → Apps → RepWise → Permissions');openSheet(ivSheet())}
 function ivSheet(){const f=IVS.f,cus=f==='custom',total=f==='free'?0:Math.round(((IVS.run+IVS.walk)*IVS.rounds+(IVS.warm?300:0))/60);
@@ -132,7 +132,7 @@ function ivSheet(){const f=IVS.f,cus=f==='custom',total=f==='free'?0:Math.round(
   <div class="afrow"><span>5 min warm-up walk</span><button class="sw ${IVS.warm?'on':''}" role="switch" aria-checked="${IVS.warm}" onclick="IVS.warm=!IVS.warm;$('#sheet').innerHTML='<div class=&quot;grab&quot;></div>'+ivSheet()"><i></i></button></div>
   ${GOAL.g==='free'?`<p class="t-caption" style="margin-top:6px">${IVS.rounds} × (${IVS.run/60} min run + ${IVS.walk/60} min walk)${IVS.warm?' + warm-up':''} · about ${total} min</p>`:''}`}
  <p class="t-caption" style="margin-top:var(--s1)">Steps you take during the activity count toward your daily steps too.</p>
- ${GOAL.g==='free'?`<button class="btn" style="margin-top:var(--s2)" onclick="goActivity()">Start</button>`:`${S.orsKey?'':'<p class="t-caption" style="margin-top:var(--s1)">Route suggestions need your own free key — a one-time setup.</p>'}<button class="btn" style="margin-top:var(--s2)" onclick="openRoutes()">Find routes</button><button class="btn sec2" style="margin-top:var(--s1)" onclick="goActivity()">Start without a route</button>`}`}
+ ${GOAL.g==='free'?`<button class="btn" style="margin-top:var(--s2)" onclick="goActivity()">Start</button>`:`${netNote()}${S.orsKey?'':'<p class="t-caption" style="margin-top:4px">Route suggestions also need your own free key — a one-time setup.</p>'}<button class="btn" style="margin-top:var(--s2)" onclick="openRoutes()">Find routes${navigator.onLine===false?' (you’re offline)':''}</button><button class="btn sec2" style="margin-top:var(--s1)" onclick="goActivity()">Start without a route</button>`}`}
 function ivPick(k){const F=FORMATS.find(x=>x[0]===k);IVS.f=k;if(k!=='custom'&&k!=='free'){IVS.run=F[3];IVS.walk=F[4];IVS.rounds=F[5]}$('#sheet').innerHTML='<div class="grab"></div>'+ivSheet()}
 function ivSet(k,d,min,max){IVS[k]=Math.max(min,Math.min(max,IVS[k]+d));$('#sheet').innerHTML='<div class="grab"></div>'+ivSheet()}
 async function goActivity(plan){closeSheet();await syncSteps();const c0=await chipRead();
@@ -142,11 +142,14 @@ async function goActivity(plan){closeSheet();await syncSteps();const c0=await ch
  startRun(free?'run':ph[0][0]);if(!RUN)return;if(c0!=null)RUN.chip={start:c0,last:c0,acc:0};if(plan)setPlan(plan);if(goal)RUN.goal={...goal,hit:false};RUN.uiT=setInterval(()=>{liveStats();if(RUN?.chip&&Math.floor(RUN.el)%10===0)chipTick()},1000);
  if(free)return;let t=0;RUN.iv={f:IVS.f,ph:ph.map(([m,s,l])=>({m,s,l,end:t+=s})),i:0,done:false};RUN.ivT=setInterval(ivTick,500)}
 // ================= PLAN A ROUTE =================
+// Auto routes are an API call to OpenRouteService, so they need internet. Say so before and while picking.
+const netNote=()=>`<div class="cd-net${navigator.onLine===false?' off':''}"><span>🌐</span><span>${navigator.onLine===false?'<b>You’re offline.</b> Auto routes need an internet connection — connect to Wi-Fi or mobile data, or start without a route.':'<b>Auto routes need internet.</b> They’re planned online by OpenRouteService. Maps of your own runs, intervals and steps work offline.'}</span></div>`;
+['online','offline'].forEach(ev=>window.addEventListener(ev,()=>{if($('#sheet.show .cd-net'))$('#sheet').innerHTML='<div class="grab"></div>'+ivSheet();else if(stack.at(-1)?.[0]==='routepick'){if(ev==='online'&&ROUTES.msg===ROUTE_ERR.offline&&!ROUTES.list.length&&!ROUTES.setup)loadRoutes(false);else render()}}));
 // Route suggestions are opt-in: each user adds their own free OpenRouteService key (2,000 requests/day each), kept on the phone.
 S.orsKey??='';RWRoutes.config.key=S.orsKey;
 let ROUTES={list:[],sel:0,busy:false,msg:'',meters:0,kind:'loop',batch:0,setup:false};
 const routeTime=r=>RWRoutes.metersToSecs(r.meters,RWRoutes.paces(S.runs),runFrac());
-const ROUTE_ERR={nokey:'',rate:'Too many route requests right now — try again in a minute.',offline:'You’re offline — start without a route.',key:'That key didn’t work — check it and paste it again.',none:'No routes found around here.',noloc:'Still finding your location — try again in a moment.'};
+const ROUTE_ERR={nokey:'',rate:'Too many route requests right now — try again in a minute.',offline:'You’re offline. Auto routes need an internet connection — connect and tap Reroll, or start without a route.',key:'That key didn’t work — check it and paste it again.',none:'No routes found around here.',noloc:'Still finding your location — try again in a moment.'};
 function openRoutes(){ROUTES={list:[],sel:0,busy:false,msg:'',meters:goalMeters(),kind:GOAL.kind,batch:0,setup:!S.orsKey};closeSheet();push('routepick');
  if(ROUTES.setup){if(!LOC.pos)askLocation(true);return}
  if(!LOC.pos){askLocation(true);ROUTES.busy=true;let n=0;const w=setInterval(()=>{if(LOC.pos||++n>40){clearInterval(w);ROUTES.busy=false;if(LOC.pos)loadRoutes(false);else{ROUTES.msg=ROUTE_ERR.noloc;render()}}},250);render();return}
@@ -164,6 +167,7 @@ function routeKeyScreen(){ROUTES={list:[],sel:0,busy:false,msg:'',meters:5000,ki
 function removeOrsKey(){S.orsKey='';RWRoutes.config.key='';RWRoutes._state.cache={};save();ROUTES.list=[];ROUTES.setup=true;ROUTES.msg='';render();toast('Route key removed — route suggestions are off')}
 function keySetup(){return`<div class="card cd-key"><b>Turn on route suggestions <span class="pg-chip">optional</span></b>
  <p class="t-body">Route suggestions use <b>OpenRouteService</b>, a free routing service. RepWise is free and open source, so everyone uses their own free key: you get <b>2,000 route requests a day</b> (one search uses up to 12), and the key stays on this phone. Everything else — maps, activities, intervals, steps — works without it.</p>
+ <p class="t-body"><b>🌐 Needs internet:</b> each route search is a request to OpenRouteService, so you need Wi-Fi or mobile data when you plan a route. Following it during the activity works on GPS alone.</p>
  <div class="afsec">How to get your free key (about 3 minutes)</div>
  <ol><li>Open <a href="https://account.heigit.org" target="_blank" rel="noopener">account.heigit.org</a> and tap <b>Sign up</b>. It's free — HeiGIT runs OpenRouteService.</li>
  <li>Open the email they send you and confirm your address, then <b>log in</b>.</li>
@@ -180,7 +184,8 @@ V.routepick=()=>{const R=ROUTES,lbl=r=>Math.abs(r.off)>0.1?` — a bit ${r.off>0
  if(R.setup)return`<div class="top">${backBtn()}<h1 style="font-size:22px;flex:1;margin-left:var(--s1)">${R.settings?'Route suggestions':'Plan a route'}</h1><span></span></div>${keySetup()}
  ${R.settings?'':`<button class="btn sec2" style="margin-top:var(--s1)" onclick="stack=[];goActivity()">Start without a route</button>`}`;
  return`<div class="top">${backBtn()}<h1 style="font-size:22px;flex:1;margin-left:var(--s1)">Pick a route</h1><span></span></div>
- <p class="muted" style="margin-top:-6px">${R.kind==='loop'?'Loop':'One way'} · about ${(R.meters/1000).toFixed(1)} km</p>
+ <p class="muted" style="margin-top:-6px">${R.kind==='loop'?'Loop':'One way'} · about ${(R.meters/1000).toFixed(1)} km · <span class="cd-netchip">🌐 needs internet</span></p>
+ ${navigator.onLine===false?netNote():''}
  <div class="cd-mapwrap" style="margin-top:var(--s1)">${mapEl('plan',300)}${R.busy&&!R.list.length?'<div class="cd-mapmsg">Finding routes…</div>':''}</div>
  ${R.msg?`<p class="t-caption" id="routemsg" style="margin-top:var(--s1)">${R.msg}</p>`:''}
  <div class="cd-routes">${R.list.map((r,i)=>`<button class="cd-route${i===R.sel?' on':''}" onclick="pickRoute(${i})"><i style="background:${ROUTE_COL[i%5]}"></i><span><b>${(r.meters/1000).toFixed(2)} km${lbl(r)}</b><small>≈ ${fmtT(routeTime(r))}${r.ascent!=null?` · ↑ ${Math.round(r.ascent)} m`:''}</small></span></button>`).join('')}</div>
@@ -332,6 +337,7 @@ document.head.insertAdjacentHTML('beforeend',`<style>
 .cd-recenter{position:absolute;right:10px;bottom:28px;z-index:600;width:40px;height:40px;border-radius:50%;border:none;background:#fff;box-shadow:0 2px 8px #0003;font-size:18px;display:none;cursor:pointer}.cd-recenter.show{display:grid;place-items:center}
 .cd-act{cursor:pointer}.cd-act:active{opacity:.8}
 .cd-seg{display:flex;background:var(--fill);border-radius:var(--r-pill);padding:3px}.cd-seg button{flex:1;border:none;background:none;border-radius:var(--r-pill);padding:8px 0;font-weight:600;color:var(--ink-2);cursor:pointer}.cd-seg button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px #15151f1a}
+.cd-net{display:flex;gap:10px;align-items:flex-start;background:#eff6ff;color:#1e3a8a;border-radius:12px;padding:10px 12px;margin-top:var(--s2);font-size:14px;line-height:1.4}.cd-net.off{background:#fff7ed;color:#9a3412}.cd-netchip{display:inline-block;font-size:12px;font-weight:700;background:#eff6ff;color:#1e3a8a;border-radius:999px;padding:1px 8px}
 .cd-routes{display:grid;gap:8px;margin-top:var(--s2)}.cd-route{display:flex;align-items:center;gap:12px;text-align:left;border:1.5px solid var(--line);background:var(--surface);border-radius:12px;padding:12px;cursor:pointer;color:var(--ink)}
 .cd-route i{width:14px;height:14px;border-radius:50%;flex:none}.cd-route b{display:block;font-size:16px}.cd-route small{color:var(--ink-2);font-size:13px}.cd-route.on{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
 .cd-plan{display:flex;align-items:center;justify-content:space-between;background:var(--surface);border-radius:14px;padding:10px 14px;margin-bottom:12px;box-shadow:0 1px 2px #15151f0d}.cd-plan b{font-size:18px;font-variant-numeric:tabular-nums}
