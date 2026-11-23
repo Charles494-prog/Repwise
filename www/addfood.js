@@ -421,7 +421,8 @@
   function logItems(items, fromPlate) {
     const noAsk = AF.noAsk; AF.noAsk = false;
     if (!items.length) return;
-    if (!fastOK()) { if (fromPlate) AF.plate.unshift(...items); return; }
+    // window.foodGate (ultra.js): Ultra-Health's hard added-sugar cap can stop the log before the fasting check.
+    if ((window.foodGate && !window.foodGate(items)) || !fastOK()) { if (fromPlate) AF.plate.unshift(...items); return; }
     let kcal = 0;
     for (const it of items) { const t = F.mul(it.totals, it.mult || 1); kcal += t.kcal;
       const ing = it.ing && F.ING[it.ing.id];
