@@ -51,7 +51,7 @@ test('a sugary log is blocked with the over-amount and the off-switch hint; logg
 test('Modes card on home and Modes screen from Settings list every mode with its state', async () => {
   await p.open({ state: baseState({ fast: { on: true, proto: '16:8', start: 12 } }), clock });
   await ready();
-  const r = await p.eval(`stack=[];go('plan');${wait(100)}const card=document.querySelector('.md-card');const home=card?card.innerText:'';
+  const r = await p.eval(`stack=[];go('discover');${wait(100)}const card=document.querySelector('.md-card');const home=card?card.innerText:'';
     const rows=[...card.querySelectorAll('.md-row')].map(x=>x.dataset.mode);
     card.querySelector('[data-mode="rank"] .sw').click();const rank=S.rankPop;
     push('settings');const set=$('#app').innerText;

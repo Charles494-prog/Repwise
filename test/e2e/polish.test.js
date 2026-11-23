@@ -26,7 +26,7 @@ function richState() {
 
 // [name, code to show the screen]. Code runs in the page; each starts from a clean stack.
 const SCREENS = [
-  ['today', "go('plan')"], ['train', "trainSub='workouts';go('train')"], ['train-run', "trainSub='run';go('train')"], ['train-quests', "trainSub='challenges';go('train')"],
+  ['today', "go('plan')"], ['discover', "go('discover')"], ['train', "trainSub='workouts';go('train')"], ['train-run', "trainSub='run';go('train')"], ['train-quests', "trainSub='challenges';go('train')"],
   ['meals', "go('meals')"], ['progress', "go('body')"], ['profile', "go('more')"],
   ...['settings', 'notifs', 'fasting', 'splits', 'balance', 'appearance', 'rank', 'rankgallery', 'modes', 'ultra', 'mylib', 'mymeals', 'learn', 'nutrition', 'supps', 'sleep',
     'caltrack', 'science', 'privacy', 'license', 'transfer', 'levelinfo', 'cardiorank', 'hyper', 'foodsci', 'anatomy', 'weekedit', 'routepick'].map(v => [v, `push('${v}')`]),
@@ -35,7 +35,7 @@ const SCREENS = [
   ['sheet:addfood', "go('meals');foodSheet()"], ['sheet:dish', "go('meals');foodSheet();afOpenDish('adobo')"], ['sheet:measure', "go('body');measSheet&&measSheet()"],
   ['player', "S.active=null;startW('push');render()"],
 ];
-const MAIN = new Set(['today', 'train', 'train-run', 'train-quests', 'meals', 'progress', 'profile', 'settings', 'notifs', 'sheet:addfood', 'player']);
+const MAIN = new Set(['today', 'discover', 'train', 'train-run', 'train-quests', 'meals', 'progress', 'profile', 'settings', 'notifs', 'sheet:addfood', 'player']);
 
 // In-page audit. Returns findings for the current screen.
 const AUDIT = String.raw`

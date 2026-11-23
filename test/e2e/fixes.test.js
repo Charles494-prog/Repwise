@@ -43,9 +43,21 @@ test('rest times: ~3 min heavy lower-body, 2:30 other compounds, 1:30 isolation;
   assert.deepEqual(p.errors, []);
 });
 
-test('the sticky "Restart / Start" button has a solid backdrop so card text never shows underneath', async () => {
+test('the Start / Restart button is a solid toolbar pinned flush on the bottom nav (no content showing around it)', async () => {
   await p.open({ state: baseState(), clock });
-  const r = await p.eval(`stack=[];push('prog','pull');${wait(200)}const s=document.querySelector('.sticky');return s?getComputedStyle(s).backgroundImage:''`);
-  assert.match(r, /linear-gradient/);
+  const r = await p.eval(`stack=[];push('prog','pull');${wait(300)}scrollTo(0,400);${wait(200)}const s=document.querySelector('.sticky'),n=document.getElementById('nav'),cs=getComputedStyle(s);
+    return {pos:cs.position,bg:cs.backgroundColor,gap:Math.round(n.getBoundingClientRect().top-s.getBoundingClientRect().bottom),w:Math.round(s.getBoundingClientRect().width),vw:innerWidth}`);
+  assert.equal(r.pos, 'fixed'); assert.equal(r.gap, 0, 'no gap between the toolbar and the nav'); assert.equal(r.w, r.vw, 'full width');
+  assert.doesNotMatch(r.bg, /rgba\(0, 0, 0, 0\)|transparent/, 'solid background');
+  assert.deepEqual(p.errors, []);
+});
+
+test("Today is only today's to-do list; rank, modes, this week, learn and tips are in the Discover tab", async () => {
+  await p.open({ state: baseState({ planFrom: '2026-11-01', missedFrom: '2099-01-01' }), clock });
+  const r = await p.eval(`stack=[];go('plan');${wait(200)}const t=$('#app').innerText;go('discover');${wait(200)}
+    return {t,d:$('#app').innerText,nav:[...document.querySelectorAll('#nav button')].map(b=>b.innerText.trim())}`);
+  assert.match(r.t, /Must do/); assert.match(r.t, /Optional/);
+  for (const x of ['Overall rank', 'Modes', 'This week', 'Learn', 'Tips for you', 'Science tip']) { assert.ok(!r.t.includes(x), `Today has ${x}`); assert.ok(r.d.includes(x), `Discover missing ${x}`); }
+  assert.deepEqual(r.nav, ['Today', 'Train', 'Nutrition', 'Progress', 'Discover', 'Profile']);
   assert.deepEqual(p.errors, []);
 });

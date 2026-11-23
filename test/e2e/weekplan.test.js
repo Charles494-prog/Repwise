@@ -17,7 +17,7 @@ test('your example: Monday Legs → Home Arms Day instead. Legs moves to Wednesd
   await p.open({ state: st(), clock: at(MON) });
   const r = await p.eval(`${WEEK}${ARMS}BAL_OK=true;startW('g_ha');${doSets()};restEnd=0;mv(1);${doSets()};finishW();
     const sum=$('#app').innerText,W=S.week;const res={sum,d2:W.days[2],d3:W.days[3],d0:W.days[0].st,lines:W.log.at(-1).lines};
-    stack=[];go('plan');res.strip=$('.wp-strip').innerText.replace(/\\s+/g,' ');res.card=$('#app').innerText.includes('Muscle balance this week');
+    stack=[];go('discover');res.strip=$('.wp-strip').innerText.replace(/\\s+/g,' ');res.card=$('#app').innerText.includes('Muscle balance this week');
     undoChange(W.log.at(-1).id);res.after=JSON.stringify(S.week.days);return res`);
   assert.equal(r.d2.prog, 'legs'); assert.equal(r.d2.st, 'moved'); assert.equal(r.d2.from, 0); assert.equal(r.d0, 'skipped');
   assert.deepEqual(r.d3.drop, ['Biceps', 'Triceps']);

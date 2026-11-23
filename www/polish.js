@@ -16,7 +16,9 @@
   #pw,#pr,#afq,.afsearch input{min-height:44px}
   .rw-inl{display:inline-block}
   /* sticky action buttons (e.g. "Restart with this workout") sit on a fade of the page background, so text never shows underneath */
-  .sticky{padding-top:22px;padding-bottom:6px;background:linear-gradient(to bottom,transparent,var(--bg) 42%);z-index:5}
+  .sticky{position:fixed!important;left:0;right:0;bottom:var(--nav-h,84px)!important;margin:0!important;padding:10px 16px;background:var(--bg);border-top:1px solid var(--line);box-shadow:0 -8px 20px var(--shadow-c);z-index:40}
+  body.full .sticky{bottom:0!important;padding-bottom:calc(10px + env(safe-area-inset-bottom))}
+  #app:has(.sticky){padding-bottom:calc(var(--sticky-h,76px) + 16px)}
   /* dark mode: accent-coloured text links ("Change", "See all", "Manage") are lightened to stay readable */
   /* (inline styles are re-serialised with a space after the colon once polish.js adds variables, so match both forms) */
   body[data-mode=dark] [onclick]:is([style*="color:var(--acc)"],[style*="color: var(--acc)"],[style*="color:var(--accent)"],[style*="color: var(--accent)"]):not([style*="background"]){color:color-mix(in srgb,var(--accent) 60%,var(--ink))!important}
@@ -59,8 +61,13 @@
     }
   }
   window.rwGrowTaps = grow;
+  // Pin sticky action bars flush on top of the bottom nav (its height includes the home-indicator inset).
+  const navH = () => { const n = document.getElementById('nav'); if (!n) return; const r = n.getBoundingClientRect(), vis = r.height > 0 && getComputedStyle(n).display !== 'none';
+    document.documentElement.style.setProperty('--nav-h', (vis ? Math.max(0, Math.round(innerHeight - r.top)) : 0) + 'px');
+    const st = document.querySelector('#app .sticky'); if (st) document.documentElement.style.setProperty('--sticky-h', Math.round(st.getBoundingClientRect().height) + 'px'); };
+  addEventListener('resize', navH); setTimeout(navH, 0);
   let queued = false;
-  const run = () => { if (queued) return; queued = true; requestAnimationFrame(() => { queued = false; try { grow(); } catch (e) { console.warn('polish', e); } }); };
+  const run = () => { if (queued) return; queued = true; requestAnimationFrame(() => { queued = false; try { grow(); navH(); } catch (e) { console.warn('polish', e); } }); };
   new MutationObserver(run).observe(document.body, { childList: true, subtree: true });
   // font-size / layout changes made through inline styles (e.g. larger text) — re-measure; grow() only writes when a value changes
   new MutationObserver(ms => { if (ms.some(m => m.target.dataset?.pf !== undefined || m.attributeName === 'style' && !m.target.classList?.contains('rw-hit'))) run(); }).observe(document.body, { attributes: true, attributeFilter: ['style'], subtree: true });

@@ -8,8 +8,9 @@ const st = (over = {}) => baseState({ rankPop: false, lossQ: null, missedFrom: '
 
 test('home shows the overall rank card (not the old XP line); rank screen explains what moves it', async () => {
   await p.open({ state: st() });
-  const r = await p.eval(`stack=[];go('plan');const home=$('#app').innerHTML;push('rank');const t=$('#app').innerText;
-    return {card:home.includes('rk-card'),oldLine:home.includes('rk-line'),t}`);
+  const r = await p.eval(`stack=[];go('plan');const todayHas=$('#app').innerHTML.includes('rk-card');go('discover');const home=$('#app').innerHTML;push('rank');const t=$('#app').innerText;
+    return {card:home.includes('rk-card'),todayHas,oldLine:home.includes('rk-line'),t}`);
+  assert.equal(r.todayHas, false, 'Today is only the to-do list; the rank card lives in Discover');
   assert.ok(r.card); assert.equal(r.oldLine, false);
   for (const s of ['What moves my rank', 'Training consistency', 'Progressive overload', 'Meal logging', 'Streak', 'Rank history', 'Muscle ranks']) assert.match(r.t, new RegExp(s));
   assert.deepEqual(p.errors, []);
@@ -36,7 +37,7 @@ test('theme switches live: preview a rank, dark/light mode, reduce effects; toke
 
 test('a saved preview for a rank that no longer exists falls back safely', async () => {
   await p.open({ state: st({ ui: { previewRank: 'olympian', devThemes: true } }) });
-  const r = await p.eval(`return {rank:document.body.dataset.rank,card:!!document.querySelector('.rk-card'),pv:S.ui.previewRank}`);
+  const r = await p.eval(`stack=[];go('discover');return {rank:document.body.dataset.rank,card:!!document.querySelector('.rk-card'),pv:S.ui.previewRank}`);
   assert.equal(r.rank, 'iron'); assert.ok(r.card); assert.equal(r.pv, null);
   assert.deepEqual(p.errors, []);
 });
