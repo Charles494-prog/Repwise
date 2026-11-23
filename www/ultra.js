@@ -1,7 +1,7 @@
 // RepWise Ultra-Health Mode (off by default). Rules: health.js (RWHealth); numbers + sources: guidelines.js (RWGuide).
 // Turning it on (after a one-time disclaimer):
 //  - personal daily limits for added sugar, saturated fat, total fat, sodium and cholesterol, tightened by BP / glucose readings
-//  - a hard added-sugar cap: a food that would push the day over the limit is not logged (fat & sodium only warn)
+//  - hard limits: a food that would push the day over the sugar, saturated fat, total fat, sodium or cholesterol limit is not logged
 //  - water target +15%, extra hydration reminders and a bedtime reminder
 //  - nutrient gaps over 14 days, food + supplement ideas, health-trend warnings — all on the Ultra-Health screen (V.ultra)
 (function () {
@@ -23,7 +23,7 @@
 
   // ---------- on / off with a one-time disclaimer ----------
   const WHAT = ['Personal daily limits for added sugar, saturated fat, total fat, sodium and cholesterol (WHO, AHA, ADA), tightened by your blood pressure and glucose readings — with the reason shown',
-    'A hard added-sugar cap: a food that would put you over today’s limit isn’t logged (fat and sodium only warn)',
+    'Hard limits: a food that would put you over today’s added sugar, saturated fat, total fat, sodium or cholesterol limit isn’t logged',
     'Water target +15%, extra hydration reminders and a bedtime reminder',
     'Nutrient gaps over 14 days, Filipino food ideas, supplement info and health-trend warnings'];
   window.toggleUltra = on => { on = on ?? !S.ultra.on; if (on && !S.ultra.ack) return ultraDisclaimer();
@@ -37,27 +37,41 @@
   window.ultraDisclaimer = ultraDisclaimer;
   window.ultraAccept = () => { S.ultra.ack = Date.now(); save(); closeSheet(); toggleUltra(true); };
 
-  // ---------- logging gate: hard added-sugar cap, fat / sodium warnings ----------
+  // ---------- logging gate: hard limits for sugar, saturated fat, total fat, sodium and cholesterol ----------
   const toEntry = it => { const m = it.mult || 1, t = window.FOODDB.mul(it.totals || {}, m); return [it.name, Math.round(t.kcal), Math.round(t.p), t.c, t.f, t.fib, { ...(it.meta || {}), mult: m }]; };
+  // Every limit is a hard limit in Ultra-Health Mode: a food that would put today over the WHO / AHA / ADA-based limit for
+  // added sugar, saturated fat, total fat, sodium or cholesterol is not logged. Trivial amounts (e.g. 0.2 g fat in a
+  // vegetable) never block, so you can still eat vegetables and drink water after reaching a limit.
+  const TRIVIAL = { sugar: 1, sat: 0.5, fat: 1, sodium: 50, chol: 10 };
+  const LIM_LABEL = { sugar: ['Added sugar', 'g'], sat: ['Saturated fat', 'g'], fat: ['Total fat', 'g'], sodium: ['Sodium', 'mg'], chol: ['Cholesterol', 'mg'] };
+  function overLimits(items) {
+    const L = ultraLimits(), entries = items.map(toEntry), was = dayT(viewDate), plus = H.dayTotals(entries, DB());
+    const cur = { sugar: RWCore.addedSugar(dayFood(viewDate)), sat: was.sat, fat: was.f, sodium: was.na, chol: was.chol };
+    const add = { sugar: RWCore.addedSugar(entries), sat: plus.sat, fat: plus.f, sodium: plus.na, chol: plus.chol };
+    const lim = { sugar: L.sugar, sat: L.sat, fat: L.fat, sodium: L.sodium, chol: L.chol };
+    return Object.keys(lim).filter(k => add[k] >= TRIVIAL[k] && cur[k] + add[k] > lim[k].value)
+      .map(k => ({ k, label: LIM_LABEL[k][0], unit: LIM_LABEL[k][1], now: Math.round(cur[k]), add: Math.round(add[k]), total: Math.round(cur[k] + add[k]), limit: lim[k].value, over: Math.round(cur[k] + add[k] - lim[k].value), why: lim[k].why }));
+  }
+  window.ultraOverLimits = overLimits;
   window.foodGate = items => {
     if (!uOn() || !items || !items.length) return true;
-    const L = ultraLimits(), entries = items.map(toEntry), add = RWCore.addedSugar(entries), now = RWCore.addedSugar(dayFood(viewDate));
-    const b = H.sugarBlock(now, add, L.sugar.value);
-    if (b.block) { showBlock(b, L, items); return false; }
-    const was = dayT(viewDate), plus = H.dayTotals(entries, DB()), w = [];
-    if (was.sat + plus.sat > L.sat.value) w.push(`saturated fat ${Math.round(was.sat + plus.sat)} of ${L.sat.value} g`);
-    if (was.f + plus.f > L.fat.value) w.push(`total fat ${Math.round(was.f + plus.f)} of ${L.fat.value} g`);
-    if (was.na + plus.na > L.sodium.value) w.push(`sodium ${was.naPartial || plus.naPartial ? '≥' : ''}${fmtN(was.na + plus.na)} of ${fmtN(L.sodium.value)} mg`);
-    if (was.chol + plus.chol > L.chol.value) w.push(`cholesterol ${was.cholPartial || plus.cholPartial ? '≥' : ''}${fmtN(was.chol + plus.chol)} of ${L.chol.value} mg`);
-    if (w.length) setTimeout(() => toast(`⚠️ Over your limit: ${esc(w.join(' · '))}`), 1200);
+    const over = overLimits(items);
+    if (over.length) { showBlock(over, items); return false; }
     return true;
   };
-  function showBlock(b, L, items) { $('#sheet').classList.remove('af');
-    openSheet(`<div class="ul-block"><h3 class="t-title">Not logged — this goes over your added-sugar limit</h3>
-    <p class="t-body" style="margin:var(--s1) 0">It adds <b>~${b.add} g</b> of added sugar. With the ~${b.total - b.add} g you've had today you'd be at <b>${b.total} g of ${L.sugar.value} g</b> — <b class="ul-over">${b.over} g over</b>.</p>
-    ${L.sugar.why ? `<p class="t-caption">${esc(L.sugar.why)}</p>` : ''}
-    <div class="afsec">Lower-sugar ideas</div>${H.swaps(items).map(s => `<div class="tip">${esc(s)}</div>`).join('')}
-    <p class="t-caption ul-offhint" style="margin-top:var(--s1)">Ultra-Health Mode is on. Turning Ultra-Health Mode off removes this block.</p>
+  const SWAPS_BY = {
+    sat: ['Grilled, steamed or boiled instead of fried', 'Chicken breast, fish or tokwa instead of liempo, chicharon or longganisa', 'Skip the skin and visible fat'],
+    fat: ['Less oil: air-fry, grill or bake', 'Steamed rice instead of fried rice', 'Fresh fruit instead of chips or pastries'],
+    sodium: ['Less soy sauce, patis and bagoong; use calamansi, vinegar or garlic for flavour', 'Fresh meat instead of tocino, tapa, hotdog or corned beef', 'Skip instant noodles and the seasoning packet'],
+    chol: ['Egg whites instead of whole eggs', 'Fish or chicken breast instead of liver, shrimp or squid', 'Tokwa or monggo for protein'],
+  };
+  function showBlock(over, items) { $('#sheet').classList.remove('af');
+    const names = over.map(o => o.label.toLowerCase()), title = names.length > 1 ? names.slice(0, -1).join(', ') + ' and ' + names.at(-1) : names[0];
+    const swaps = [...new Set(over.flatMap(o => o.k === 'sugar' ? H.swaps(items) : SWAPS_BY[o.k]))].slice(0, 4);
+    openSheet(`<div class="ul-block"><h3 class="t-title">Not logged — this goes over your ${esc(title)} limit</h3>
+    ${over.map(o => `<div class="ul-brow"><b>${esc(o.label)}</b><span>+${fmtN(o.add)} ${o.unit} → <b>${fmtN(o.total)} of ${fmtN(o.limit)} ${o.unit}</b> · <b class="ul-over">${fmtN(o.over)} ${o.unit} over</b></span>${o.why ? `<small class="ul-why">↓ ${esc(o.why)}</small>` : ''}</div>`).join('')}
+    <div class="afsec">Healthier ideas</div>${swaps.map(x => `<div class="tip">${esc(x)}</div>`).join('')}
+    <p class="t-body ul-offhint" style="margin-top:var(--s2)"><b>Ultra-Health Mode is on.</b> Turn off Ultra-Health Mode to eat more of this food.</p>
     <button class="btn" style="margin-top:var(--s2)" onclick="closeSheet();foodSheet()">Pick something else</button>
     <button class="btn sec2" style="margin-top:var(--s1)" onclick="closeSheet();push('ultra')">Ultra-Health settings</button></div>`); }
 
@@ -84,7 +98,7 @@
     ${warns.length ? `<div class="sec">Health warnings</div>${warns.map(w => `<div class="${LVL[w.level][1]}">${LVL[w.level][0]} ${esc(w.text)}</div>`).join('')}` : ''}
     <div class="sec">Today: limits vs intake</div><div class="card">
      ${limitRow(L.sugar, t.sugar, false)}${limitRow(L.sat, t.sat, t.satPartial)}${limitRow(L.sodium, t.na, t.naPartial)}${limitRow(L.fat, t.f, false)}${limitRow(L.chol, t.chol, t.cholPartial)}
-     <p class="t-caption">Added sugar is a hard limit (a food that would go over isn't logged); the others warn. ≥ = some foods have no data for it, so the real amount is at least this. Salt added while cooking isn't counted.</p>
+     <p class="t-caption">Every limit is a hard limit: a food that would go over isn't logged (tiny amounts, like the fat in vegetables, never block). ≥ = some foods have no data for it, so the real amount is at least this. Salt added while cooking isn't counted.</p>
      ${L.notes.map(n => `<div class="tip">${esc(n)}</div>`).join('')}</div>
     <div class="sec">Blood pressure & sugar trends</div>${readingsCard(L)}
     <div class="sec">Nutrient gaps · last 14 days</div><div class="card">
@@ -126,6 +140,7 @@
   document.head.insertAdjacentHTML('beforeend', `<style>
   .ul-reminder{margin:var(--s1) 0 0;padding:8px 12px;border-radius:12px;background:var(--fill)}
   .ul-lim{margin-bottom:12px}.ul-lim-h{display:flex;justify-content:space-between;gap:8px;font-size:14px}.ul-lim .prog{margin-top:6px}
+  .ul-brow{display:grid;gap:2px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}.ul-brow:last-of-type{border-bottom:none}
   .ul-why{display:block;font-size:12px;color:var(--warn);margin-top:4px}.ul-over{color:var(--warn);font-weight:700}
   .ul-w{background:color-mix(in srgb,var(--warn) 14%,var(--surface));color:var(--warn);border-radius:12px;padding:10px 12px;margin-top:8px;font-size:14px;line-height:1.45}.ul-w.doc{background:color-mix(in srgb,var(--accent-2) 14%,var(--surface));color:var(--accent-2)}.ul-w.urgent{background:var(--accent-soft);color:var(--accent);font-weight:600}.ul-w.info{background:var(--fill);color:var(--ink)}
   .ul-src{margin-top:var(--s2)}.ul-src summary{font-size:13px;color:var(--ink-2);cursor:pointer}.ul-src p{margin-top:6px}

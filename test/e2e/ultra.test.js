@@ -38,8 +38,8 @@ test('a sugary log is blocked with the over-amount and the off-switch hint; logg
     stack=[];go('meals');${wait(100)}const meals=$('#app').innerText;
     toggleUltra(false);foodSheet();afOpenIng('softdrink');afIngToPlate(true);${wait(500)}
     return {meals,sheet,n1,n2,n3:S.food['${D}'].length,last:S.food['${D}'].at(-1)[0]}`);
-  assert.match(r.sheet, /Not logged/); assert.match(r.sheet, /adds ~11 g/); assert.match(r.sheet, /41 g of 36 g/); assert.match(r.sheet, /5 g over/);
-  assert.match(r.sheet, /Turning Ultra-Health Mode off removes this block/);
+  assert.match(r.sheet, /Not logged — this goes over your added sugar limit/); assert.match(r.sheet, /\+11 g/); assert.match(r.sheet, /41 of 36 g/); assert.match(r.sheet, /5 g over/);
+  assert.match(r.sheet, /Turn off Ultra-Health Mode to eat more of this food/);
   assert.match(r.sheet, /Water, sparkling water or unsweetened green tea/);
   assert.match(r.meals, /Added sugar ~\d+ g of 36 g limit/); assert.match(r.meals, /Ultra-Health: Sugar \d+\/36 g/);
   assert.equal(r.n1, 1);                                              // blocked
@@ -66,5 +66,24 @@ test('Modes card on home and Modes screen from Settings list every mode with its
   assert.match(r.scr, /Modes & features/); assert.match(r.scr, /Rotate equivalent exercises/); assert.match(r.scr, /Equipment/);
   for (const m of ['ultra', 'fast', 'late', 'balance', 'rank', 'rot', 'deload', 'steps', 'routes', 'notif', 'lang', 'ai']) assert.ok(r.modes.includes(m), m);
   assert.match(r.disc, /not medical advice/);
+  assert.deepEqual(p.errors, []);
+});
+
+test('every limit is hard: fat, saturated fat, sodium and cholesterol over the limit are blocked (with the off-switch hint); trivial amounts still log', async () => {
+  // 373 g of fat already today (far over the ~67-70 g limit), like a real report
+  const fatty = { [D]: [['Lechon kawali', 3000, 60, 0, 373, 0, { kind: 'custom', items: [{ id: 'pork_belly', g: 700 }], mult: 1 }]] };
+  await p.open({ state: baseState({ food: fatty, ultra: { on: true, ack: 1 } }), clock });
+  await ready();
+  const r = await p.eval(`foodSheet();afOpenIng('pork_belly');afIngToPlate(true);${wait(400)}
+    const sheet=$('#sheet').innerText,n1=S.food['${D}'].length;closeSheet();${wait(400)}
+    foodSheet();afOpenIng('kangkong');afIngToPlate(true);${wait(500)}const n2=S.food['${D}'].length;closeSheet();${wait(400)}
+    const over=ultraOverLimits([{name:'Salty',totals:{kcal:50,p:1,c:1,f:0,fib:0},mult:1,meta:{items:[{id:'patis',g:40}]}}]).map(o=>o.k);
+    toggleUltra(false);foodSheet();afOpenIng('pork_belly');afIngToPlate(true);${wait(500)}
+    return {sheet,n1,n2,n3:S.food['${D}'].length,over}`);
+  assert.match(r.sheet, /Not logged — this goes over your/); assert.match(r.sheet, /total fat/i); assert.match(r.sheet, /over/);
+  assert.match(r.sheet, /Turn off Ultra-Health Mode to eat more of this food/);
+  assert.equal(r.n1, 1, 'pork belly blocked'); assert.equal(r.n2, 2, 'a vegetable with a trace of fat still logs');
+  assert.ok(r.over.includes('sodium'), 'sodium over the limit blocks too');
+  assert.equal(r.n3, 3, 'mode off: logs again');
   assert.deepEqual(p.errors, []);
 });

@@ -421,7 +421,7 @@
   function logItems(items, fromPlate) {
     const noAsk = AF.noAsk; AF.noAsk = false;
     if (!items.length) return;
-    // window.foodGate (ultra.js): Ultra-Health's hard added-sugar cap can stop the log before the fasting check.
+    // window.foodGate (ultra.js): Ultra-Health's hard limits (sugar, fats, sodium, cholesterol) can stop the log before the fasting check.
     // retry: a gate that asks first (Ultra-Health sodium entry, "Eat now / Wait") logs the same items once answered.
     const retry = () => { if (fromPlate) AF.plate.splice(0, items.length); AF.noAsk = noAsk; logItems(items, fromPlate); };
     if ((window.foodGate && !window.foodGate(items, retry)) || !fastOK(retry)) { if (fromPlate) AF.plate.unshift(...items); return; }

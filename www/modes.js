@@ -7,7 +7,7 @@
   const notifOn = () => Object.keys(S.notif || {}).filter(k => S.notif[k]).length;
   // [id, icon, name, description, state() → true/false/string, toggle (onclick) | null, open (onclick) | null, onHome]
   const MODES = () => [
-    ['ultra', '🛡️', 'Ultra-Health Mode', 'Personal sugar, fat & sodium limits from your BP and glucose, a hard added-sugar cap, nutrient gaps and health warnings.', () => !!S.ultra?.on, 'toggleUltra()', "push('ultra')", 1],
+    ['ultra', '🛡️', 'Ultra-Health Mode', 'Hard daily limits for sugar, fats, sodium and cholesterol, tightened by your BP and glucose, plus nutrient gaps and health warnings.', () => !!S.ultra?.on, 'toggleUltra()', "push('ultra')", 1],
     ['fast', '⏳', 'Intermittent fasting', 'Eating-window timer, window reminders and notes for meals outside your window.', () => !!S.fast?.on, 'togFast()', "push('fasting')", 1],
     ['balance', '⚖️', 'Balance warnings', 'Asks before you train a muscle you’ve already worked hard this week. Never blocks.', () => !!S.balance?.warn, 'S.balance.warn=!S.balance.warn;save();render()', "push('balance')", 1],
     ['rank', '🏅', 'Rank-up pop-ups', 'Celebrates a new rank after a workout or activity.', () => !!S.rankPop, 'S.rankPop=!S.rankPop;save();render()', null, 1],
@@ -50,7 +50,7 @@
   // ---------- Settings rows ----------
   const _sM = V.settings; V.settings = () => { const h = _sM(), k = h.indexOf('<div class="row" onclick="push(\'fasting\')">'), on = MODES().filter(m => m[4]() === true).length;
     const rows = `<div class="row" onclick="push('modes')"><span style="font-size:22px">🎛️</span><div class="rbody"><b>Modes & features</b><small>${on} on · Ultra-Health, fasting, warnings, pop-ups and more</small></div><span class="chev">›</span></div>
-     <div class="row" onclick="push('ultra')"><span style="font-size:22px">🛡️</span><div class="rbody"><b>Ultra-Health Mode</b><small>${S.ultra?.on ? 'On' : 'Off'} · strict limits, sugar cap, health warnings</small></div><span class="chev">›</span></div>`;
+     <div class="row" onclick="push('ultra')"><span style="font-size:22px">🛡️</span><div class="rbody"><b>Ultra-Health Mode</b><small>${S.ultra?.on ? 'On' : 'Off'} · hard limits for sugar, fats, sodium & cholesterol</small></div><span class="chev">›</span></div>`;
     return k >= 0 ? h.slice(0, k) + rows + h.slice(k) : h + `<div class="list">${rows}</div>`; };
 
   document.head.insertAdjacentHTML('beforeend', `<style>
