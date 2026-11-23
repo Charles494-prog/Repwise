@@ -66,3 +66,19 @@ test('search: a strong match hides weak fuzzy noise', () => {
   const r = F.search('bico', entries).map(e => e.name);
   assert.equal(r[0], 'Bicol Express'); assert.ok(!r.includes('Adobo') && !r.includes('Goat (kambing)'));
 });
+
+test('sodium: every built-in ingredient has a value; estimates are flagged; every dish computes sodium', () => {
+  const H = require('../www/health.js'), F2 = require('../www/foods.js');
+  const missing = Object.values(F2.ING).filter(i => i.per100.na == null).map(i => i.id);
+  assert.deepEqual(missing, []);
+  for (const id of Object.keys(F2.NA)) assert.ok(F2.ING[id], `NA has unknown id ${id}`);
+  assert.ok(F2.NA_EST.has('tamarind_mix') && F2.NA_EST.has('tapa') && !F2.NA_EST.has('egg'));
+  assert.equal(F2.ING.egg.naEst, false); assert.equal(F2.sodium('soy_sauce', 15), 5490 * 15 / 100);
+  for (const [k, d] of Object.entries(F2.DISHES)) for (const v of d.variants) {
+    const items = F2.dishItems(d, v.id).filter(x => x.id).map(x => ({ id: x.id, g: x.g }));
+    const e = H.entryNutrients([k, 1, 0, 0, 0, 0, { items }], F2.ING);
+    assert.equal(e.naKnown, true, `dish ${k}/${v.id}`); assert.ok(items.length, k);
+  }
+  // a quick entry becomes known once the user enters its sodium
+  assert.equal(H.entryNutrients(['Quick', 300, 10, 0, 0, 0, { na: 400, mult: 2 }], F2.ING).na, 800);
+});

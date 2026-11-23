@@ -49,3 +49,34 @@ test('suggests shifting the window toward when you actually eat', () => {
   assert.equal(F.suggestStart(early, at(13, 0), 12, 8), 10.5); // usually ~90 min early → 10:30 AM
   assert.equal(F.suggestStart([{ ts: at(21, 0), out: true }], at(22, 0), 12, 8), null);
 });
+
+// ---------- Ultra-Health: late-meal window shift, bedtime, nudges ----------
+const T = (d, h, m = 0) => new Date(2026, 10, d, h, m).getTime();
+test('Ultra: a meal after the normal close moves the NEXT opening to meal + fasting hours', () => {
+  const s = F.lateShift([T(23, 23)], T(24, 9), 12, 8);
+  assert.equal(s.shifted, true); assert.equal(s.open, T(24, 15)); assert.equal(s.normalOpen, T(24, 12)); assert.equal(s.close, T(24, 20));
+  assert.equal(F.lateShift([T(24, 1)], T(24, 9), 12, 8).open, T(24, 17));            // after midnight still counts as late
+  assert.equal(F.lateShift([T(23, 21), T(23, 23)], T(24, 9), 12, 8).open, T(24, 15)); // the latest late meal wins
+  assert.equal(F.lateShift([T(23, 20, 30)], T(24, 9), 12, 8).open, T(24, 12, 30));    // 30 min late → opens 30 min later
+  assert.equal(F.lateShift([T(23, 20, 30)], T(24, 9), 10, 10).open, T(24, 10, 30));    // 14:10 window: 20:30 + 14 h
+});
+test('Ultra: next day only, early meals never shift, and at least 1 h of window stays', () => {
+  assert.equal(F.lateShift([T(23, 23)], T(25, 9), 12, 8).shifted, false);            // two days later: normal
+  assert.equal(F.lateShift([T(24, 10)], T(24, 11), 12, 8).shifted, false);           // breakfast before the window is not a late meal
+  assert.equal(F.lateShift([T(24, 3, 30)], T(24, 9), 12, 8).open, T(24, 19));        // capped: 20:00 close − 1 h
+});
+test('Ultra: eating before a shifted opening warns; no chain reaction the day after', () => {
+  const c = F.ultraCheck([T(23, 23)], T(24, 13), 12, 8);
+  assert.equal(c.ok, false); assert.equal(c.reason, 'shifted'); assert.equal(c.opensAt, T(24, 15)); assert.equal(c.meal, T(23, 23)); assert.equal(c.minsUntilOpen, 120);
+  assert.equal(F.ultraCheck([T(23, 23)], T(24, 16), 12, 8).ok, true);
+  assert.equal(F.ultraCheck([T(23, 23), T(24, 13)], T(25, 12, 30), 12, 8).ok, true);  // the 1 PM meal does not shift the next day
+  const b = F.ultraCheck([], T(24, 9), 12, 8); assert.equal(b.reason, 'before'); assert.equal(b.minsUntilOpen, 180);
+  assert.equal(F.ultraCheck([], T(24, 22), 12, 8).reason, 'after');
+});
+test('Ultra: bedtime window and healthiest-fasting nudges', () => {
+  assert.deepEqual(F.nearBed(T(24, 21), 23), { near: true, minsToBed: 120 });
+  assert.equal(F.nearBed(T(24, 19, 30), 23).near, false); assert.equal(F.nearBed(T(25, 1), 23).near, true);
+  assert.deepEqual(F.nudges({ start: 12, eatH: 8, sleepH: 22 }), ['earlier', 'bed']);
+  assert.deepEqual(F.nudges({ start: 8, eatH: 8, sleepH: 23 }), []);
+  assert.deepEqual(F.nudges({ start: 8, eatH: 8, sleepH: 23, firstMeals: [T(1, 7), T(2, 13), T(3, 8), T(4, 14)] }), ['consistent']);
+});

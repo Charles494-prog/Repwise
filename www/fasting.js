@@ -29,7 +29,42 @@
   // Old logs were [ts, hoursIntoFast] and included false breaks; re-check each against the window.
   function migrateLog(log, start, eatH) { return (log || []).map(x => { if (x && !Array.isArray(x) && typeof x === 'object') return x;
     const ts = Array.isArray(x) ? +x[0] : +x; if (!ts) return null; const c = classify(ts, start, eatH); return { ts, out: !c.inWindow, side: c.side || null }; }).filter(Boolean); }
-  const API = { eatHours, minsOfDay, classify, weekCount, suggestStart, migrateLog };
+
+  // ---------- Ultra-Health rules (only used when Ultra-Health Mode is on) ----------
+  const H_MS = 36e5, M_MS = 6e4;
+  // The window `now` is in, or the next one: { open, close } (timestamps) from the settings alone.
+  function windowAt(now, start, eatH) { const t = +now, c = classify(t, start, eatH), open = c.inWindow ? t - c.minsAfterOpen * M_MS : t + c.minsUntilOpen * M_MS;
+    return { open: Math.round(open / M_MS) * M_MS, close: Math.round(open / M_MS) * M_MS + eatH * H_MS }; }
+  // A late meal — logged after the normal close, before the next opening — pushes that NEXT opening to
+  // max(normal open, meal + fasting hours). Next window only, and only meals after the normal close count, so eating
+  // before a shifted opening never shifts the day after (no chain reaction). At least `minWindowH` hours stay open.
+  // → { open, close, normalOpen, shifted, meal }
+  function lateShift(meals, now, start, eatH, minWindowH = 1) {
+    const fastH = 24 - eatH, W = windowAt(now, start, eatH), prevClose = W.open - fastH * H_MS;
+    const late = (meals || []).map(Number).filter(ts => ts > prevClose && ts < W.open && classify(ts, start, eatH).side === 'after');
+    if (!late.length) return { open: W.open, close: W.close, normalOpen: W.open, shifted: false, meal: null };
+    const meal = Math.max(...late), open = Math.min(Math.max(W.open, meal + fastH * H_MS), W.close - minWindowH * H_MS);
+    return { open, close: W.close, normalOpen: W.open, shifted: open > W.open, meal };
+  }
+  // Eating at `now` with Ultra-Health on → { ok: true } or { ok: false, reason: 'shifted' | 'before' | 'after', opensAt, minsUntilOpen, meal }
+  function ultraCheck(meals, now, start, eatH) {
+    const t = +now, c = classify(t, start, eatH), sh = lateShift(meals, t, start, eatH);
+    if (c.inWindow && !(sh.shifted && t < sh.open)) return { ok: true, shift: sh };
+    return { ok: false, reason: c.inWindow ? 'shifted' : c.side, opensAt: sh.open, minsUntilOpen: Math.max(0, (sh.open - t) / M_MS), meal: sh.shifted ? sh.meal : null, shift: sh };
+  }
+  // Close to bedtime (sleepH, hours): within `before` hours before it, or up to 5 h after it.
+  function nearBed(now, sleepH = 23, before = 3) { const m = ((sleepH * 60 - minsOfDay(now)) % DAY + DAY) % DAY;
+    return { near: m <= before * 60 || m >= DAY - 300, minsToBed: m <= before * 60 ? m : 0 }; }
+  // Healthiest-fasting nudges (Sutton 2018: earlier eating window; no food ~3 h before bed; a consistent schedule).
+  // firstMeals = timestamps of the first meal of recent days. Never forced — the app only suggests.
+  function nudges({ start, eatH, sleepH = 23, firstMeals = [] }) {
+    const out = [], close = (start + eatH) % 24, gapToBed = ((sleepH - close) % 24 + 24) % 24;
+    if (start >= 12) out.push('earlier');
+    if (gapToBed < 3) out.push('bed');
+    const mins = firstMeals.map(minsOfDay); if (mins.length >= 4) { const avg = mins.reduce((a, b) => a + b, 0) / mins.length, sd = Math.sqrt(mins.reduce((a, b) => a + (b - avg) ** 2, 0) / mins.length); if (sd > 90) out.push('consistent'); }
+    return out;
+  }
+  const API = { eatHours, minsOfDay, classify, weekCount, suggestStart, migrateLog, windowAt, lateShift, ultraCheck, nearBed, nudges };
   root.RWFast = API;
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
 })(typeof window !== 'undefined' ? window : globalThis);

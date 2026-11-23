@@ -88,7 +88,8 @@
     db = db || {}; const m = (x && x[6]) || {}, mult = m.mult || 1, items = Array.isArray(m.items) ? m.items : [];
     const o = { kcal: +x[1] || 0, p: +x[2] || 0, c: +x[3] || 0, f: +x[4] || 0, fib: +x[5] || 0, sugar: Core.addedSugar([x]), sat: 0, satKnown: true, na: 0, naKnown: true, chol: 0, cholKnown: true, micro: {}, microKnown: {} };
     for (const k of MICRO) { o.micro[k] = 0; o.microKnown[k] = items.length > 0; }
-    if (!items.length) { if (typeof m.sat === 'number') o.sat = m.sat * mult; else o.satKnown = false; o.naKnown = o.cholKnown = false; return o; }
+    if (!items.length) { if (typeof m.sat === 'number') o.sat = m.sat * mult; else o.satKnown = false; o.cholKnown = false;
+      if (typeof m.na === 'number') o.na = m.na * mult; else o.naKnown = false; return o; }   // m.na = sodium the user entered (per 1×)
     for (const it of items) { const ing = db[it.id], g = (+it.g || 0) * mult / 100, per = (ing && ing.per100) || {};
       if (ing && per.sat != null) o.sat += per.sat * g; else o.satKnown = false;
       if (per.na != null) o.na += per.na * g; else if (NA[it.id] != null) o.na += NA[it.id] * g; else o.naKnown = false;

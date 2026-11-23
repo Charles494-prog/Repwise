@@ -178,11 +178,41 @@
     ['spinach', 'Spinach', 'spinach alugbati', 'veg', 23, 2.9, 3.6, 0.4, 0.1, 2.2, U],
     ['mushroom', 'Mushroom', 'kabute mushroom', 'veg', 22, 3.1, 3.3, 0.3, 0, 1, U],
   ];
+  // Sodium, mg per 100 g, for EVERY built-in ingredient. USDA FoodData Central typical values (SR Legacy / Foundation,
+  // rounded) for the closest match. Ids in NA_EST are estimates (Filipino processed foods, bakery items and mixes with
+  // no USDA entry: typical label values), plus every ingredient whose row is itself an estimate.
+  const NA = {
+    pork_belly: 32, pork_lean: 60, pork_loin: 62, pork_ground: 56, pork_hock: 75, pork_liver: 87, pork_blood: 150, pork_ribs: 81,
+    chicken_thigh_skin: 85, chicken_thigh: 95, chicken_breast: 45, chicken_wing: 82, chicken_liver: 71, chicken_intestine: 150,
+    beef_lean: 55, beef_chuck: 65, beef_shank: 60, beef_ground: 66, oxtail: 60, bone_marrow: 30, goat: 82,
+    tapa: 1000, tocino: 800, longganisa: 1200, hotdog: 1090, corned_beef: 900, luncheon_meat: 1370, chicharon: 1820,
+    bangus: 70, galunggong: 60, tilapia: 52, tuna_fresh: 45, tuna_can: 250, sardines: 410, tuyo: 3000, shrimp: 120, squid: 44, fishball: 600,
+    egg: 140, egg_yolk: 50, egg_white: 170, quail_egg: 140, tofu: 14, tofu_silken: 10,
+    milk: 43, evap_milk: 106, condensed_milk: 127, greek_yogurt: 36, cottage_cheese: 360, cheese: 650, butter: 640, ice_cream: 80, whey: 200,
+    kangkong: 113, sitaw: 4, talong: 2, ampalaya: 5, kalabasa: 1, malunggay: 9, pechay: 65, okra: 7, sayote: 2, papaya_green: 8, taro_leaves: 3,
+    gabi: 11, cabbage: 18, carrot: 69, onion: 4, garlic: 17, ginger: 13, tomato: 5, bell_pepper: 4, green_beans: 6, togue: 6, peas: 4,
+    cauliflower: 30, broccoli: 33, lettuce: 28, cucumber: 2, banana_blossom: 10, corn: 15, spinach: 79, mushroom: 5, potato: 6, kamote: 55, ube: 9,
+    monggo_dry: 15, peanuts: 18, almonds: 1, chia: 16, peanut_butter: 430,
+    banana: 1, saba: 4, mango: 1, papaya: 8, guava: 2, pineapple: 1, apple: 1, orange: 0, watermelon: 1, avocado: 7, coconut_meat: 20, buko_juice: 105,
+    jackfruit: 2, kiwi: 3, grapes: 2, strawberries: 1, lanzones: 1, rambutan: 11,
+    rice_white: 1, rice_brown: 1, rice_glutinous: 4, garlic_rice: 300, oats_rolled: 2, oats_steel: 2, quinoa: 7, bihon: 19, canton: 5, spaghetti: 1, macaroni: 1,
+    flour: 2, rice_flour: 0, breadcrumbs: 732, cornstarch: 9, wrapper: 545, sago: 1, instant_noodles: 1700, cereal: 730,
+    pandesal: 480, bread_white: 480, bread_wheat: 450, burger_bun: 470, ensaymada: 300, spanish_bread: 350, cheese_roll: 400, hopia: 200, pizza: 600, french_fries: 210,
+    soy_sauce: 5490, patis: 7850, bagoong: 7000, oyster_sauce: 2730, tomato_sauce: 470, banana_ketchup: 900, mayonnaise: 640, vinegar: 2,
+    coconut_milk: 15, tamarind_mix: 18000, cocoa_tablea: 20, dark_chocolate: 20,
+    sugar: 1, honey: 4, stevia: 0, softdrink: 4, coffee: 2, coffee_3in1: 290, green_tea: 1, green_tea_sweet: 10,
+    oil_veg: 0, oil_olive: 0, oil_evoo: 0, oil_coconut: 0,
+  };
+  const NA_EST = new Set(['pork_hock', 'pork_blood', 'chicken_intestine', 'oxtail', 'bone_marrow', 'tofu_silken', 'papaya_green', 'banana_blossom', 'lanzones',
+    'garlic_rice', 'ensaymada', 'spanish_bread', 'cheese_roll', 'hopia', 'tamarind_mix', 'cocoa_tablea', 'coffee_3in1', 'green_tea_sweet']);
   const ING = {};
   for (const r of ROWS) {
     const [id, name, alt, group, kcal, p, c, f, sat, fib, src, pcG, pcL] = r;
-    ING[id] = { id, name, alt, group, per100: { kcal, p, c, f, sat, fib }, src, pc: pcG ? { g: pcG, label: pcL } : null };
+    if (src === E) NA_EST.add(id);
+    ING[id] = { id, name, alt, group, per100: { kcal, p, c, f, sat, fib, na: NA[id] ?? null }, src, naEst: NA_EST.has(id), pc: pcG ? { g: pcG, label: pcL } : null };
   }
+  // Sodium (mg) in g grams of an ingredient; null when unknown (custom ingredients without a value).
+  const sodium = (id, g = 100, db = ING) => { const v = db[id]?.per100?.na; return v == null ? null : v * g / 100; };
 
   // ---------- Dishes: base recipe + variants (grams per serving, raw). Estimates. ----------
   // method: raw (boiled/steamed) | grill | air | pan | deep ; oil: default amount key for that method
@@ -416,7 +446,7 @@
     }).filter(Boolean).sort((a, b) => b.s - a.s).filter((x, _, arr) => x.s >= arr[0].s * 0.5).map(x => x.e);
   }
 
-  const API = { ING, DISHES, METHODS, OIL_TYPES, OIL_AMTS, METHOD_DEFAULT, usesOil, scale, add, mul, sumItems, round, oilGrams, dishItems, buildMeal, fatQuality, foodWeight, search, norm };
+  const API = { NA, NA_EST, sodium, ING, DISHES, METHODS, OIL_TYPES, OIL_AMTS, METHOD_DEFAULT, usesOil, scale, add, mul, sumItems, round, oilGrams, dishItems, buildMeal, fatQuality, foodWeight, search, norm };
   root.FOODDB = API;
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
 })(typeof window !== 'undefined' ? window : globalThis);
