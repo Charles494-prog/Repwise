@@ -39,7 +39,7 @@ test('v2 → v3: custom meals become Dishes (nothing lost), custom exercises get
   const meals = [{ id: 'm1', name: 'Adobo', items: [{ id: 'soy_sauce', g: 15 }, { id: 'chicken_breast', g: 150 }], extra: null, method: 'braise' }, { id: 'm2', name: 'Rice & egg', items: [{ id: 'rice_white', g: 158 }], combo: 'Egg + Rice' }];
   const s = R.migrate({ schemaVersion: 2, myMeals: JSON.parse(JSON.stringify(meals)), favs: ['my:m1', 'dish:adobo'], customEx: { 'Band Pushdown': [['Triceps'], ['Triceps', 'Shoulders'], '⬇️'], junk: 5 },
     food: { '2026-11-20': [['Adobo', 400, 30, 10, 20, 1, { kind: 'my', myId: 'm1', mult: 1 }]] } });
-  assert.equal(s.schemaVersion, 3);
+  assert.equal(s.schemaVersion, R.CURRENT);
   assert.deepEqual(s.myDishes, meals); assert.deepEqual(s.myMeals, []);
   assert.deepEqual(s.favs, ['my:m1', 'dish:adobo']); assert.equal(s.food['2026-11-20'][0][6].myId, 'm1');
   assert.deepEqual(s.customEx['Band Pushdown'], [['Triceps'], ['Shoulders'], '⬇️', { t: [{ m: 'Triceps', r: 'p' }, { m: 'Shoulders', r: 's' }] }]);
@@ -47,6 +47,15 @@ test('v2 → v3: custom meals become Dishes (nothing lost), custom exercises get
 });
 test('upgrading keeps an untouched copy of the old data', () => {
   const raw = JSON.stringify({ schemaVersion: 2, myMeals: [{ id: 'a', name: 'X', items: [] }] }), ls = mem({ gq: raw });
-  const r = R.load(ls); assert.equal(r.state.myDishes[0].name, 'X'); assert.equal(ls.getItem('gq_pre_v3'), raw);
-  const ls2 = mem({ gq: JSON.stringify(r.state) }); R.load(ls2); assert.equal(ls2.getItem('gq_pre_v3'), null);
+  const r = R.load(ls); assert.equal(r.state.myDishes[0].name, 'X'); assert.equal(ls.getItem('gq_pre_v' + R.CURRENT), raw);
+  const ls2 = mem({ gq: JSON.stringify(r.state) }); R.load(ls2); assert.equal(ls2.getItem('gq_pre_v' + R.CURRENT), null);
+  // a copy left by an earlier upgrade is replaced, not kept next to the new one
+  const ls3 = mem({ gq: JSON.stringify({ schemaVersion: 3 }), gq_pre_v3: 'old' }); ls3.removeItem = k => ls3.setItem(k, ''); R.load(ls3); assert.equal(ls3.getItem('gq_pre_v3'), '');
+});
+
+test('v3 → v4: fasting "restart" state is dropped and old breaks are re-checked against the window', () => {
+  const day = (h, m, d = 23) => new Date(2026, 10, d, h, m).getTime();
+  const s = R.migrate({ schemaVersion: 3, fast: { on: true, proto: '16:8', start: 12, reset: day(21, 0, 22) }, fastLog: [[day(12, 57), 15.9], [day(21, 0, 22), 1]] });
+  assert.equal(s.schemaVersion, 4); assert.ok(!('reset' in s.fast)); assert.equal(s.fast.grace, 60); assert.equal(s.fast.lateInsight, true);
+  assert.deepEqual(s.fastLog.map(x => x.out), [false, true]);
 });

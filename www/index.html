@@ -121,6 +121,7 @@ nav button.on{color:var(--acc)}nav button.on svg{transform:translateY(-2px) scal
 <div id="sheetbg" onclick="closeSheet()"></div><div id="sheet"></div>
 <nav id="nav"></nav>
 <script src="icons.js"></script>
+<script src="fasting.js"></script>
 <script src="storage.js"></script>
 <script src="core.js"></script>
 <script>
@@ -581,7 +582,7 @@ V.settings=()=>{const p=S.profile;return`<div class="top">${backBtn()}<h1>Settin
  <div class="row" onclick="push('science')"><span style="font-size:22px">🔬</span><div class="rbody"><b>Science library</b><small>${SCIENCE.length} research-backed tips</small></div><span class="chev">›</span></div>
  <div class="row" onclick="push('transfer')"><span style="font-size:22px">🔄</span><div class="rbody"><b>Transfer / backup account</b><small>Move your progress to another device</small></div><span class="chev">›</span></div>
  <div class="row" onclick="push('privacy')"><span style="font-size:22px">🔒</span><div class="rbody"><b>Privacy</b><small>What we store (almost nothing)</small></div><span class="chev">›</span></div>
- <div class="row" onclick="if(confirm('Delete ALL data?')){localStorage.removeItem('gq');localStorage.removeItem('gq_pre_v3');location.reload()}"><span style="font-size:22px">🗑️</span><div class="rbody"><b style="color:var(--acc)">Reset everything</b></div></div></div>`};
+ <div class="row" onclick="if(confirm('Delete ALL data?')){localStorage.removeItem('gq');['gq_pre_v3','gq_pre_v4','gq_pre_v5'].forEach(k=>localStorage.removeItem(k));location.reload()}"><span style="font-size:22px">🗑️</span><div class="rbody"><b style="color:var(--acc)">Reset everything</b></div></div></div>`};
 // ================= DREAM GOALS =================
 // A goal is locked once set: it can only be changed after it has been reached.
 const GOALDEF={weight:{label:'Dream weight',unit:'kg',min:30,max:250,step:.5,cur:()=>S.profile.weight},bf:{label:'Dream body fat',unit:'%',min:3,max:60,step:.5,cur:()=>bodyFat().bf}};
@@ -647,5 +648,6 @@ window.addEventListener('popstate',()=>{});
 <script src="exercises.js"></script>
 <script src="schedule.js"></script>
 <script src="weekplan.js"></script>
+<script src="fastui.js"></script>
 </body>
 </html>

@@ -11,8 +11,8 @@ const ADOBO = { id: 'm1', name: 'My adobo', items: [{ id: 'soy_sauce', g: 15 }, 
 test('old custom meals open as Dishes: same name, ingredients, favourite and past logs', async () => {
   await p.open({ state: baseState({ myMeals: [ADOBO], favs: ['my:m1'], food: { [td()]: [['My adobo', 300, 40, 5, 6, 0, { kind: 'my', myId: 'm1', mult: 1 }]] } }) }); await ready();
   const r = await p.eval(`foodSheet();afSearch('');const start=$('#afres').innerText;stack=[];push('mymeals');const page=$('#app').innerText;
-    return {dishes:S.myDishes.map(d=>d.name),meals:S.myMeals.length,start,page,ver:S.schemaVersion,fav:S.favs,backup:!!localStorage.getItem('gq_pre_v3')}`);
-  assert.deepEqual(r.dishes, ['My adobo']); assert.equal(r.meals, 0); assert.equal(r.ver, 3); assert.deepEqual(r.fav, ['my:m1']); assert.ok(r.backup);
+    return {dishes:S.myDishes.map(d=>d.name),meals:S.myMeals.length,start,page,ver:S.schemaVersion,fav:S.favs,backup:!!localStorage.getItem('gq_pre_v4')}`);
+  assert.deepEqual(r.dishes, ['My adobo']); assert.equal(r.meals, 0); assert.equal(r.ver, 4); assert.deepEqual(r.fav, ['my:m1']); assert.ok(r.backup);
   assert.match(r.start, /My dishes/); assert.match(r.start, /Create dish/); assert.match(r.start, /Create meal/);
   assert.match(r.page, /Dishes/); assert.match(r.page, /My adobo/);
   assert.deepEqual(p.errors, []);

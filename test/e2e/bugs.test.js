@@ -30,7 +30,7 @@ test('storage: corrupted JSON recovers the last good daily copy', async () => {
 test('old data: 3-field food entries and missing keys work on every screen', async () => {
   await p.open({ state: { profile: { name: 'Old', goal: 'cut', sex: 'm', age: 30, height: 180, weight: 90, build: 'average', activity: 1.375 }, food: { [td()]: [['Rice', 205, 4], ['Egg', 72, 6]] }, workouts: [], weights: [[Date.now() - 864e5, 90]] } });
   const bad = await p.eval(`const r=[];for(const [n,f] of [['plan',()=>go('plan')],['meals',()=>go('meals')],['train',()=>go('train')],['body',()=>go('body')],['more',()=>go('more')],['search',()=>{foodSheet();afSearch('')}],['caltrack',()=>{closeSheet();push('caltrack')}],['nutrition',()=>push('nutrition')],['sleep',()=>push('sleep')]]){try{f();if(/undefined|NaN/.test(document.body.innerText))r.push(n)}catch(e){r.push(n+' '+e.message)}}return r`);
-  assert.deepEqual(bad, []); assert.equal(await p.eval('return S.schemaVersion'), 3);
+  assert.deepEqual(bad, []); assert.equal(await p.eval('return S.schemaVersion'), 4);
 });
 test('render: builder keeps its scroll position when editing an ingredient', async () => {
   await p.open({ state: baseState() });

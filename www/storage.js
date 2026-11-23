@@ -2,7 +2,7 @@
 // UMD so the migrations can be unit-tested in Node.
 (function (root) {
   'use strict';
-  const KEY = 'gq', LAST = 'gq_last', CURRENT = 3, LAST_MAX = 1.8e6;
+  const KEY = 'gq', LAST = 'gq_last', CURRENT = 4, LAST_MAX = 1.8e6;
   const isObj = v => v && typeof v === 'object' && !Array.isArray(v);
   const num = v => (typeof v === 'number' && isFinite(v) ? v : +v || 0);
 
@@ -42,6 +42,17 @@
       s.myMeals = [];
       return s;
     },
+    // v3 → v4: fasting. The old "fast restarted" state made meals inside the real window count as breaks;
+    // drop it and re-check every logged break against the configured window (only true out-of-window logs count).
+    3: s => {
+      if (isObj(s.fast)) {
+        delete s.fast.reset; s.fast.grace ??= 60; s.fast.lateInsight ??= true;
+        const F = root.RWFast || (typeof require === 'function' ? (() => { try { return require('./fasting.js'); } catch (e) { return null; } })() : null);
+        const start = num(s.fast.start) || 12, eatH = 24 - (parseInt(String(s.fast.proto || '16:8'), 10) || 16);
+        if (Array.isArray(s.fastLog) && F) s.fastLog = F.migrateLog(s.fastLog, start, eatH);
+      }
+      return s;
+    },
   };
   function migrate(s) {
     if (!isObj(s)) return { schemaVersion: CURRENT };
@@ -61,6 +72,8 @@
     }
     // Before upgrading the data model, keep the untouched data once (skipped for huge histories; daily file backups cover those).
     // Only when it fits next to the data and the daily copy (≈ 3 copies ≤ 4.5M chars); it's removed after 14 days.
+    // Older pre-upgrade copies are replaced by this one, so there is never more than one.
+    if (s && (num(s.schemaVersion) || 1) < CURRENT) for (let v = 2; v < CURRENT; v++) { try { ls.removeItem && ls.removeItem('gq_pre_v' + v); } catch (_) {} }
     if (s && (num(s.schemaVersion) || 1) < CURRENT && raw && raw.length * 3 < 4.5e6) { try { ls.setItem('gq_pre_v' + CURRENT, raw); s.preCopyAt = Date.now(); } catch (_) {} }
     return { state: migrate(s || {}), status, fresh: !s };
   }
@@ -71,7 +84,7 @@
     const d = new Date(), day = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
     let last = null; try { last = JSON.parse(ls.getItem(LAST) || 'null'); } catch (_) {}
     try { if (!s.preCopyAt && ls.getItem('gq_pre_v' + CURRENT) != null) s.preCopyAt = Date.now(); } catch (_) {}
-    if (s.preCopyAt && Date.now() - s.preCopyAt > 14 * 864e5) { try { ls.removeItem && ls.removeItem('gq_pre_v' + CURRENT); } catch (_) {} delete s.preCopyAt; }
+    if (s.preCopyAt && Date.now() - s.preCopyAt > 14 * 864e5) { for (let v = 2; v <= CURRENT; v++) { try { ls.removeItem && ls.removeItem('gq_pre_v' + v); } catch (_) {} } delete s.preCopyAt; }
     if (last && last.day === day) return false;
     const json = JSON.stringify(s);
     // The last-good copy doubles storage use; past ~1.8M chars (≈ several years of logs) rely on file backups.
